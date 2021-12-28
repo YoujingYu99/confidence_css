@@ -109,6 +109,9 @@ def extract_timings(file_name):
         questions_df = pd.DataFrame(np.column_stack([start_time_list, end_time_list, sentence_string_list]),
                                     columns=['start_time', 'end_time', 'sentence'])
         questions_df['filename'] = file_name
+        # filter out questions which are too short
+        mask = (questions_df['sentence'].astype(str).str.len() > 30)
+        questions_df = questions_df.loc[mask]
     return questions_df
 
 
