@@ -13,8 +13,8 @@ def extract_audio(csv_path):
 
     for index, row in total_df.iterrows():
         count = 0
-        start_time = row['start_time']
-        end_time = row['end_time']
+        start_time = str(row['start_time'][:-1])
+        end_time = str(row['end_time'][:-1])
         file_name = row['filename']
         json_name = file_name.split('/')[-1]
         sentence = row['sentence']
