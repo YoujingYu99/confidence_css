@@ -59,7 +59,8 @@ def read_data(csv_path):
     df['start_time'] = df['start_time'].str.replace('s', '')
     df['start_time'] = df['start_time'].astype(float)
     df['end_time'] = df['end_time'].str.replace('s', '')
-    df['end_time'] = df['end_time'].astype(float)
+    # leave one second buffer
+    df['end_time'] = df['end_time'].astype(float) + 1.0
     filename_list = df['filename'].tolist()
     json_name_list = [jname.split('\\')[-1] for jname in filename_list]
     audio_name_list = [aname.rsplit('.', 1)[0] + '.ogg' for aname in json_name_list]
