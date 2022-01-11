@@ -97,16 +97,8 @@ def extract_timings(file_name):
                         end_time = word_dic.endTime
                         # find the start time of the word spoken next and use it as the end time of the sentence
                         word_dic_index = word_list.index(word_dic)
-                        # if word_dic_index + 1 > len(word_list):
-                        #     sent_end_time = end_time
-                        # else:
-                        #     sent_end_time = word_list[word_dic_index + 1].startTime
                         try:
                             sent_end_time = word_list[word_dic_index + 1].startTime
-                            # find the index of the last word
-                            # for (index, d) in enumerate(word_list):
-                            #     if d.word == word_dic.word and d.endTime == end_time:
-                            #         last_word_index = index
                             last_word_index = next((index for (index, d) in enumerate(word_list) if d.word == word_dic.word and d.endTime == end_time), None)
                             before_word_list = word_list[: last_word_index]
                             last_word = find_last_word(before_word_list)
