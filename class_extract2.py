@@ -79,6 +79,7 @@ def extract_timings(file_name):
     """
     start_time_list = []
     end_time_list = []
+    sent_end_time_list = []
     sentence_string_list = []
     article_object = json_extract(file_name)
     sentence_list = article_sentence(article_object)
@@ -94,21 +95,31 @@ def extract_timings(file_name):
                     if "?" in str(word_dic.word):
                         #print('questions found')
                         end_time = word_dic.endTime
-
-                        # find the index of the last word
-                        # for (index, d) in enumerate(word_list):
-                        #     if d.word == word_dic.word and d.endTime == end_time:
-                        #         last_word_index = index
-                        last_word_index = next((index for (index, d) in enumerate(word_list) if d.word == word_dic.word and d.endTime == end_time), None)
-                        before_word_list = word_list[: last_word_index]
-                        last_word = find_last_word(before_word_list)
-                        start_time = last_word.startTime
-                        sentence_string = from_timings_extract_transcript(word_list, start_time, end_time)
-                        start_time_list.append(start_time)
-                        end_time_list.append(end_time)
-                        sentence_string_list.append(sentence_string)
-        questions_df = pd.DataFrame(np.column_stack([start_time_list, end_time_list, sentence_string_list]),
-                                    columns=['start_time', 'end_time', 'sentence'])
+                        # find the start time of the word spoken next and use it as the end time of the sentence
+                        word_dic_index = word_list.index(word_dic)
+                        # if word_dic_index + 1 > len(word_list):
+                        #     sent_end_time = end_time
+                        # else:
+                        #     sent_end_time = word_list[word_dic_index + 1].startTime
+                        try:
+                            sent_end_time = word_list[word_dic_index + 1].startTime
+                            # find the index of the last word
+                            # for (index, d) in enumerate(word_list):
+                            #     if d.word == word_dic.word and d.endTime == end_time:
+                            #         last_word_index = index
+                            last_word_index = next((index for (index, d) in enumerate(word_list) if d.word == word_dic.word and d.endTime == end_time), None)
+                            before_word_list = word_list[: last_word_index]
+                            last_word = find_last_word(before_word_list)
+                            start_time = last_word.startTime
+                            sentence_string = from_timings_extract_transcript(word_list, start_time, end_time)
+                            start_time_list.append(start_time)
+                            end_time_list.append(end_time)
+                            sent_end_time_list.append(sent_end_time)
+                            sentence_string_list.append(sentence_string)
+                        except:
+                            continue
+        questions_df = pd.DataFrame(np.column_stack([start_time_list, end_time_list,sent_end_time_list, sentence_string_list]),
+                                    columns=['start_time', 'end_time','sent_end_time', 'sentence'])
         questions_df['filename'] = file_name
         # filter out questions which are too short
         mask = (questions_df['sentence'].astype(str).str.len() > 30)
@@ -127,7 +138,7 @@ def complete_dataframe(folder_path_list):
         questions_df = extract_timings(file_name=json_file)
         small_dfs.append(questions_df)
     total_df = pd.concat(small_dfs, ignore_index=True)
-    save_df_path = os.path.join(fileDir, 'confidence_css') + '.csv'
+    save_df_path = os.path.join(fileDir, 'confidence_css2') + '.csv'
     print(save_df_path)
     total_df.to_csv(save_df_path, index=False)
     return total_df
