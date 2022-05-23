@@ -135,20 +135,14 @@ def complete_dataframe(folder_path_list):
         questions_df = extract_timings(file_name=json_file)
         small_dfs.append(questions_df)
     total_df = pd.concat(small_dfs, ignore_index=True)
-    save_df_path = os.path.join(fileDir, 'confidence_css2') + '.csv'
+    save_df_path = os.path.join(home_dir, 'confidence_css2', 'confidence_dataframe') + '.csv'
     print(save_df_path)
     total_df.to_csv(save_df_path, index=False)
     return total_df
 
-
-fileDir = os.path.dirname(os.path.relpath('__file__'))
-app_dir = os.path.join(fileDir, '0')
+# home_dir is the location of script
+home_dir = os.path.dirname(os.path.dirname(os.path.relpath('__file__')))
+file_dir = os.path.join(home_dir, 'data','Spotify-Podcasts','podcasts-no-audio-13GB','podcasts-transcripts-0to2-decompressed','spotify-podcasts-2020', 'podcasts-transcripts')
+app_dir = os.path.join(file_dir, '0')
 
 print(complete_dataframe(folder_path_list=[app_dir]))
-
-# filename = r"C:\Users\Youjing Yu\PycharmProjects\confidence_css\5\show_05As0fQbe0p9CgcaJbek8n\2CJtQvWuxtxxgpjqcL72uP.json"
-# print(extract_timings(file_name=filename))
-
-
-# article = json_extract(filename)
-# print(article)
