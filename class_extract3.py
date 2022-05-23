@@ -8,16 +8,20 @@ from containers import *
 def json_path_in_dir(folder_path_list):
     """
         :folder_path_list: the path of the parent-parent folder of json
+                            top: 0
+                            middle: 0, 1, ... , 9, A, B, .., Z
+                            bottom:show_002B8
         :return: a clean list containing the absolute filepaths of all json files
         """
     file_path_list = []
-    for folder_path in folder_path_list:
-        subfolder_list = [x[0] for x in os.walk(folder_path)]
-        print(subfolder_list)
-        for subfolder in subfolder_list:
-            for filename in os.listdir(os.path.join(folder_path, subfolder)):
-                if filename.endswith('json'):
-                    file_path_list.append(os.path.join(folder_path, subfolder, filename))
+    for top_folder_path in folder_path_list:
+        middle_folder_path_list = [x for x in next(os.walk(top_folder_path))[1]]
+        for middle_folder_path in middle_folder_path_list:
+            bottom_folder_path_list = [x for x in next(os.walk(os.path.join(top_folder_path, middle_folder_path)))[1]]
+            for bottom_folder_path in bottom_folder_path_list:
+                for filename in os.listdir(os.path.join(top_folder_path, middle_folder_path,bottom_folder_path)):
+                    if filename.endswith('json'):
+                        file_path_list.append(os.path.join(top_folder_path, middle_folder_path,bottom_folder_path,  filename))
     return file_path_list
 
 
@@ -112,7 +116,7 @@ def extract_timings(file_name):
                         except:
                             continue
         questions_df = pd.DataFrame(np.column_stack([start_time_list, end_time_list,sent_end_time_list, sentence_string_list]),
-                                    columns=['start_time', 'end_time','sent_end_time', 'sentence'])
+                                    columns=['start_time', 'end_time', 'sent_end_time', 'sentence'])
         questions_df['filename'] = file_name
         # filter out questions which are too short
         mask = (questions_df['sentence'].astype(str).str.len() > 30)
@@ -137,8 +141,8 @@ def complete_dataframe(folder_path_list):
     return total_df
 
 
-fileDir = os.path.dirname(os.path.realpath('__file__'))
-app_dir = os.path.join(fileDir, '0', '1')
+fileDir = os.path.dirname(os.path.relpath('__file__'))
+app_dir = os.path.join(fileDir, '0')
 
 print(complete_dataframe(folder_path_list=[app_dir]))
 
