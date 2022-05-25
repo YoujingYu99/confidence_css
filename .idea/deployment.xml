@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
-  <component name="PublishConfigData" autoUpload="Always" serverName="yyu@ribble.cs.ucl.ac.uk:22 (2)" remoteFilesAllowedToDisappearOnAutoupload="false">
+  <component name="PublishConfigData" autoUpload="Always" serverName="yyu@ribble.cs.ucl.ac.uk:22 (4)" remoteFilesAllowedToDisappearOnAutoupload="false">
     <serverData>
       <paths name="yyu@ribble.cs.ucl.ac.uk:22">
         <serverdata>
@@ -10,6 +10,20 @@
         </serverdata>
       </paths>
       <paths name="yyu@ribble.cs.ucl.ac.uk:22 (2)">
+        <serverdata>
+          <mappings>
+            <mapping deploy="/home/yyu/confidence_css" local="$PROJECT_DIR$" />
+          </mappings>
+        </serverdata>
+      </paths>
+      <paths name="yyu@ribble.cs.ucl.ac.uk:22 (3)">
+        <serverdata>
+          <mappings>
+            <mapping deploy="/tmp/pycharm_project_908" local="$PROJECT_DIR$" />
+          </mappings>
+        </serverdata>
+      </paths>
+      <paths name="yyu@ribble.cs.ucl.ac.uk:22 (4)">
         <serverdata>
           <mappings>
             <mapping deploy="/home/yyu/confidence_css" local="$PROJECT_DIR$" />

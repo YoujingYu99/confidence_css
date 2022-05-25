@@ -2,6 +2,7 @@ import json
 import os
 import pandas as pd
 import numpy as np
+import pysftp
 from containers import *
 
 
@@ -141,9 +142,9 @@ def complete_dataframe(folder_path_list):
     return total_df
 
 # home_dir is the location of script
-home_dir = os.path.dirname(os.path.dirname(os.path.relpath('__file__')))
-file_dir = os.path.join('data','Spotify-Podcasts','podcasts-no-audio-13GB','podcasts-transcripts-0to2-decompressed','spotify-podcasts-2020', 'podcasts-transcripts')
-print(os.path.exists(file_dir))
+home_dir = os.path.join('home', 'yyu')
+file_dir = os.path.join(home_dir, 'data','Spotify-Podcasts','podcasts-no-audio-13GB','podcasts-transcripts-0to2-decompressed','spotify-podcasts-2020', 'podcasts-transcripts')
+print(file_dir)
 app_dir = os.path.join(file_dir, '0')
 
 print(complete_dataframe(folder_path_list=[app_dir]))
