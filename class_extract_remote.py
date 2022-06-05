@@ -31,19 +31,25 @@ def json_extract(file_name):
     :param file_name: the path of the json files to be extracted
     :return: a clean list containing the raw sentences
     """
-    with open(file_name, 'r', encoding='utf-8') as file_in:
+    # encoding='utf-8', errors='ignore'
+    with open(file_name, 'r', errors='ignore') as file_in:
         # Reading from file
-        data = json.loads(file_in.read())
-        return Article(data)
-
+        try:
+            data = json.loads(file_in.read(), strict=False)
+            return Article(data)
+        except:
+            pass
 
 def article_sentence(article_object):
     """
         :param article_object: the article object to be read
         :return: a clean list containing the raw sentences
         """
-    sentence_list = article_object.sentence_list
-    return sentence_list
+    if article_object.sentence_list:
+        sentence_list = article_object.sentence_list
+        return sentence_list
+    else:
+        pass
 
 
 def sentence_word(sentence_object):
@@ -87,41 +93,42 @@ def extract_timings(file_name):
     sent_end_time_list = []
     sentence_string_list = []
     article_object = json_extract(file_name)
-    sentence_list = article_sentence(article_object)
-    for sentence in sentence_list:
-        word_list = sentence_word(sentence)
-        # ignore wordlist if it is none
-        if isinstance(word_list, type(None)):
-            continue
-        else:
-            for word_dic in word_list:
-                if word_dic.speakerTag:
-                    #print('multiple speakers')
-                    if "?" in str(word_dic.word):
-                        #print('questions found')
-                        end_time = word_dic.endTime
-                        # find the start time of the word spoken next and use it as the end time of the sentence
-                        word_dic_index = word_list.index(word_dic)
-                        try:
-                            sent_end_time = word_list[word_dic_index + 1].startTime
-                            last_word_index = next((index for (index, d) in enumerate(word_list) if d.word == word_dic.word and d.endTime == end_time), None)
-                            before_word_list = word_list[: last_word_index]
-                            last_word = find_last_word(before_word_list)
-                            start_time = last_word.startTime
-                            sentence_string = from_timings_extract_transcript(word_list, start_time, end_time)
-                            start_time_list.append(start_time)
-                            end_time_list.append(end_time)
-                            sent_end_time_list.append(sent_end_time)
-                            sentence_string_list.append(sentence_string)
-                        except:
-                            continue
-        questions_df = pd.DataFrame(np.column_stack([start_time_list, end_time_list,sent_end_time_list, sentence_string_list]),
-                                    columns=['start_time', 'end_time', 'sent_end_time', 'sentence'])
-        questions_df['filename'] = file_name
-        # filter out questions which are too short
-        mask = (questions_df['sentence'].astype(str).str.len() > 30)
-        questions_df = questions_df.loc[mask]
-    return questions_df
+    if article_object:
+        sentence_list = article_sentence(article_object)
+        for sentence in sentence_list:
+            word_list = sentence_word(sentence)
+            # ignore wordlist if it is none
+            if isinstance(word_list, type(None)):
+                continue
+            else:
+                for word_dic in word_list:
+                    if word_dic.speakerTag:
+                        #print('multiple speakers')
+                        if "?" in str(word_dic.word):
+                            #print('questions found')
+                            end_time = word_dic.endTime
+                            # find the start time of the word spoken next and use it as the end time of the sentence
+                            word_dic_index = word_list.index(word_dic)
+                            try:
+                                sent_end_time = word_list[word_dic_index + 1].startTime
+                                last_word_index = next((index for (index, d) in enumerate(word_list) if d.word == word_dic.word and d.endTime == end_time), None)
+                                before_word_list = word_list[: last_word_index]
+                                last_word = find_last_word(before_word_list)
+                                start_time = last_word.startTime
+                                sentence_string = from_timings_extract_transcript(word_list, start_time, end_time)
+                                start_time_list.append(start_time)
+                                end_time_list.append(end_time)
+                                sent_end_time_list.append(sent_end_time)
+                                sentence_string_list.append(sentence_string)
+                            except:
+                                continue
+            questions_df = pd.DataFrame(np.column_stack([start_time_list, end_time_list,sent_end_time_list, sentence_string_list]),
+                                        columns=['start_time', 'end_time', 'sent_end_time', 'sentence'])
+            questions_df['filename'] = file_name
+            # filter out questions which are too short
+            mask = (questions_df['sentence'].astype(str).str.len() > 30)
+            questions_df = questions_df.loc[mask]
+        return questions_df
 
 
 def complete_dataframe(folder_path_list):
@@ -135,15 +142,15 @@ def complete_dataframe(folder_path_list):
         questions_df = extract_timings(file_name=json_file)
         small_dfs.append(questions_df)
     total_df = pd.concat(small_dfs, ignore_index=True)
-    save_df_path = os.path.join(home_dir, 'confidence_css2', 'confidence_dataframe') + '.csv'
-    print(save_df_path)
+    save_df_path = os.path.join(home_dir, 'data_sheets', 'confidence_dataframe', '1') + '.csv'
     total_df.to_csv(save_df_path, index=False)
     return total_df
 
-# home_dir is the location of script
-home_dir = os.path.dirname(os.path.dirname(os.path.relpath('__file__')))
-file_dir = os.path.join('data','Spotify-Podcasts','podcasts-no-audio-13GB','podcasts-transcripts-0to2-decompressed','spotify-podcasts-2020', 'podcasts-transcripts')
-print(os.path.exists(file_dir))
-app_dir = os.path.join(file_dir, '0')
+# home_dir is the location of person
+home_dir = os.path.join('/home', 'yyu')
+# file_dir = os.path.join(home_dir, 'confidence_css')
+file_dir = os.path.join(home_dir, 'data','Spotify-Podcasts','podcasts-no-audio-13GB','podcasts-transcripts-0to2-decompressed','spotify-podcasts-2020', 'podcasts-transcripts')
+
+app_dir = os.path.join(file_dir, '1')
 
 print(complete_dataframe(folder_path_list=[app_dir]))
