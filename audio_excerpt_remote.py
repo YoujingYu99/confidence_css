@@ -87,9 +87,9 @@ def extract_segments(df, ogg_files, excerpt_output_path):
                 audio_name,
             )
             audio_excerpt_name = os.path.join(
-                excerpt_output_path,
-                str(ogg_file_sub_list[ogg_index]),
-                str(ogg_file_up_list[ogg_file_list.index(audio_name)]),
+                # excerpt_output_path,
+                # str(ogg_file_sub_list[ogg_index]),
+                # str(ogg_file_up_list[ogg_file_list.index(audio_name)]),
                 str(audio_name[:-4] + str(start)),
             )
             print('original path', audio_file_path)
