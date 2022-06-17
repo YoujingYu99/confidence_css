@@ -17,15 +17,15 @@ from pydub import AudioSegment
 
 
 # home_dir is the location of script
-home_dir = os.path.join('/home', 'yyu')
+home_dir = os.path.join("/home", "yyu")
 
-csv_path = os.path.join(home_dir, 'data_sheets', 'confidence_dataframe_0.csv')
+csv_path = os.path.join(home_dir, "data_sheets", "confidence_dataframe_0.csv")
 # Audio data file
-fileDir = os.path.join(home_dir, 'data')
+fileDir = os.path.join(home_dir, "data")
 audio_path = os.path.join(
-    fileDir, 'Spotify-Podcasts', 'podcasts-audio-only-2TB', 'podcasts-audio', '0'
+    fileDir, "Spotify-Podcasts", "podcasts-audio-only-2TB", "podcasts-audio", "0"
 )
-excerpt_output_path = os.path.join(home_dir, 'extracted_audio', '0')
+excerpt_output_path = os.path.join(home_dir, "extracted_audio", "0")
 
 
 # AudioSegment.converter = os.path.join(home_dir, 'confidence_css', 'ffmpeg.exe')
@@ -35,6 +35,9 @@ excerpt_output_path = os.path.join(home_dir, 'extracted_audio', '0')
 # pydub.utils.get_prober_name = lambda: os.path.join(
 #     home_dir, 'confidence_css', 'ffprobe.exe'
 # )
+from pydub.utils import which
+
+AudioSegment.converter = which("ffmpeg")
 
 
 def read_data(csv_path):
@@ -44,17 +47,17 @@ def read_data(csv_path):
     :return: A dataframe containing 'start_time', 'sent_end_time' and
     'filename'.
     """
-    df = pd.read_csv(csv_path, sep=',')
+    df = pd.read_csv(csv_path, sep=",")
 
     # Use proper pd datatypes
-    df['start_time'] = df['start_time'].str.replace('s', '')
-    df['start_time'] = df['start_time'].astype(float)
-    df['sent_end_time'] = df['sent_end_time'].str.replace('s', '')
-    df['sent_end_time'] = df['sent_end_time'].astype(float)
-    filename_list = df['filename'].tolist()
-    json_name_list = [jname.split('/')[-1] for jname in filename_list]
-    audio_name_list = [aname.rsplit('.', 1)[0] + '.ogg' for aname in json_name_list]
-    df['audio_name'] = audio_name_list
+    df["start_time"] = df["start_time"].str.replace("s", "")
+    df["start_time"] = df["start_time"].astype(float)
+    df["sent_end_time"] = df["sent_end_time"].str.replace("s", "")
+    df["sent_end_time"] = df["sent_end_time"].astype(float)
+    filename_list = df["filename"].tolist()
+    json_name_list = [jname.split("/")[-1] for jname in filename_list]
+    audio_name_list = [aname.rsplit(".", 1)[0] + ".ogg" for aname in json_name_list]
+    df["audio_name"] = audio_name_list
 
     return df
 
@@ -73,11 +76,11 @@ def extract_segments(df, ogg_files, excerpt_output_path):
     # slice the audio into segments
     for start, end, audio_name in zip(starts, ends, audio_names):
         # Sub folder list
-        ogg_file_sub_list = [jname.split('/')[-3] for jname in ogg_files]
+        ogg_file_sub_list = [jname.split("/")[-3] for jname in ogg_files]
         # Show folder list
-        ogg_file_up_list = [jname.split('/')[-2] for jname in ogg_files]
+        ogg_file_up_list = [jname.split("/")[-2] for jname in ogg_files]
         # Ogg name list
-        ogg_file_list = [jname.split('/')[-1] for jname in ogg_files]
+        ogg_file_list = [jname.split("/")[-1] for jname in ogg_files]
         if audio_name in ogg_file_list:
             ogg_index = ogg_file_list.index(audio_name)
             audio_file_path = os.path.join(
@@ -86,20 +89,25 @@ def extract_segments(df, ogg_files, excerpt_output_path):
                 str(ogg_file_up_list[ogg_index]),
                 audio_name,
             )
-            audio_excerpt_name = os.path.join(
-                # excerpt_output_path,
-                # str(ogg_file_sub_list[ogg_index]),
-                # str(ogg_file_up_list[ogg_file_list.index(audio_name)]),
-                str(audio_name[:-4] + str(start)),
+            audio_excerpt_name = (
+                str(ogg_file_sub_list[ogg_index])
+                + "_"
+                + str(ogg_file_up_list[ogg_file_list.index(audio_name)])
+                + "_"
+                + str(audio_name[:-4] + "_" + str(start))
             )
-            print('original path', audio_file_path)
-            print('excerpt name', audio_excerpt_name)
+            audio_excerpt_name.replace('/', '_')
+            print(audio_excerpt_name)
+            audio_excerpt_path_name = os.path.join(
+                excerpt_output_path, audio_excerpt_name
+            )
+            print(audio_excerpt_path_name)
             # working in milliseconds
             start = start * 1000
             end = end * 1000
             newAudio = AudioSegment.from_ogg(audio_file_path)
             newAudio = newAudio[start:end]
-            newAudio.export(audio_excerpt_name + '.ogg', format='ogg')
+            newAudio.export(audio_excerpt_path_name + ".mp3", format="mp3")
 
 
 def extract_all_audios(csv_path, audio_path, excerpt_output_path):
@@ -140,7 +148,7 @@ def extract_all_audio_path(audio_folder_series_path):
                         top_folder_path, middle_folder_path, bottom_folder_path
                     )
                 ):
-                    if filename.endswith('ogg'):
+                    if filename.endswith("ogg"):
                         audio_path_list.append(
                             os.path.join(
                                 top_folder_path,
