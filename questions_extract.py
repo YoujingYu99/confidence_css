@@ -3,6 +3,13 @@
 # Extract start and end time
 # Output to a csv file
 
+"""Initialise the Logic Simulator App.
+This script initialises the LogicSimulatorApp instance using wx.App instance.
+Classes
+-----
+LogicSimulatorApp: Creates user interface for logic simulation.
+"""
+
 import os
 import json
 
