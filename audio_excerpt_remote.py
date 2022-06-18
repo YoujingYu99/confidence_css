@@ -19,13 +19,13 @@ from pydub import AudioSegment
 # home_dir is the location of script
 home_dir = os.path.join("/home", "yyu")
 
-csv_path = os.path.join(home_dir, "data_sheets", "confidence_dataframe_0.csv")
+csv_path = os.path.join(home_dir, "data_sheets", "confidence_dataframe_1.csv")
 # Audio data file
 fileDir = os.path.join(home_dir, "data")
 audio_path = os.path.join(
-    fileDir, "Spotify-Podcasts", "podcasts-audio-only-2TB", "podcasts-audio", "0"
+    fileDir, "Spotify-Podcasts", "podcasts-audio-only-2TB", "podcasts-audio", "1"
 )
-excerpt_output_path = os.path.join(home_dir, "extracted_audio", "0")
+excerpt_output_path = os.path.join(home_dir, "extracted_audio", "1")
 
 
 # AudioSegment.converter = os.path.join(home_dir, 'confidence_css', 'ffmpeg.exe')
@@ -60,7 +60,6 @@ def read_data(csv_path):
     df["audio_name"] = audio_name_list
 
     return df
-
 
 def extract_segments(df, ogg_files, excerpt_output_path):
     """

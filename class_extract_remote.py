@@ -85,6 +85,10 @@ def sentence_word(sentence_object):
 
 
 def find_last_word(before_word_list):
+    """
+    :param before_word_list: The list of words before.
+    :return: The last word
+    """
     end_word_list = []
     for word_dict in before_word_list:
         if (
@@ -155,6 +159,7 @@ def extract_timings(file_name):
                                 sentence_string = from_timings_extract_transcript(
                                     word_list, start_time, end_time
                                 )
+                                print(sentence_string)
                                 start_time_list.append(start_time)
                                 end_time_list.append(end_time)
                                 sent_end_time_list.append(sent_end_time)
@@ -191,7 +196,7 @@ def complete_dataframe(folder_path_list):
         small_dfs.append(questions_df)
     total_df = pd.concat(small_dfs, ignore_index=True)
     save_df_path = (
-        os.path.join(home_dir, 'data_sheets', 'confidence_dataframe', '1') + '.csv'
+        os.path.join(home_dir, 'data_sheets', 'confidence_dataframe_2') + '.csv'
     )
     total_df.to_csv(save_df_path, index=False)
     return total_df
@@ -212,4 +217,4 @@ file_dir = os.path.join(
 
 app_dir = os.path.join(file_dir, '1')
 
-print(complete_dataframe(folder_path_list=[app_dir]))
+complete_dataframe(folder_path_list=[app_dir])
