@@ -195,9 +195,12 @@ def complete_dataframe(folder_path_list):
         questions_df = extract_timings(file_name=json_file)
         small_dfs.append(questions_df)
     total_df = pd.concat(small_dfs, ignore_index=True)
-    save_df_path = (
-        os.path.join(home_dir, 'data_sheets', 'confidence_dataframe_2') + '.csv'
-    )
+    # save_df_path = (
+    #     os.path.join(home_dir, 'confidence_dataframe_2') + '.csv'
+    # )
+    save_df_path = os.path.join(home_dir, 'confidence_dataframe_2.csv')
+
+    print(save_df_path)
     total_df.to_csv(save_df_path, index=False)
     return total_df
 
