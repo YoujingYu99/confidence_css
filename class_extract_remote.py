@@ -204,7 +204,7 @@ def complete_dataframe(folder_path_list):
     # save_df_path = (
     #     os.path.join(home_dir, 'confidence_dataframe_1') + '.csv'
     # )
-    save_df_path = os.path.join(home_dir, "confidence_dataframe_1.csv")
+    save_df_path = os.path.join(home_dir, "confidence_dataframe_2.csv")
 
     print(save_df_path)
     total_df.to_csv(save_df_path, index=False)
@@ -224,6 +224,6 @@ file_dir = os.path.join(
     "podcasts-transcripts",
 )
 
-app_dir = os.path.join(file_dir, "1")
+app_dir = os.path.join(file_dir, "2")
 
 complete_dataframe(folder_path_list=[app_dir])
