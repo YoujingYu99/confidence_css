@@ -13,22 +13,6 @@ from pydub.utils import which
 AudioSegment.converter = which("ffmpeg")
 
 
-# home_dir is the location of script
-home_dir = os.path.join("/home", "yyu")
-
-csv_path = os.path.join(home_dir, "data_sheets", "confidence_dataframe_1.csv")
-# Audio data file
-fileDir = os.path.join(home_dir, "data")
-audio_path = os.path.join(
-    fileDir, "Spotify-Podcasts", "podcasts-audio-only-2TB", "podcasts-audio", "0"
-)
-# audio_path = os.path.join(
-#     fileDir, 'Spotify-Podcasts', 'podcasts-audio-only-2TB', 'podcasts-audio', '0'
-# )
-excerpt_output_path = os.path.join(home_dir, "extracted_audio", "1")
-
-
-
 def read_data(csv_path):
     """
     :param csv_path: Path of the csv file containing information about
@@ -149,5 +133,17 @@ def extract_all_audio_path(audio_folder_series_path):
                         )
     return audio_path_list
 
+# home_dir is the location of script
+home_dir = os.path.join("/home", "yyu")
 
+csv_path = os.path.join(home_dir, "data_sheets", "confidence_dataframe_1.csv")
+# Audio data file
+fileDir = os.path.join(home_dir, "data")
+audio_path = os.path.join(
+    fileDir, "Spotify-Podcasts", "podcasts-audio-only-2TB", "podcasts-audio", "0"
+)
+# audio_path = os.path.join(
+#     fileDir, 'Spotify-Podcasts', 'podcasts-audio-only-2TB', 'podcasts-audio', '0'
+# )
+excerpt_output_path = os.path.join(home_dir, "extracted_audio", "1")
 extract_all_audios(csv_path, [audio_path], excerpt_output_path)
