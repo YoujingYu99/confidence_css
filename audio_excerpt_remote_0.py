@@ -8,25 +8,39 @@ import pydub
 import os
 import pandas as pd
 from pydub import AudioSegment
-from pydub.utils import which
 
-AudioSegment.converter = which("ffmpeg")
+
+# AudioSegment.converter = r'/ffmpeg/bin/ffmpeg.exe'
+# AudioSegment.ffprobe = r'/ffmpeg/bin/ffprobe.exe'
+# AudioSegment.ffmpeg = r'/ffmpeg/bin/ffmpeg.exe'
+# pydub.utils.get_prober_name = lambda: r'ffmpeg/bin/ffprobe.exe'
 
 
 # home_dir is the location of script
 home_dir = os.path.join("/home", "yyu")
 
-csv_path = os.path.join(home_dir, "data_sheets", "confidence_dataframe_1.csv")
+csv_path = os.path.join(home_dir, "data_sheets", "confidence_dataframe_0.csv")
 # Audio data file
 fileDir = os.path.join(home_dir, "data")
 audio_path = os.path.join(
     fileDir, "Spotify-Podcasts", "podcasts-audio-only-2TB", "podcasts-audio", "0"
 )
 # audio_path = os.path.join(
-#     fileDir, 'Spotify-Podcasts', 'podcasts-audio-only-2TB', 'podcasts-audio', '0'
+#     fileDir, "Spotify-Podcasts", "podcasts-audio-only-2TB", "podcasts-audio", "0"
 # )
-excerpt_output_path = os.path.join(home_dir, "extracted_audio", "1")
+excerpt_output_path = os.path.join(home_dir, "extracted_audio", "0_new")
 
+
+# AudioSegment.converter = os.path.join(home_dir, 'confidence_css', 'ffmpeg.exe')
+#
+# AudioSegment.ffprobe = os.path.join(home_dir, 'confidence_css', 'ffprobe.exe')
+# AudioSegment.ffmpeg = os.path.join(home_dir, 'confidence_css', 'ffmpeg.exe')
+# pydub.utils.get_prober_name = lambda: os.path.join(
+#     home_dir, 'confidence_css', 'ffprobe.exe'
+# )
+from pydub.utils import which
+
+AudioSegment.converter = which("ffmpeg")
 
 
 def read_data(csv_path):
@@ -49,7 +63,6 @@ def read_data(csv_path):
     df["audio_name"] = audio_name_list
 
     return df
-
 
 def extract_segments(df, ogg_files, excerpt_output_path):
     """
@@ -85,7 +98,7 @@ def extract_segments(df, ogg_files, excerpt_output_path):
                 + "_"
                 + str(audio_name[:-4] + "_" + str(start))
             )
-            audio_excerpt_name.replace("/", "_")
+            audio_excerpt_name.replace('/', '_')
             print(audio_excerpt_name)
             audio_excerpt_path_name = os.path.join(
                 excerpt_output_path, audio_excerpt_name
@@ -111,7 +124,7 @@ def extract_all_audios(csv_path, audio_path, excerpt_output_path):
     #              os.path.isfile(os.path.join(audio_path, f)) and f.endswith('.ogg')]
     ogg_files = extract_all_audio_path(audio_path)
     extract_segments(df, ogg_files, excerpt_output_path)
-    print("Extraction finished!")
+    print('Extraction finished!')
 
 
 def extract_all_audio_path(audio_folder_series_path):
