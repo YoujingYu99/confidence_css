@@ -106,6 +106,7 @@ def extract_all_audio_path(audio_folder_series_path):
                                     Down-level, 73Kvk... .ogg
     :return: A list of paths containing only the ogg file locations.
     """
+
     audio_path_list = []
     for top_folder_path in audio_folder_series_path:
         middle_folder_path_list = [x for x in next(os.walk(top_folder_path))[1]]
