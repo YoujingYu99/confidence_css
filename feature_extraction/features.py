@@ -6,7 +6,6 @@ audio file.
 Classes
 --------
 SingleFileFeatureExtraction: Extract features from a single audio file.
-
 """
 
 import os
@@ -171,6 +170,7 @@ class SingleFileFeatureExtraction:
         self.pitches = pitches
 
     def write_features_to_csv(self):
+        """Extract all features and write to a csv."""
         self.load_audio()
         self.get_energy()
         self.get_spectral_centroids()

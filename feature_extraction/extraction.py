@@ -11,6 +11,7 @@ folder_path_list = [os.path.join(home_dir, "extracted_audio", "0")]
 
 audio_path_list = audio_path_in_dir(folder_path_list)
 for audio_path in audio_path_list:
+    # Create csv name
     audio_name = audio_path.split("/")[-1] + ".csv"
     feature_csv_folder_path = os.path.join(home_dir, "data_sheets", "features", "0")
     features = SingleFileFeatureExtraction(
