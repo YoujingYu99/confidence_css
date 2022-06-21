@@ -21,12 +21,15 @@ import matplotlib.pyplot as plt
 
 def audio_path_in_dir(folder_path_list):
     """
-    :param folder_path_list: The path of the parent-parent folder of json.
+    :param folder_path_list: The path of the parent-parent folder of audio.
     :return: Clean list containing the absolute filepaths of all audio files.
     """
     file_path_list = []
+    # for filename in os.listdir(folder_path_list):
+    #     if filename.endswith("mp3"):
+    #         file_path_list.append(os.path.join(folder_path, filename))
     for folder_path in folder_path_list:
-        for filename in os.listdir(os.path.join(folder_path, folder_path)):
+        for filename in os.listdir(folder_path ):
             if filename.endswith("mp3"):
                 file_path_list.append(os.path.join(folder_path, filename))
     return file_path_list
