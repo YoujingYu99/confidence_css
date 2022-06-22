@@ -15,7 +15,6 @@ import numpy as np
 import pandas as pd
 import librosa
 import librosa.display
-import matplotlib.pyplot as plt
 
 
 def audio_path_in_dir(folder_path_list):
@@ -28,7 +27,7 @@ def audio_path_in_dir(folder_path_list):
     #     if filename.endswith("mp3"):
     #         file_path_list.append(os.path.join(folder_path, filename))
     for folder_path in folder_path_list:
-        for filename in os.listdir(folder_path ):
+        for filename in os.listdir(folder_path):
             if filename.endswith("mp3"):
                 file_path_list.append(os.path.join(folder_path, filename))
     return file_path_list
@@ -47,6 +46,10 @@ class SingleFileFeatureExtraction:
     Public methods
     --------------
     load_audio(self, audio_path): Load audio from path provided.
+    get_pos_of_item(self, elem, string_list): Get a list of all positions of
+                                        an item in the list.
+    get_transcription(self): Get the transcribed sentence.
+    get_interjecting frequency: Get the frequency of interjecting sounds.
     get_energy(self): Calculate energy of audio.
     get_spectral_centroids(self): Calculate all spectral centroids.
     get_zero_crossings(self) Calculate the zero-crossing rate.
@@ -55,17 +58,37 @@ class SingleFileFeatureExtraction:
     write_features_to_csv(self): Write all features extracted to a csv file.
     """
 
-    def __init__(self, audio_path, feature_csv_folder_path):
+    def __init__(self, home_dir, audio_path, feature_csv_folder_path):
+        # Load paths
+        self.home_dir = home_dir
         self.audio_path = audio_path
         self.feature_csv_folder_path = feature_csv_folder_path
-        self.feature_dataframe = pd.DataFrame()
+
         self.frame_length = 1024
-        self.hop_length = self.frame_length / 2
+        self.hop_length = 512
         self.eps = 0.000000001
+        self.n_mfcc = 12
+        self.interjecting_sounds_list = [
+            "Hmm",
+            "eh",
+            "oh",
+            "ooh",
+            "oops",
+            "whoa",
+            "wow",
+            "well",
+            "well well well",
+        ]
         self.audio_array = None
         self.sr = None
+        self.audio_name = None
+        self.audio_name_without_extension = None
+        self.audio_folder_name = None
+        self.audio_start_time = None
+        self.transcript = None
 
         # Audio features
+        self.interjecting_frequency = None
         self.energy = None
         self.spectral_centroids = None
         self.spectral_spread = None
@@ -80,17 +103,88 @@ class SingleFileFeatureExtraction:
         self.audio_array = x
         self.sr = sr
 
+    def get_pos_of_item(self, elem, string_list):
+        """
+        Get position of all duplicates in a list.
+        :return: a list of all positions for an element.
+        """
+        if elem in string_list:
+            counter = 0
+            elem_pos_list = []
+            for i in string_list:
+                if i == elem:
+                    elem_pos_list.append(counter)
+                counter = counter + 1
+            return elem_pos_list
+
+    def get_transcription(self):
+        """
+        Get the transcription of the audio clip.
+        :return: assign a string of the sentence to self.
+        """
+        self.audio_folder_name = self.audio_path.split("/")[-2]
+        confidence_dataframe_name = (
+            "confidence_dataframe_" + self.audio_folder_name + ".csv"
+        )
+        self.audio_name = self.audio_path.split("/")[-1]
+        self.audio_name_without_extension = self.audio_name.split("_")[-2]
+        self.audio_start_time = self.audio_name.split("_")[-1][:-4]
+        dataframe_path = os.path.join(
+            self.home_dir,
+            "data_sheets",
+            "confidence_dataframes",
+            confidence_dataframe_name,
+        )
+        dataframe = pd.read_csv(dataframe_path)
+        filename_list = dataframe["filename"].tolist()
+        pure_filename_list = [
+            item.split("/")[-1].split(".")[0] for item in filename_list
+        ]
+        # Get positions of all entries with this audio file.
+        elem_pos_list = self.get_pos_of_item(
+            self.audio_name_without_extension, pure_filename_list
+        )
+        start_time_list = dataframe["start_time"].tolist()
+        start_time_list = [s.replace("s", "") for s in start_time_list]
+        sentence_list = dataframe["sentence"].tolist()
+        for pos in elem_pos_list:
+            start_time = start_time_list[pos].split(".")[0]
+            # If same start time; only check until 0 dp
+            if start_time == self.audio_start_time.split(".")[0]:
+                self.transcript = sentence_list[pos]
+
+    def get_interjecting_frequency(self):
+        """
+        Get the number of interjecting sounds per word.
+        :return: assign floating number of frequency to self.
+        """
+        count = 0
+        transcript_list = self.transcript.split()
+        for interjecting_sound in self.interjecting_sounds_list:
+            if interjecting_sound in transcript_list:
+                new_count = transcript_list.count(interjecting_sound)
+                count += new_count
+
+        self.interjecting_frequency = count / len(transcript_list)
+
     def get_energy(self):
-        """Get rms of audio"""
+        """
+        Get rms of audio.
+        :return: assign single element numpy array of rms to self.
+        """
         energy = librosa.feature.rms(
-            y=self.audio_array,
+            self.audio_array,
             frame_length=self.frame_length,
             hop_length=self.hop_length,
         )
         self.energy = energy
 
     def get_spectral_centroids(self):
-        """Get all spectral centroids and spectral spread."""
+        """
+        Get all spectral centroids and spectral spread.
+        :return: assign a single element numpy array of spectral centroids to self.
+        :return: assign a single element numpy array of spectral spread to self.
+        """
         # https: // github.com / novoic / surfboard / blob / 700
         # d1b26e80fbd06d2a9c682260e6c635d6c0d40 / surfboard / spectrum.py  # L8
         frame = librosa.util.frame(
@@ -125,7 +219,10 @@ class SingleFileFeatureExtraction:
         self.spectral_spread = spread
 
     def get_spectral_entropy(self):
-        """Calculate normalised spectral entropy."""
+        """
+        Calculate normalised spectral entropy.
+        :return: Assign a floating number of spectral entropy to self.
+        """
         _, psd = scipy.signal.periodogram(self.audio_array, self.sr)
 
         psd_norm = np.divide(psd, psd.sum())
@@ -134,29 +231,34 @@ class SingleFileFeatureExtraction:
         self.spectral_entropy = se
 
     def get_zero_crossings(self):
-        """Get the rate of zero crossings."""
-        zero_crossings = librosa.zero_crossings(
-            self.audio_array,
-            hop_length=self.hop_length,
-            win_length=self.frame_length,
-            pad=False,
-        )
+        """
+        Get the rate of zero crossings.
+        :return: assign a list of zero crossings to self.
+        """
+        zero_crossings = librosa.zero_crossings(self.audio_array, pad=False,)
         self.zero_crossing_rate = zero_crossings / len(self.audio_array)
 
     def get_mfcc(self):
-        """Get mfccs."""
+        """
+        Get mfccs with the specified number of entries.
+        :return: assign an array of subarray of mfccs to self.
+        """
         mfccs = librosa.feature.mfcc(
             self.audio_array,
             sr=self.sr,
+            n_mfcc=self.n_mfcc,
             n_fft=self.frame_length,
             hop_length=self.hop_length,
         )
         self.mfcc = mfccs
 
     def get_pitch(self):
-        """Get pitches"""
+        """
+        Get pitches.
+        :return: assign an array of pitches to self.
+        """
         pitches, magnitudes = librosa.core.piptrack(
-            y=self.audio_array,
+            self.audio_array,
             sr=self.sr,
             fmin=75,
             fmax=1600,
@@ -171,24 +273,54 @@ class SingleFileFeatureExtraction:
 
     def write_features_to_csv(self):
         """Extract all features and write to a csv."""
+        # Extract audio features
         self.load_audio()
+        self.get_transcription()
+        self.get_interjecting_frequency()
         self.get_energy()
         self.get_spectral_centroids()
         self.get_spectral_entropy()
         self.get_zero_crossings()
         self.get_mfcc()
         self.get_pitch()
-        self.feature_dataframe["energy"] = self.energy
-        self.feature_dataframe["spectral_centroids"] = self.spectral_centroids
-        self.feature_dataframe["spectral_spread"] = self.spectral_spread
-        self.feature_dataframe["spectral_entropy"] = self.spectral_entropy
-        self.feature_dataframe["zero_crossing_rate"] = self.zero_crossing_rate
-        self.feature_dataframe["mfcc"] = self.mfcc
-        self.feature_dataframe["pitches"] = self.pitches
 
-        audio_name = self.audio_path.split("/")[-1] + ".csv"
-        feature_csv_path = os.path.join(self.feature_csv_folder_path, audio_name)
-        self.feature_dataframe.to_csv(feature_csv_path)
+        # Concatenate dataframes of different lengths
+        frames = []
+        frequency_df = pd.DataFrame(
+            [self.interjecting_frequency], columns=["interjecting_frequency"]
+        )
+        frames.append(frequency_df)
+        energy_df = pd.DataFrame(self.energy[0].tolist(), columns=["energy"])
+        frames.append(energy_df)
+        sc_df = pd.DataFrame(
+            self.spectral_centroids[0].tolist(), columns=["spectral_centroids"]
+        )
+        frames.append(sc_df)
+        ss_df = pd.DataFrame(
+            self.spectral_spread[0].tolist(), columns=["spectral_spread"]
+        )
+        frames.append(ss_df)
+        se_df = pd.DataFrame([self.spectral_entropy], columns=["spectral_entropy"])
+        frames.append(se_df)
+        zcr_df = pd.DataFrame(self.zero_crossing_rate, columns=["zero_crossing_rate"])
+        frames.append(zcr_df)
+        # Special care taken for the 12 mfccs
+        mfcc_list = self.mfcc.tolist()
+        for i in range(len(mfcc_list)):
+            data_column = mfcc_list[i]
+            column_name = "mfcc" + str(i)
+            mfcc_indiv_df = pd.DataFrame(data_column, columns=[column_name])
+            frames.append(mfcc_indiv_df)
+
+        pitches_df = pd.DataFrame(self.pitches.tolist(), columns=["pitches"])
+        frames.append(pitches_df)
+
+        total_df = pd.concat(frames, axis=1)
+
+        feature_csv_path = os.path.join(
+            self.feature_csv_folder_path, str(self.audio_name[:-4] + ".csv")
+        )
+        total_df.to_csv(feature_csv_path)
 
 
 #

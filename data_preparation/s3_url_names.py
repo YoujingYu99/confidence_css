@@ -18,7 +18,7 @@ s3_client = boto3.client(
 bucket_name = "extractedaudio"
 # Empty list for url
 res = []
-for obj in s3_client.list_objects_v2(Bucket=bucket_name, Prefix="1/")["Contents"]:
+for obj in s3_client.list_objects_v2(Bucket=bucket_name, Prefix="0/")["Contents"]:
     url = f'https://{bucket_name}.s3.eu-west-2.amazonaws.com/{obj["Key"]}'
     res.append(url)
     print(url)
@@ -29,6 +29,6 @@ res.pop(0)
 res = list(set(res))
 # Save to csv
 home_dir = os.path.join("/home", "yyu")
-csv_output_path = os.path.join(home_dir, "data_sheets", "sw3_urls", "input_1.csv")
+csv_output_path = os.path.join(home_dir, "data_sheets", "sw3_urls", "input_0.csv")
 df = pd.DataFrame(res, columns=["audio_url"])
 df.to_csv(csv_output_path, index=False)

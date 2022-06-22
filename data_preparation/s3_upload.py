@@ -9,14 +9,14 @@ import boto3
 
 # home_dir is the location of script
 home_dir = os.path.join("/home", "yyu")
-excerpt_output_path = os.path.join(home_dir, "extracted_audio", "1")
+excerpt_output_path = os.path.join(home_dir, "extracted_audio", "0")
 
 # get an access token, local (from) directory, and S3 (to) directory
 # from the command-line
 local_directory = excerpt_output_path
 
 bucket = "extractedaudio"
-destination = "1"
+destination = "0"
 ACCESS_KEY = "AKIA5JV4AUW3DNDSDB76"
 SECRET_KEY = "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"
 
