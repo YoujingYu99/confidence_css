@@ -52,6 +52,8 @@ class SingleFileFeatureExtraction:
     get_interjecting frequency: Get the frequency of interjecting sounds.
     get_energy(self): Calculate energy of audio.
     get_spectral_centroids(self): Calculate all spectral centroids.
+    get_spectral_entropy(self): Calculate normalised spectral entropy.
+    get_spectral_rolloff(self): Calculate all spectral rolloffs.
     get_zero_crossings(self) Calculate the zero-crossing rate.
     get_mfcc(self): Get the MFCCs.
     get_pitch(self): Get pitch data.
@@ -93,6 +95,7 @@ class SingleFileFeatureExtraction:
         self.spectral_centroids = None
         self.spectral_spread = None
         self.spectral_entropy = None
+        self.spectral_rolloff = None
         self.zero_crossing_rate = None
         self.mfcc = None
         self.pitches = None
@@ -230,6 +233,19 @@ class SingleFileFeatureExtraction:
         se /= np.log2(psd_norm.size)
         self.spectral_entropy = se
 
+    def get_spectral_rolloff(self):
+        """
+        Calculate spectral rolloff of audio.
+        :return: assign a single-element array spectral rolloff to self.
+        """
+        # Compute the time variable for visualisation
+        spectral_centroids = librosa.feature.spectral_centroid(self.audio_array, sr=self.sr)[0]
+        frames = range(len(spectral_centroids))
+        t = librosa.frames_to_time(frames)
+
+        spectral_rolloff = librosa.feature.spectral_rolloff(self.audio_array + 0.01, sr=self.sr)
+        self.spectral_rolloff = spectral_rolloff
+
     def get_zero_crossings(self):
         """
         Get the rate of zero crossings.
@@ -274,36 +290,55 @@ class SingleFileFeatureExtraction:
     def write_features_to_csv(self):
         """Extract all features and write to a csv."""
         # Extract audio features
+        frames = []
         self.load_audio()
         self.get_transcription()
+        # Interjecting frequency
         self.get_interjecting_frequency()
-        self.get_energy()
-        self.get_spectral_centroids()
-        self.get_spectral_entropy()
-        self.get_zero_crossings()
-        self.get_mfcc()
-        self.get_pitch()
-
-        # Concatenate dataframes of different lengths
-        frames = []
         frequency_df = pd.DataFrame(
-            [self.interjecting_frequency], columns=["interjecting_frequency"]
+            [self.interjecting_frequency],
+            columns=["interjecting_frequency"]
         )
         frames.append(frequency_df)
+
+        # RMS energy
+        self.get_energy()
         energy_df = pd.DataFrame(self.energy[0].tolist(), columns=["energy"])
         frames.append(energy_df)
+
+        # Spectral centroids/spectral spread
+        self.get_spectral_centroids()
         sc_df = pd.DataFrame(
-            self.spectral_centroids[0].tolist(), columns=["spectral_centroids"]
+            self.spectral_centroids[0].tolist(),
+            columns=["spectral_centroids"]
         )
         frames.append(sc_df)
         ss_df = pd.DataFrame(
             self.spectral_spread[0].tolist(), columns=["spectral_spread"]
         )
         frames.append(ss_df)
-        se_df = pd.DataFrame([self.spectral_entropy], columns=["spectral_entropy"])
+
+        # Spectral entropy
+        self.get_spectral_entropy()
+        se_df = pd.DataFrame([self.spectral_entropy],
+                             columns=["spectral_entropy"])
         frames.append(se_df)
-        zcr_df = pd.DataFrame(self.zero_crossing_rate, columns=["zero_crossing_rate"])
+
+        # Spectral rolloff
+        self.get_spectral_rolloff()
+        sr_df = pd.DataFrame(
+            self.spectral_rolloff[0].tolist(), columns=["spectral_rolloff"]
+        )
+        frames.append(sr_df)
+
+        # Zero crossing rate
+        self.get_zero_crossings()
+        zcr_df = pd.DataFrame(self.zero_crossing_rate,
+                              columns=["zero_crossing_rate"])
         frames.append(zcr_df)
+
+        # mfccs
+        self.get_mfcc()
         # Special care taken for the 12 mfccs
         mfcc_list = self.mfcc.tolist()
         for i in range(len(mfcc_list)):
@@ -312,11 +347,13 @@ class SingleFileFeatureExtraction:
             mfcc_indiv_df = pd.DataFrame(data_column, columns=[column_name])
             frames.append(mfcc_indiv_df)
 
-        pitches_df = pd.DataFrame(self.pitches.tolist(), columns=["pitches"])
+        # Pitches
+        self.get_pitch()
+        pitches_df = pd.DataFrame(self.pitches.tolist(),
+                                  columns=["pitches"])
         frames.append(pitches_df)
 
         total_df = pd.concat(frames, axis=1)
-
         feature_csv_path = os.path.join(
             self.feature_csv_folder_path, str(self.audio_name[:-4] + ".csv")
         )
