@@ -239,11 +239,18 @@ class SingleFileFeatureExtraction:
         :return: assign a single-element array spectral rolloff to self.
         """
         # Compute the time variable for visualisation
-        spectral_centroids = librosa.feature.spectral_centroid(self.audio_array, sr=self.sr)[0]
+        spectral_centroids = librosa.feature.spectral_centroid(
+            self.audio_array, sr=self.sr
+        )[0]
         frames = range(len(spectral_centroids))
         t = librosa.frames_to_time(frames)
 
-        spectral_rolloff = librosa.feature.spectral_rolloff(self.audio_array + 0.01, sr=self.sr)
+        spectral_rolloff = librosa.feature.spectral_rolloff(
+            self.audio_array + 0.01,
+            sr=self.sr,
+            n_fft=self.frame_length,
+            hop_length=self.hop_length,
+        )
         self.spectral_rolloff = spectral_rolloff
 
     def get_zero_crossings(self):
@@ -296,8 +303,7 @@ class SingleFileFeatureExtraction:
         # Interjecting frequency
         self.get_interjecting_frequency()
         frequency_df = pd.DataFrame(
-            [self.interjecting_frequency],
-            columns=["interjecting_frequency"]
+            [self.interjecting_frequency], columns=["interjecting_frequency"]
         )
         frames.append(frequency_df)
 
@@ -309,8 +315,7 @@ class SingleFileFeatureExtraction:
         # Spectral centroids/spectral spread
         self.get_spectral_centroids()
         sc_df = pd.DataFrame(
-            self.spectral_centroids[0].tolist(),
-            columns=["spectral_centroids"]
+            self.spectral_centroids[0].tolist(), columns=["spectral_centroids"]
         )
         frames.append(sc_df)
         ss_df = pd.DataFrame(
@@ -320,8 +325,7 @@ class SingleFileFeatureExtraction:
 
         # Spectral entropy
         self.get_spectral_entropy()
-        se_df = pd.DataFrame([self.spectral_entropy],
-                             columns=["spectral_entropy"])
+        se_df = pd.DataFrame([self.spectral_entropy], columns=["spectral_entropy"])
         frames.append(se_df)
 
         # Spectral rolloff
@@ -333,8 +337,7 @@ class SingleFileFeatureExtraction:
 
         # Zero crossing rate
         self.get_zero_crossings()
-        zcr_df = pd.DataFrame(self.zero_crossing_rate,
-                              columns=["zero_crossing_rate"])
+        zcr_df = pd.DataFrame(self.zero_crossing_rate, columns=["zero_crossing_rate"])
         frames.append(zcr_df)
 
         # mfccs
@@ -349,8 +352,7 @@ class SingleFileFeatureExtraction:
 
         # Pitches
         self.get_pitch()
-        pitches_df = pd.DataFrame(self.pitches.tolist(),
-                                  columns=["pitches"])
+        pitches_df = pd.DataFrame(self.pitches.tolist(), columns=["pitches"])
         frames.append(pitches_df)
 
         total_df = pd.concat(frames, axis=1)
