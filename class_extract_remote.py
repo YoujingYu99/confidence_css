@@ -35,7 +35,7 @@ def json_path_in_dir(folder_path_list):
                         top_folder_path, middle_folder_path, bottom_folder_path
                     )
                 ):
-                    if filename.endswith('json'):
+                    if filename.endswith("json"):
                         file_path_list.append(
                             os.path.join(
                                 top_folder_path,
@@ -54,7 +54,7 @@ def json_extract(file_name):
     :return: Clean list containing the raw sentences.
     """
     # encoding='utf-8', errors='ignore'
-    with open(file_name, 'r', errors='ignore') as file_in:
+    with open(file_name, "r", errors="ignore") as file_in:
         # Reading from file
         try:
             data = json.loads(file_in.read(), strict=False)
@@ -92,13 +92,13 @@ def find_last_word(before_word_list):
     end_word_list = []
     for word_dict in before_word_list:
         if (
-            '.' in str(word_dict.word)
-            or '?' in str(word_dict.word)
-            or '!' in str(word_dict.word)
+            "." in str(word_dict.word)
+            or "?" in str(word_dict.word)
+            or "!" in str(word_dict.word)
         ):
             end_word_list.append(word_dict)
     if len(end_word_list) == 0:
-        first = {'startTime': '0.000s', 'endTime': None, 'word': None}
+        first = {"startTime": "0.000s", "endTime": None, "word": None}
         first = Word(first)
     else:
         first = end_word_list[-1]
@@ -118,7 +118,7 @@ def from_timings_extract_transcript(word_list, start_time, end_time):
             word_dict.endTime[:-1]
         ) <= float(end_time[:-1]):
             sentence_list.append(word_dict.word)
-    sentence_string = ' '.join(sentence_list[1:])
+    sentence_string = " ".join(sentence_list[1:])
     return sentence_string
 
 
@@ -143,7 +143,7 @@ def extract_timings(file_name):
                 for word_dic in word_list:
                     if word_dic.speakerTag:
                         # print('multiple speakers')
-                        if '?' in str(word_dic.word):
+                        if "?" in str(word_dic.word):
                             # print('questions found')
                             end_time = word_dic.endTime
                             # find the start time of the word spoken next and use it as the end time of the sentence
@@ -181,11 +181,11 @@ def extract_timings(file_name):
                         sentence_string_list,
                     ]
                 ),
-                columns=['start_time', 'end_time', 'sent_end_time', 'sentence'],
+                columns=["start_time", "end_time", "sent_end_time", "sentence"],
             )
-            questions_df['filename'] = file_name
+            questions_df["filename"] = file_name
             # filter out questions which are too short
-            mask = questions_df['sentence'].astype(str).str.len() > 30
+            mask = questions_df["sentence"].astype(str).str.len() > 30
             questions_df = questions_df.loc[mask]
         return questions_df
 
@@ -204,7 +204,9 @@ def complete_dataframe(folder_path_list):
     # save_df_path = (
     #     os.path.join(home_dir, 'confidence_dataframe_1') + '.csv'
     # )
-    save_df_path = os.path.join(home_dir, 'data_sheets', 'confidence_dataframe_3.csv')
+    save_df_path = os.path.join(
+        home_dir, "data_sheets", "confidence_dataframes", "confidence_dataframe_3.csv"
+    )
 
     print(save_df_path)
     total_df.to_csv(save_df_path, index=False)
@@ -212,16 +214,16 @@ def complete_dataframe(folder_path_list):
 
 
 # home_dir is the location of person
-home_dir = os.path.join('/home', 'yyu')
+home_dir = os.path.join("/home", "yyu")
 # file_dir = os.path.join(home_dir, 'confidence_css')
 file_dir = os.path.join(
     home_dir,
-    'data',
-    'Spotify-Podcasts',
-    'podcasts-no-audio-13GB',
-    'decompressed-transcripts',
+    "data",
+    "Spotify-Podcasts",
+    "podcasts-no-audio-13GB",
+    "decompressed-transcripts",
 )
 
-app_dir = os.path.join(file_dir, '3')
+app_dir = os.path.join(file_dir, "3")
 
 complete_dataframe(folder_path_list=[app_dir])

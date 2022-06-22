@@ -81,8 +81,7 @@ def extract_segments(df, ogg_files, excerpt_output_path):
             try:
                 newAudio = AudioSegment.from_ogg(audio_file_path)
                 newAudio = newAudio[start:end]
-                newAudio.export(audio_excerpt_path_name + ".mp3",
-                                format="mp3")
+                newAudio.export(audio_excerpt_path_name + ".mp3", format="mp3")
             except:
                 pass
 
@@ -138,10 +137,13 @@ def extract_all_audio_path(audio_folder_series_path):
                         )
     return audio_path_list
 
+
 # home_dir is the location of script
 home_dir = os.path.join("/home", "yyu")
 
-csv_path = os.path.join(home_dir, "data_sheets", "confidence_dataframe_1.csv")
+csv_path = os.path.join(
+    home_dir, "data_sheets", "confidence_dataframes", "confidence_dataframe_1.csv"
+)
 # Audio data file
 fileDir = os.path.join(home_dir, "data")
 audio_path = os.path.join(
