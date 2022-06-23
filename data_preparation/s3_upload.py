@@ -6,8 +6,8 @@ the Amazon s3 bucket.
 import os
 import boto3
 
+folder_numer = 0
 
-# home_dir is the location of script
 home_dir = os.path.join("/home", "yyu")
 excerpt_output_path = os.path.join(home_dir, "extracted_audio", "0")
 
@@ -15,8 +15,9 @@ excerpt_output_path = os.path.join(home_dir, "extracted_audio", "0")
 # from the command-line
 local_directory = excerpt_output_path
 
+# Set properties
 bucket = "extractedaudio"
-destination = "0"
+destination = str(folder_numer)
 ACCESS_KEY = "AKIA5JV4AUW3DNDSDB76"
 SECRET_KEY = "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"
 

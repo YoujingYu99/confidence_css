@@ -9,53 +9,13 @@ SingleFileFeatureExtraction: Extract features from a single audio file.
 """
 
 import os
-import sklearn
 import scipy
 import numpy as np
 import pandas as pd
 import librosa
 import librosa.display
 import timbral_models
-
-
-def audio_path_in_dir(folder_path_list):
-    """
-    :param folder_path_list: The path of the parent-parent folder of audio.
-    :return: Clean list containing the absolute filepaths of all audio files.
-    """
-    file_path_list = []
-    for folder_path in folder_path_list:
-        for filename in os.listdir(folder_path):
-            if filename.endswith("mp3"):
-                file_path_list.append(os.path.join(folder_path, filename))
-    return file_path_list
-
-
-def extract_features_from_folders(home_dir, folder_path_list):
-    """
-    Extract features for all folders.
-    :param folder_path_list: List of folder-level paths
-    :return: Extract features and save to csvs
-    """
-    audio_path_list = audio_path_in_dir(folder_path_list)
-    # Find folder number
-    audio_folder_name = audio_path_list[0].split("/")[-2]
-    for audio_path in audio_path_list:
-        # Create csv name
-        feature_csv_folder_path = os.path.join(
-            home_dir, "data_sheets", "features", str(audio_folder_name)
-        )
-        features = SingleFileFeatureExtraction(
-            home_dir=home_dir,
-            audio_path=audio_path,
-            feature_csv_folder_path=feature_csv_folder_path,
-        )
-        features.write_features_to_csv()
-
-
-# Normalising the spectral centroid
-def normalize(x, axis=0):
-    return sklearn.preprocessing.minmax_scale(x, axis=axis)
+import sklearn
 
 
 class SingleFileFeatureExtraction:
@@ -81,6 +41,7 @@ class SingleFileFeatureExtraction:
     get_pitch(self): Get pitch data.
     get_tonnetz(self): Get tonnetz data.
     get_sharp_rough(self): Get sharpness and roughness of data.
+    get_pause_ratio(self): Get the ratio of pausing to speaking of audio.
     write_features_to_csv(self): Write all features extracted to a csv file.
     """
 
@@ -90,6 +51,7 @@ class SingleFileFeatureExtraction:
         self.audio_path = audio_path
         self.feature_csv_folder_path = feature_csv_folder_path
 
+        # Set parameters
         self.frame_length = 1024
         self.hop_length = 512
         self.eps = 0.000000001
@@ -106,6 +68,9 @@ class SingleFileFeatureExtraction:
             "well",
             "well well well",
         ]
+        self.silent_threshold_ratio = 0.01
+
+        # Audio properties
         self.audio_array = None
         self.sr = None
         self.audio_name = None
@@ -127,8 +92,9 @@ class SingleFileFeatureExtraction:
         self.mfcc = None
         self.pitches = None
         self.tonnetz = None
-        self.sharpness = None
-        self.roughness = None
+        self.pause_ratio = None
+        # self.sharpness = None
+        # self.roughness = None
 
     def load_audio(self):
         """Load audio file according to path."""
@@ -367,6 +333,15 @@ class SingleFileFeatureExtraction:
         self.sharpness = timbre_dict["sharpness"]
         self.roughness = timbre_dict["roughness"]
 
+    def get_pause_ratio(self):
+        """
+        Calculate the period of pausing versus speaking rate.
+        :return: assign a floating number of pause to speaking ratio to self.
+        """
+        num_pause = (self.audio_array < np.amax(self.audio_array) * 0.01).sum()
+        num_speaking = self.audio_array.size - num_pause
+        self.pause_ratio = float(num_pause / num_speaking)
+
     def write_features_to_csv(self):
         """Extract all features and write to a csv."""
         # Extract audio features
@@ -453,6 +428,11 @@ class SingleFileFeatureExtraction:
             tonnetz_indiv_df = pd.DataFrame(data_column, columns=[column_name])
             frames.append(tonnetz_indiv_df)
 
+        # Pause ratio
+        self.get_pause_ratio()
+        pr_df = pd.DataFrame([self.pause_ratio], columns=["pause_ratio"])
+        frames.append(pr_df)
+
         # # Sharpness/ roughness
         # self.get_sharp_rough()
         # sharp_df = pd.DataFrame([self.sharpness],
@@ -467,6 +447,24 @@ class SingleFileFeatureExtraction:
             self.feature_csv_folder_path, str(self.audio_name[:-4] + ".csv")
         )
         total_df.to_csv(feature_csv_path)
+
+
+def audio_path_in_dir(folder_path_list):
+    """
+    :param folder_path_list: The path of the parent-parent folder of audio.
+    :return: Clean list containing the absolute filepaths of all audio files.
+    """
+    file_path_list = []
+    for folder_path in folder_path_list:
+        for filename in os.listdir(folder_path):
+            if filename.endswith("mp3"):
+                file_path_list.append(os.path.join(folder_path, filename))
+    return file_path_list
+
+
+# Normalising the spectral centroid
+def normalize(x, axis=0):
+    return sklearn.preprocessing.minmax_scale(x, axis=axis)
 
 
 #

@@ -8,6 +8,9 @@ import boto3
 import pandas as pd
 import os
 
+folder_number = 0
+prefix = str(folder_number) + "/"
+
 ACCESS_KEY = "AKIA5JV4AUW3DNDSDB76"
 SECRET_KEY = "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"
 
@@ -18,7 +21,7 @@ s3_client = boto3.client(
 bucket_name = "extractedaudio"
 # Empty list for url
 res = []
-for obj in s3_client.list_objects_v2(Bucket=bucket_name, Prefix="0/")["Contents"]:
+for obj in s3_client.list_objects_v2(Bucket=bucket_name, Prefix=prefix)["Contents"]:
     url = f'https://{bucket_name}.s3.eu-west-2.amazonaws.com/{obj["Key"]}'
     res.append(url)
     print(url)
