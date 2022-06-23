@@ -246,13 +246,6 @@ class SingleFileFeatureExtraction:
         Calculate spectral rolloff of audio.
         :return: assign a single-element array spectral rolloff to self.
         """
-        # Compute the time variable for visualisation
-        spectral_centroids = librosa.feature.spectral_centroid(
-            self.audio_array, sr=self.sr
-        )[0]
-        frames = range(len(spectral_centroids))
-        t = librosa.frames_to_time(frames)
-
         spectral_rolloff = librosa.feature.spectral_rolloff(
             self.audio_array + 0.01,
             sr=self.sr,
