@@ -51,12 +51,15 @@ class SingleFileFeatureExtraction:
     get_transcription(self): Get the transcribed sentence.
     get_interjecting frequency: Get the frequency of interjecting sounds.
     get_energy(self): Calculate energy of audio.
+    get_energy_entropy(self): Calculate the entropy of energy of audio.
     get_spectral_centroids(self): Calculate all spectral centroids.
     get_spectral_entropy(self): Calculate normalised spectral entropy.
     get_spectral_rolloff(self): Calculate all spectral rolloffs.
+    get_spectral_contrast(self): Calculate all spectral contrasts.
     get_zero_crossings(self) Calculate the zero-crossing rate.
     get_mfcc(self): Get the MFCCs.
     get_pitch(self): Get pitch data.
+    get_tonnetz(self): Get tonnetz data.
     write_features_to_csv(self): Write all features extracted to a csv file.
     """
 
@@ -69,6 +72,7 @@ class SingleFileFeatureExtraction:
         self.frame_length = 1024
         self.hop_length = 512
         self.eps = 0.000000001
+        self.n_scontrast_bands = 12
         self.n_mfcc = 12
         self.interjecting_sounds_list = [
             "Hmm",
@@ -92,13 +96,16 @@ class SingleFileFeatureExtraction:
         # Audio features
         self.interjecting_frequency = None
         self.energy = None
+        self.energy_entropy = None
         self.spectral_centroids = None
         self.spectral_spread = None
         self.spectral_entropy = None
         self.spectral_rolloff = None
+        self.spectral_contrast = None
         self.zero_crossing_rate = None
         self.mfcc = None
         self.pitches = None
+        self.tonnetz = None
 
     def load_audio(self):
         """Load audio file according to path."""
@@ -172,15 +179,29 @@ class SingleFileFeatureExtraction:
 
     def get_energy(self):
         """
-        Get rms of audio.
-        :return: assign single element numpy array of rms to self.
+        Get energy of audio.
+        :return: assign single element numpy array of energy to self.
         """
-        energy = librosa.feature.rms(
+        rms_energy = librosa.feature.rms(
             self.audio_array,
             frame_length=self.frame_length,
             hop_length=self.hop_length,
         )
+        # Square to get total energy
+        energy = np.power(rms_energy, 2)
         self.energy = energy
+
+    def get_energy_entropy(self):
+        """
+        Get energy entropy.
+        :return: assign a floating number of entropy to self.
+        """
+        # Convert energy array to list to perform list comprehension
+        energy_list = self.energy.tolist()[0]
+        total_energy = sum(energy_list)
+        energy_entropy_list = [(s_i/total_energy) * np.log2(s_i/total_energy) for s_i in energy_list]
+        total_energy_entropy = sum(energy_entropy_list) * -1
+        self.energy_entropy = total_energy_entropy
 
     def get_spectral_centroids(self):
         """
@@ -253,6 +274,19 @@ class SingleFileFeatureExtraction:
         )
         self.spectral_rolloff = spectral_rolloff
 
+    def get_spectral_contrast(self):
+        """
+        Calculate the spectral contrast for each subband.
+        :return: assign np.ndarray [shape=(…, n_bands + 1, t)] to self.
+        """
+        spectral_contrast = librosa.feature.spectral_contrast(
+            y=self.audio_array,
+            sr=self.sr,
+            n_fft=self.frame_length,
+            hop_length=self.hop_length
+        )
+        self.spectral_contrast = spectral_contrast
+
     def get_zero_crossings(self):
         """
         Get the rate of zero crossings.
@@ -294,6 +328,17 @@ class SingleFileFeatureExtraction:
         pitches = pitches[max_indexes, range(magnitudes.shape[1])]
         self.pitches = pitches
 
+    def get_tonnetz(self):
+        """
+        Calculate tonnetz of the audio.
+        :return: assign np.ndarray [shape(…, 6, t)] to self.
+        """
+        tonnetz = librosa.feature.tonnetz(
+            y=self.audio_array,
+            sr=self.sr
+        )
+        self.tonnetz = tonnetz
+
     def write_features_to_csv(self):
         """Extract all features and write to a csv."""
         # Extract audio features
@@ -307,10 +352,16 @@ class SingleFileFeatureExtraction:
         )
         frames.append(frequency_df)
 
-        # RMS energy
+        # Energy
         self.get_energy()
         energy_df = pd.DataFrame(self.energy[0].tolist(), columns=["energy"])
         frames.append(energy_df)
+
+        # Energy Entropy
+        self.get_energy_entropy()
+        ee_df = pd.DataFrame([self.energy_entropy],
+                              columns=["energy_entropy"])
+        frames.append(ee_df)
 
         # Spectral centroids/spectral spread
         self.get_spectral_centroids()
@@ -334,6 +385,16 @@ class SingleFileFeatureExtraction:
             self.spectral_rolloff[0].tolist(), columns=["spectral_rolloff"]
         )
         frames.append(sr_df)
+        
+        # Spectral contrast
+        self.get_spectral_contrast()
+        # Special care taken for the 13 scontrasts
+        scontrast_list = self.spectral_contrast.tolist()
+        for i in range(len(scontrast_list)):
+            data_column = scontrast_list[i]
+            column_name = "spectral_contrast" + str(i)
+            scontrast_indiv_df = pd.DataFrame(data_column, columns=[column_name])
+            frames.append(scontrast_indiv_df)
 
         # Zero crossing rate
         self.get_zero_crossings()
@@ -354,8 +415,19 @@ class SingleFileFeatureExtraction:
         self.get_pitch()
         pitches_df = pd.DataFrame(self.pitches.tolist(), columns=["pitches"])
         frames.append(pitches_df)
+        
+        # Tonnetz
+        self.get_tonnetz()
+        # Special care taken for the 6 tonnetz dimensions
+        tonnetz_list = self.tonnetz.tolist()
+        for i in range(len(tonnetz_list)):
+            data_column = tonnetz_list[i]
+            column_name = "tonnetz" + str(i)
+            tonnetz_indiv_df = pd.DataFrame(data_column, columns=[column_name])
+            frames.append(tonnetz_indiv_df)
 
         total_df = pd.concat(frames, axis=1)
+        print(total_df["energy_entropy"])
         feature_csv_path = os.path.join(
             self.feature_csv_folder_path, str(self.audio_name[:-4] + ".csv")
         )
