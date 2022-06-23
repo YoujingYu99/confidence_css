@@ -196,12 +196,10 @@ class SingleFileFeatureExtraction:
         Get energy entropy.
         :return: assign a floating number of entropy to self.
         """
-        # Convert energy array to list to perform list comprehension
-        energy_list = self.energy.tolist()[0]
-        total_energy = sum(energy_list)
-        energy_entropy_list = [(s_i/total_energy) * np.log2(s_i/total_energy) for s_i in energy_list]
-        total_energy_entropy = sum(energy_entropy_list) * -1
-        self.energy_entropy = total_energy_entropy
+        # Normalise energies to probabilities
+        energy_norm = np.divide(self.energy, self.energy.sum())
+        ee = -np.multiply(energy_norm, np.log2(energy_norm)).sum()
+        self.energy_entropy = ee
 
     def get_spectral_centroids(self):
         """
@@ -283,7 +281,7 @@ class SingleFileFeatureExtraction:
             y=self.audio_array,
             sr=self.sr,
             n_fft=self.frame_length,
-            hop_length=self.hop_length
+            hop_length=self.hop_length,
         )
         self.spectral_contrast = spectral_contrast
 
@@ -333,10 +331,7 @@ class SingleFileFeatureExtraction:
         Calculate tonnetz of the audio.
         :return: assign np.ndarray [shape(…, 6, t)] to self.
         """
-        tonnetz = librosa.feature.tonnetz(
-            y=self.audio_array,
-            sr=self.sr
-        )
+        tonnetz = librosa.feature.tonnetz(y=self.audio_array, sr=self.sr)
         self.tonnetz = tonnetz
 
     def write_features_to_csv(self):
@@ -359,8 +354,7 @@ class SingleFileFeatureExtraction:
 
         # Energy Entropy
         self.get_energy_entropy()
-        ee_df = pd.DataFrame([self.energy_entropy],
-                              columns=["energy_entropy"])
+        ee_df = pd.DataFrame([self.energy_entropy], columns=["energy_entropy"])
         frames.append(ee_df)
 
         # Spectral centroids/spectral spread
@@ -385,7 +379,7 @@ class SingleFileFeatureExtraction:
             self.spectral_rolloff[0].tolist(), columns=["spectral_rolloff"]
         )
         frames.append(sr_df)
-        
+
         # Spectral contrast
         self.get_spectral_contrast()
         # Special care taken for the 13 scontrasts
@@ -415,7 +409,7 @@ class SingleFileFeatureExtraction:
         self.get_pitch()
         pitches_df = pd.DataFrame(self.pitches.tolist(), columns=["pitches"])
         frames.append(pitches_df)
-        
+
         # Tonnetz
         self.get_tonnetz()
         # Special care taken for the 6 tonnetz dimensions
