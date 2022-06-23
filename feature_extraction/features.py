@@ -24,14 +24,33 @@ def audio_path_in_dir(folder_path_list):
     :return: Clean list containing the absolute filepaths of all audio files.
     """
     file_path_list = []
-    # for filename in os.listdir(folder_path_list):
-    #     if filename.endswith("mp3"):
-    #         file_path_list.append(os.path.join(folder_path, filename))
     for folder_path in folder_path_list:
         for filename in os.listdir(folder_path):
             if filename.endswith("mp3"):
                 file_path_list.append(os.path.join(folder_path, filename))
     return file_path_list
+
+
+def extract_features_from_folders(home_dir, folder_path_list):
+    """
+    Extract features for all folders.
+    :param folder_path_list: List of folder-level paths
+    :return: Extract features and save to csvs
+    """
+    audio_path_list = audio_path_in_dir(folder_path_list)
+    # Find folder number
+    audio_folder_name = audio_path_list[0].split("/")[-2]
+    for audio_path in audio_path_list:
+        # Create csv name
+        feature_csv_folder_path = os.path.join(
+            home_dir, "data_sheets", "features", str(audio_folder_name)
+        )
+        features = SingleFileFeatureExtraction(
+            home_dir=home_dir,
+            audio_path=audio_path,
+            feature_csv_folder_path=feature_csv_folder_path,
+        )
+        features.write_features_to_csv()
 
 
 # Normalising the spectral centroid
@@ -345,9 +364,8 @@ class SingleFileFeatureExtraction:
         """
         # TODO: soundfile failing to load atm
         timbre_dict = timbral_models.timbral_extractor(self.audio_path)
-        self.sharpness = timbre_dict['sharpness']
-        self.roughness = timbre_dict['roughness']
-
+        self.sharpness = timbre_dict["sharpness"]
+        self.roughness = timbre_dict["roughness"]
 
     def write_features_to_csv(self):
         """Extract all features and write to a csv."""
@@ -434,7 +452,7 @@ class SingleFileFeatureExtraction:
             column_name = "tonnetz" + str(i)
             tonnetz_indiv_df = pd.DataFrame(data_column, columns=[column_name])
             frames.append(tonnetz_indiv_df)
-            
+
         # # Sharpness/ roughness
         # self.get_sharp_rough()
         # sharp_df = pd.DataFrame([self.sharpness],
@@ -443,7 +461,6 @@ class SingleFileFeatureExtraction:
         # rough_df = pd.DataFrame([self.roughness],
         #                         columns=["roughness"])
         # frames.append(rough_df)
-        
 
         total_df = pd.concat(frames, axis=1)
         feature_csv_path = os.path.join(

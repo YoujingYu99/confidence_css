@@ -7,15 +7,11 @@ from features import *
 
 # home_dir is the location of script
 home_dir = os.path.join("/home", "yyu")
-folder_path_list = [os.path.join(home_dir, "extracted_audio", "1")]
 
-audio_path_list = audio_path_in_dir(folder_path_list)
-for audio_path in audio_path_list:
-    # Create csv name
-    feature_csv_folder_path = os.path.join(home_dir, "data_sheets", "features", "1")
-    features = SingleFileFeatureExtraction(
-        home_dir=home_dir,
-        audio_path=audio_path,
-        feature_csv_folder_path=feature_csv_folder_path,
-    )
-    features.write_features_to_csv()
+# Create folder path list
+folder_path_list = []
+for i in range(8):
+    folder_path = os.path.join(home_dir, "extracted_audio", str(i))
+    folder_path_list.append(folder_path)
+
+extract_features_from_folders(home_dir, folder_path_list)
