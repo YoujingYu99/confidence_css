@@ -15,6 +15,7 @@ import numpy as np
 import pandas as pd
 import librosa
 import librosa.display
+import timbral_models
 
 
 def audio_path_in_dir(folder_path_list):
@@ -60,6 +61,7 @@ class SingleFileFeatureExtraction:
     get_mfcc(self): Get the MFCCs.
     get_pitch(self): Get pitch data.
     get_tonnetz(self): Get tonnetz data.
+    get_sharp_rough(self): Get sharpness and roughness of data.
     write_features_to_csv(self): Write all features extracted to a csv file.
     """
 
@@ -106,6 +108,8 @@ class SingleFileFeatureExtraction:
         self.mfcc = None
         self.pitches = None
         self.tonnetz = None
+        self.sharpness = None
+        self.roughness = None
 
     def load_audio(self):
         """Load audio file according to path."""
@@ -334,6 +338,17 @@ class SingleFileFeatureExtraction:
         tonnetz = librosa.feature.tonnetz(y=self.audio_array, sr=self.sr)
         self.tonnetz = tonnetz
 
+    def get_sharp_rough(self):
+        """
+        Calculate the sharpness of the audio file.
+        :return: assign sharpness floating number to self.
+        """
+        # TODO: soundfile failing to load atm
+        timbre_dict = timbral_models.timbral_extractor(self.audio_path)
+        self.sharpness = timbre_dict['sharpness']
+        self.roughness = timbre_dict['roughness']
+
+
     def write_features_to_csv(self):
         """Extract all features and write to a csv."""
         # Extract audio features
@@ -419,9 +434,18 @@ class SingleFileFeatureExtraction:
             column_name = "tonnetz" + str(i)
             tonnetz_indiv_df = pd.DataFrame(data_column, columns=[column_name])
             frames.append(tonnetz_indiv_df)
+            
+        # # Sharpness/ roughness
+        # self.get_sharp_rough()
+        # sharp_df = pd.DataFrame([self.sharpness],
+        #                      columns=["sharpness"])
+        # frames.append(sharp_df)
+        # rough_df = pd.DataFrame([self.roughness],
+        #                         columns=["roughness"])
+        # frames.append(rough_df)
+        
 
         total_df = pd.concat(frames, axis=1)
-        print(total_df["energy_entropy"])
         feature_csv_path = os.path.join(
             self.feature_csv_folder_path, str(self.audio_name[:-4] + ".csv")
         )
