@@ -9,6 +9,7 @@ import numpy as np
 from containers import *
 from pydub import AudioSegment
 from pydub.utils import which
+import xml.etree.ElementTree as ET
 
 AudioSegment.converter = which("ffmpeg")
 
@@ -250,8 +251,38 @@ def from_timings_extract_transcript(word_list, start_time, end_time):
     return sentence_string
 
 
-def extract_timings(file_name):
+def get_show_category(rss_folder_dir, file_name):
     """
+    Get the category of the show from the rss data.
+    :param rss_folder_dir: Top folder of rss.
+    :param file_name: Full path to the audio file.
+    :return: show_category: String of category of the show
+    """
+    # top folder
+    ogg_file_top = file_name.split("/")[-4]
+    # sub folder list
+    ogg_file_sub = file_name.split("/")[-3]
+    # show name list
+    show_file = file_name.split("/")[-2] + ".xml"
+    xml_path = os.path.join(rss_folder_dir, ogg_file_top, ogg_file_sub, show_file)
+
+    # Parse xml file
+    tree = ET.parse(xml_path)
+    root = tree.getroot()
+    # Get the category
+    show_category = str(
+        root.find("./channel/{http://www.itunes.com/dtds/podcast-1.0.dtd}category").get(
+            "text"
+        )
+    )
+    print(show_category)
+
+    return show_category
+
+
+def extract_timings(rss_folder_dir, file_name):
+    """
+    :param rss_folder_dir: Absolute folder path of rss files.
     :param file_name: Absolute file path of json file.
     :return: :Pandas dataframe containing the start times, end times and sentences.
     """
@@ -260,6 +291,7 @@ def extract_timings(file_name):
     sent_end_time_list = []
     sentence_string_list = []
     article_object = json_extract(file_name)
+    show_category = get_show_category(rss_folder_dir, file_name)
     if article_object:
         sentence_list = article_sentence(article_object)
         for sentence in sentence_list:
@@ -312,6 +344,7 @@ def extract_timings(file_name):
                 columns=["start_time", "end_time", "sent_end_time", "sentence"],
             )
             questions_df["filename"] = file_name
+            questions_df["category"] = show_category
             # filter out questions which are too short
             mask = questions_df["sentence"].astype(str).str.len() > 30
             questions_df = questions_df.loc[mask]
@@ -320,13 +353,18 @@ def extract_timings(file_name):
 
 def extract_complete_dataframe(home_dir, folder_number, folder_path_list):
     """
+    :param home_dir: Home directory
+    :param folder_number: Folder number.
     :param folder_path_list: Absolute path of parent parent folder.
     :return: Complete pandas dataframe containing the start times, end times and sentences.
     """
+    rss_folder_dir = os.path.join(
+        home_dir, "data", "Spotify-Podcasts", "podcasts-no-audio-13GB", "show-rss",
+    )
     file_path_list = json_path_in_dir(folder_path_list)
     small_dfs = []
     for json_file in file_path_list:
-        questions_df = extract_timings(file_name=json_file)
+        questions_df = extract_timings(rss_folder_dir, file_name=json_file)
         small_dfs.append(questions_df)
     total_df = pd.concat(small_dfs, ignore_index=True)
     dataframe_name = "confidence_dataframe" + str(folder_number) + ".csv"

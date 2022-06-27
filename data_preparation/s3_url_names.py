@@ -7,6 +7,7 @@ This scripts extracts the urls of the audio files in sw3 and save to csv.
 import boto3
 import pandas as pd
 import os
+import random
 
 folder_number = 0
 prefix = str(folder_number) + "/"
@@ -28,8 +29,9 @@ for obj in s3_client.list_objects_v2(Bucket=bucket_name, Prefix=prefix)["Content
 
 # Remove first element from list
 res.pop(0)
-# Remove duplicates from list
+# Remove duplicates from list and shuffle it
 res = list(set(res))
+random.shuffle(res)
 # Save to csv
 home_dir = os.path.join("/home", "yyu")
 csv_output_path = os.path.join(home_dir, "data_sheets", "sw3_urls", "input_0.csv")
