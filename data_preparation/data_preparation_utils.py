@@ -13,6 +13,20 @@ import xml.etree.ElementTree as ET
 
 AudioSegment.converter = which("ffmpeg")
 
+interjecting_sounds_list = [
+    "Hmm",
+    "eh",
+    "oh",
+    "ooh",
+    "oops",
+    "whoa",
+    "wow",
+    "well",
+    "well well well",
+]
+
+inter_freq_threshold = 0.005
+
 
 def read_data(csv_path):
     """
@@ -266,31 +280,95 @@ def get_show_category(rss_folder_dir, file_name):
     show_file = file_name.split("/")[-2] + ".xml"
     xml_path = os.path.join(rss_folder_dir, ogg_file_top, ogg_file_sub, show_file)
 
-    # Parse xml file
-    tree = ET.parse(xml_path)
-    root = tree.getroot()
-    # Get the category
-    show_category = str(
-        root.find("./channel/{http://www.itunes.com/dtds/podcast-1.0.dtd}category").get(
-            "text"
-        )
-    )
-    print(show_category)
+    try:
+        # Parse xml file
+        tree = ET.parse(xml_path)
+        root = tree.getroot()
+        # Get the category
+        try:
+            show_category = str(
+                root.find(
+                    "./channel/{http://www.itunes.com/dtds/podcast-1.0.dtd}category"
+                ).get("text")
+            )
+            print(show_category)
+        except:
+            show_category = str(None)
+    except:
+        show_category = str(None)
 
     return show_category
+
+
+def json_extract_all_sentences(file_name):
+    """
+    :param file_name: The path of the json files to be extracted.
+    :return: Clean string containing the raw sentences.
+    """
+    # encoding='utf-8', errors='ignore'
+    sentence_string = ""
+    with open(file_name, "r", errors="ignore") as file_in:
+        # Reading from file
+        try:
+            data = json.loads(file_in.read(), strict=False)
+            article_object = Article(data)
+            if article_object:
+                sentence_list = article_sentence(article_object)
+                for each_sentence in sentence_list:
+                    sentence_string = sentence_string + str(each_sentence)
+        except:
+            pass
+
+    return sentence_string
+
+
+def get_interjecting_frequency_from_sentence(sentence_string):
+    """
+    Get the number of interjecting sounds per word.
+    :param sentence_string: A python string of all sentences.
+    :return: A floating number of frequency of interjecting sounds.
+    """
+    count = 0
+    transcript_list = sentence_string.split()
+    for interjecting_sound in interjecting_sounds_list:
+        if interjecting_sound in transcript_list:
+            new_count = transcript_list.count(interjecting_sound)
+            count += new_count
+
+    if len(transcript_list) > 0:
+        interjecting_frequency = count / len(transcript_list)
+    else:
+        interjecting_frequency = 0.00
+
+    # round to 5dp
+    interjecting_frequency = np.format_float_positional(
+        interjecting_frequency, unique=False, precision=5
+    )
+    return interjecting_frequency
+
+
+def get_interjecting_frequencies(file_name):
+    """
+    :param file_name: Absolute path of the json file.
+    :return: A 5dp floating point interjecting sound frequency.
+    """
+    sentence_string = json_extract_all_sentences(file_name=file_name)
+    interjecting_frequency = get_interjecting_frequency_from_sentence(sentence_string)
+    return interjecting_frequency
 
 
 def extract_timings(rss_folder_dir, file_name):
     """
     :param rss_folder_dir: Absolute folder path of rss files.
     :param file_name: Absolute file path of json file.
-    :return: :Pandas dataframe containing the start times, end times and sentences.
+    :return: Pandas dataframe containing the start times, end times and sentences.
     """
     start_time_list = []
     end_time_list = []
     sent_end_time_list = []
     sentence_string_list = []
     article_object = json_extract(file_name)
+    interjecting_frequency = get_interjecting_frequencies(file_name)
     show_category = get_show_category(rss_folder_dir, file_name)
     if article_object:
         sentence_list = article_sentence(article_object)
@@ -345,9 +423,14 @@ def extract_timings(rss_folder_dir, file_name):
             )
             questions_df["filename"] = file_name
             questions_df["category"] = show_category
-            # filter out questions which are too short
+            questions_df["inter_freq"] = interjecting_frequency
+            # Filter out questions which are too short
             mask = questions_df["sentence"].astype(str).str.len() > 30
+            # # Filter out sentences with too few interjecting sounds
+            # questions_df.loc[questions_df["inter_freq"] < inter_freq_threshold]
             questions_df = questions_df.loc[mask]
+            # Shuffle the dataframe and dropping the index
+            questions_df = questions_df.sample(frac=1).reset_index(drop=True)
         return questions_df
 
 
@@ -367,7 +450,7 @@ def extract_complete_dataframe(home_dir, folder_number, folder_path_list):
         questions_df = extract_timings(rss_folder_dir, file_name=json_file)
         small_dfs.append(questions_df)
     total_df = pd.concat(small_dfs, ignore_index=True)
-    dataframe_name = "confidence_dataframe" + str(folder_number) + ".csv"
+    dataframe_name = "confidence_dataframe_" + str(folder_number) + ".csv"
     save_df_path = os.path.join(
         home_dir, "data_sheets", "confidence_dataframes", dataframe_name
     )
