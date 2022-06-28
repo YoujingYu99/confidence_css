@@ -42,6 +42,7 @@ class SingleFileFeatureExtraction:
     get_tonnetz(self): Get tonnetz data.
     get_sharp_rough(self): Get sharpness and roughness of data.
     get_pause_ratio(self): Get the ratio of pausing to speaking of audio.
+    get_repetition_rate(self): Get the number of successive repetition of words.
     write_features_to_csv(self): Write all features extracted to a csv file.
     """
 
@@ -93,6 +94,7 @@ class SingleFileFeatureExtraction:
         self.pitches = None
         self.tonnetz = None
         self.pause_ratio = None
+        self.repetition_rate = None
         # self.sharpness = None
         # self.roughness = None
 
@@ -335,6 +337,18 @@ class SingleFileFeatureExtraction:
         num_speaking = self.audio_array.size - num_pause
         self.pause_ratio = float(num_pause / num_speaking)
 
+    def get_repetition_rate(self):
+        """
+        Count the number of successive repetitions.
+        :return: assign an integer of repetition rate to self.
+        """
+        count = 0
+        transcript_list = self.transcript.split()
+        for i in range(len(transcript_list) - 1):
+            if transcript_list[i + 1] == transcript_list[i]:
+                count += 1
+        self.repetition_rate = count / len(transcript_list)
+
     def write_features_to_csv(self):
         """Extract all features and write to a csv."""
         # Extract audio features
@@ -425,6 +439,10 @@ class SingleFileFeatureExtraction:
         self.get_pause_ratio()
         pr_df = pd.DataFrame([self.pause_ratio], columns=["pause_ratio"])
         frames.append(pr_df)
+
+        self.get_repetition_rate()
+        rr_df = pd.DataFrame([self.repetition_rate], columns=["repetition_rate"])
+        frames.append(rr_df)
 
         # # Sharpness/ roughness
         # self.get_sharp_rough()
