@@ -33,7 +33,9 @@ categories_chosen = [
     "History",
     "News",
     "Science",
-    "Society&Culture",
+    "Religion & Spirituality",
+    "Health & Fitness",
+    "Society & Culture",
     "Technology",
 ]
 
@@ -413,7 +415,7 @@ def extract_timings(rss_folder_dir, file_name):
                                 sentence_string = from_timings_extract_transcript(
                                     word_list, start_time, end_time
                                 )
-                                print(sentence_string)
+                                # print(sentence_string)
                                 start_time_list.append(start_time)
                                 end_time_list.append(end_time)
                                 sent_end_time_list.append(sent_end_time)
@@ -433,12 +435,12 @@ def extract_timings(rss_folder_dir, file_name):
             )
             questions_df["filename"] = file_name
             questions_df["category"] = show_category
-            questions_df["inter_freq"] = interjecting_frequency
+            questions_df["inter_freq"] = float(interjecting_frequency)
             # Filter out questions which are too short
             mask = questions_df["sentence"].astype(str).str.len() > 30
             questions_df = questions_df.loc[mask]
-            # # Filter out sentences with too few interjecting sounds
-            # questions_df = questions_df[questions_df["inter_freq"]] > inter_freq_threshold]
+            # Filter out sentences with too few interjecting sounds
+            questions_df = questions_df[questions_df["inter_freq"] > inter_freq_threshold]
             # # Only keep audios with certain categories
             questions_df = questions_df[
                 questions_df["category"].isin(categories_chosen)
