@@ -27,6 +27,16 @@ interjecting_sounds_list = [
 
 inter_freq_threshold = 0.005
 
+categories_chosen = [
+    "Business",
+    "Government",
+    "History",
+    "News",
+    "Science",
+    "Society&Culture",
+    "Technology",
+]
+
 
 def read_data(csv_path):
     """
@@ -426,9 +436,13 @@ def extract_timings(rss_folder_dir, file_name):
             questions_df["inter_freq"] = interjecting_frequency
             # Filter out questions which are too short
             mask = questions_df["sentence"].astype(str).str.len() > 30
-            # # Filter out sentences with too few interjecting sounds
-            # questions_df.loc[questions_df["inter_freq"] < inter_freq_threshold]
             questions_df = questions_df.loc[mask]
+            # # Filter out sentences with too few interjecting sounds
+            # questions_df = questions_df[questions_df["inter_freq"]] > inter_freq_threshold]
+            # # Only keep audios with certain categories
+            questions_df = questions_df[
+                questions_df["category"].isin(categories_chosen)
+            ]
             # Shuffle the dataframe and dropping the index
             questions_df = questions_df.sample(frac=1).reset_index(drop=True)
         return questions_df
