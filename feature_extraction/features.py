@@ -38,9 +38,10 @@ class SingleFileFeatureExtraction:
     get_spectral_contrast(self): Calculate all spectral contrasts.
     get_zero_crossings(self) Calculate the zero-crossing rate.
     get_mfcc(self): Get the MFCCs.
+    get_autocorrelation(self): Get the autocorrelation array of aidio.
     get_pitch(self): Get pitch data.
     get_tonnetz(self): Get tonnetz data.
-    get_sharp_rough(self): Get sharpness and roughness of data.
+    get_sharp_rough(self): Get sharpness and roughness of audio.
     get_pause_ratio(self): Get the ratio of pausing to speaking of audio.
     get_repetition_rate(self): Get the number of successive repetition of words.
     write_features_to_csv(self): Write all features extracted to a csv file.
@@ -58,6 +59,7 @@ class SingleFileFeatureExtraction:
         self.eps = 0.000000001
         self.n_scontrast_bands = 12
         self.n_mfcc = 12
+        self.autocorrelation_max_size = 1000
         self.interjecting_sounds_list = [
             "Hmm",
             "eh",
@@ -91,6 +93,7 @@ class SingleFileFeatureExtraction:
         self.spectral_contrast = None
         self.zero_crossing_rate = None
         self.mfcc = None
+        self.autocorrelation = None
         self.pitches = None
         self.tonnetz = None
         self.pause_ratio = None
@@ -291,6 +294,14 @@ class SingleFileFeatureExtraction:
         )
         self.mfcc = mfccs
 
+    def get_autocorrelation(self):
+        """
+        Calculate the autocorrelation of the signal.
+        :return: assign an array of autocorrelation to self.
+        """
+        r = librosa.autocorrelate(self.audio_array, max_size=self.autocorrelation_max_size)
+        self.autocorrelation = r
+
     def get_pitch(self):
         """
         Get pitches.
@@ -419,6 +430,11 @@ class SingleFileFeatureExtraction:
             column_name = "mfcc" + str(i)
             mfcc_indiv_df = pd.DataFrame(data_column, columns=[column_name])
             frames.append(mfcc_indiv_df)
+
+        # Autocorrelation
+        self.get_autocorrelation()
+        autocorrelation_df = pd.DataFrame(self.autocorrelation.tolist(), columns=["autocorrelation"])
+        frames.append(autocorrelation_df)
 
         # Pitches
         self.get_pitch()
