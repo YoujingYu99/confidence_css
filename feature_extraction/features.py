@@ -85,6 +85,7 @@ class SingleFileFeatureExtraction:
         # Audio features
         self.interjecting_frequency = None
         self.energy = None
+        self.feature_length = None
         self.energy_entropy = None
         self.spectral_centroids = None
         self.spectral_spread = None
@@ -184,6 +185,7 @@ class SingleFileFeatureExtraction:
         # Square to get total energy
         energy = np.power(rms_energy, 2)
         self.energy = energy
+        self.feature_length = len(self.energy[0])
 
     def get_energy_entropy(self):
         """
@@ -301,8 +303,13 @@ class SingleFileFeatureExtraction:
         Calculate the autocorrelation of the signal.
         :return: assign an array of autocorrelation to self.
         """
+        if self.feature_length:
+            max_auto_size = self.feature_length
+        else:
+            max_auto_size = self.autocorrelation_max_size
+
         r = librosa.autocorrelate(
-            self.audio_array, max_size=self.autocorrelation_max_size
+            self.audio_array, max_size=max_auto_size
         )
         self.autocorrelation = r
 
@@ -422,7 +429,6 @@ class SingleFileFeatureExtraction:
 
         # Zero crossing rate
         self.get_zero_crossings()
-        print(self.zero_crossing_rate[0])
         zcr_df = pd.DataFrame(self.zero_crossing_rate[0], columns=["zero_crossing_rate"])
         frames.append(zcr_df)
 
