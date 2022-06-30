@@ -3,6 +3,9 @@
 This script extracts useful features for confidence assessment from all 
 audio files and save to a csv.
 """
+import warnings
+warnings.simplefilter(action='ignore', category=FutureWarning)
+
 from features import *
 
 
