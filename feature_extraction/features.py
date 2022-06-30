@@ -275,10 +275,12 @@ class SingleFileFeatureExtraction:
     def get_zero_crossings(self):
         """
         Get the rate of zero crossings.
-        :return: assign a list of zero crossings to self.
+        :return: assign single element numpy array of zero crossing rate to self.
         """
-        zero_crossings = librosa.zero_crossings(self.audio_array, pad=False,)
-        self.zero_crossing_rate = zero_crossings / len(self.audio_array)
+        zero_crossing_rate = librosa.feature.zero_crossing_rate(
+            self.audio_array, frame_length=self.frame_length, hop_length=self.hop_length
+        )
+        self.zero_crossing_rate = zero_crossing_rate
 
     def get_mfcc(self):
         """
@@ -299,7 +301,9 @@ class SingleFileFeatureExtraction:
         Calculate the autocorrelation of the signal.
         :return: assign an array of autocorrelation to self.
         """
-        r = librosa.autocorrelate(self.audio_array, max_size=self.autocorrelation_max_size)
+        r = librosa.autocorrelate(
+            self.audio_array, max_size=self.autocorrelation_max_size
+        )
         self.autocorrelation = r
 
     def get_pitch(self):
@@ -418,7 +422,8 @@ class SingleFileFeatureExtraction:
 
         # Zero crossing rate
         self.get_zero_crossings()
-        zcr_df = pd.DataFrame(self.zero_crossing_rate, columns=["zero_crossing_rate"])
+        print(self.zero_crossing_rate[0])
+        zcr_df = pd.DataFrame(self.zero_crossing_rate[0], columns=["zero_crossing_rate"])
         frames.append(zcr_df)
 
         # mfccs
@@ -433,7 +438,9 @@ class SingleFileFeatureExtraction:
 
         # Autocorrelation
         self.get_autocorrelation()
-        autocorrelation_df = pd.DataFrame(self.autocorrelation.tolist(), columns=["autocorrelation"])
+        autocorrelation_df = pd.DataFrame(
+            self.autocorrelation.tolist(), columns=["autocorrelation"]
+        )
         frames.append(autocorrelation_df)
 
         # Pitches
