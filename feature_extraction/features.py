@@ -99,6 +99,13 @@ class SingleFileFeatureExtraction:
         self.tonnetz = None
         self.pause_ratio = None
         self.repetition_rate = None
+        self.single_feature_list = [
+            "interjecting_frequency",
+            "energy_entropy",
+            "spectral_entropy",
+            "pause_ratio",
+            "repetition_rate",
+        ]
         # self.sharpness = None
         # self.roughness = None
 
@@ -308,9 +315,7 @@ class SingleFileFeatureExtraction:
         else:
             max_auto_size = self.autocorrelation_max_size
 
-        r = librosa.autocorrelate(
-            self.audio_array, max_size=max_auto_size
-        )
+        r = librosa.autocorrelate(self.audio_array, max_size=max_auto_size)
         self.autocorrelation = r
 
     def get_pitch(self):
@@ -371,12 +376,21 @@ class SingleFileFeatureExtraction:
                 count += 1
         self.repetition_rate = count / len(transcript_list)
 
+    def normalize(self, list):
+        """Normalise the list column-wise."""
+        max_value = max(list)
+        min_value = min(list)
+        result = [(i - min_value) / (max_value - min_value) for i in list]
+
+        return result
+
     def write_features_to_csv(self):
         """Extract all features and write to a csv."""
         # Extract audio features
         frames = []
         self.load_audio()
         self.get_transcription()
+
         # Interjecting frequency
         self.get_interjecting_frequency()
         frequency_df = pd.DataFrame(
@@ -386,7 +400,8 @@ class SingleFileFeatureExtraction:
 
         # Energy
         self.get_energy()
-        energy_df = pd.DataFrame(self.energy[0].tolist(), columns=["energy"])
+        energy_scaled = self.normalize(self.energy[0].tolist())
+        energy_df = pd.DataFrame(energy_scaled, columns=["energy"])
         frames.append(energy_df)
 
         # Energy Entropy
@@ -396,13 +411,11 @@ class SingleFileFeatureExtraction:
 
         # Spectral centroids/spectral spread
         self.get_spectral_centroids()
-        sc_df = pd.DataFrame(
-            self.spectral_centroids[0].tolist(), columns=["spectral_centroids"]
-        )
+        sc_scaled = self.normalize(self.spectral_centroids[0].tolist())
+        sc_df = pd.DataFrame(sc_scaled, columns=["spectral_centroids"])
         frames.append(sc_df)
-        ss_df = pd.DataFrame(
-            self.spectral_spread[0].tolist(), columns=["spectral_spread"]
-        )
+        ss_scaled = self.normalize(self.spectral_spread[0].tolist())
+        ss_df = pd.DataFrame(ss_scaled, columns=["spectral_spread"])
         frames.append(ss_df)
 
         # Spectral entropy
@@ -412,9 +425,8 @@ class SingleFileFeatureExtraction:
 
         # Spectral rolloff
         self.get_spectral_rolloff()
-        sr_df = pd.DataFrame(
-            self.spectral_rolloff[0].tolist(), columns=["spectral_rolloff"]
-        )
+        sr_scaled = self.normalize(self.spectral_rolloff[0].tolist())
+        sr_df = pd.DataFrame(sr_scaled, columns=["spectral_rolloff"])
         frames.append(sr_df)
 
         # Spectral contrast
@@ -422,14 +434,15 @@ class SingleFileFeatureExtraction:
         # Special care taken for the 13 scontrasts
         scontrast_list = self.spectral_contrast.tolist()
         for i in range(len(scontrast_list)):
-            data_column = scontrast_list[i]
+            data_column = self.normalize(scontrast_list[i])
             column_name = "spectral_contrast" + str(i)
             scontrast_indiv_df = pd.DataFrame(data_column, columns=[column_name])
             frames.append(scontrast_indiv_df)
 
         # Zero crossing rate
         self.get_zero_crossings()
-        zcr_df = pd.DataFrame(self.zero_crossing_rate[0], columns=["zero_crossing_rate"])
+        zcr_scaled = self.normalize(self.zero_crossing_rate[0].tolist())
+        zcr_df = pd.DataFrame(zcr_scaled, columns=["zero_crossing_rate"])
         frames.append(zcr_df)
 
         # mfccs
@@ -437,21 +450,21 @@ class SingleFileFeatureExtraction:
         # Special care taken for the 12 mfccs
         mfcc_list = self.mfcc.tolist()
         for i in range(len(mfcc_list)):
-            data_column = mfcc_list[i]
+            data_column = self.normalize(mfcc_list[i])
             column_name = "mfcc" + str(i)
             mfcc_indiv_df = pd.DataFrame(data_column, columns=[column_name])
             frames.append(mfcc_indiv_df)
 
         # Autocorrelation
         self.get_autocorrelation()
-        autocorrelation_df = pd.DataFrame(
-            self.autocorrelation.tolist(), columns=["autocorrelation"]
-        )
+        auto_scaled = self.normalize(self.autocorrelation.tolist())
+        autocorrelation_df = pd.DataFrame(auto_scaled, columns=["autocorrelation"])
         frames.append(autocorrelation_df)
 
         # Pitches
         self.get_pitch()
-        pitches_df = pd.DataFrame(self.pitches.tolist(), columns=["pitches"])
+        pitches_scaled = self.normalize(self.pitches.tolist())
+        pitches_df = pd.DataFrame(pitches_scaled, columns=["pitches"])
         frames.append(pitches_df)
 
         # Tonnetz
@@ -459,7 +472,7 @@ class SingleFileFeatureExtraction:
         # Special care taken for the 6 tonnetz dimensions
         tonnetz_list = self.tonnetz.tolist()
         for i in range(len(tonnetz_list)):
-            data_column = tonnetz_list[i]
+            data_column = self.normalize(tonnetz_list[i])
             column_name = "tonnetz" + str(i)
             tonnetz_indiv_df = pd.DataFrame(data_column, columns=[column_name])
             frames.append(tonnetz_indiv_df)
