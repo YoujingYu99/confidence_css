@@ -98,7 +98,6 @@ def extract_segments(df, ogg_files, audio_path, excerpt_output_path):
                 + str(audio_name[:-4] + "_" + str(start))
             )
             audio_excerpt_name.replace("/", "_")
-            print(audio_excerpt_name)
             audio_excerpt_path_name = os.path.join(
                 excerpt_output_path, audio_excerpt_name
             )
@@ -112,7 +111,6 @@ def extract_segments(df, ogg_files, audio_path, excerpt_output_path):
                 newAudio.export(audio_excerpt_path_name + ".mp3", format="mp3")
             except:
                 pass
-
 
 def extract_all_audios(csv_path, audio_path, excerpt_output_path):
     """

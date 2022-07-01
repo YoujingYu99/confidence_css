@@ -34,11 +34,11 @@ def extract_features_from_folders(home_dir, folder_path_list):
 # home_dir is the location of script
 home_dir = os.path.join("/home", "yyu")
 
-# # Create folder path list
-# folder_path_list = []
-# for i in range(8):
-#     folder_path = os.path.join(home_dir, "extracted_audio", str(i))
-#     folder_path_list.append(folder_path)
+# Create folder path list
+folder_path_list = []
+for i in range(8):
+    folder_path = os.path.join(home_dir, "extracted_audio", str(i))
+    folder_path_list.append(folder_path)
 
-folder_path_list = [os.path.join(home_dir, "extracted_audio", str(0))]
+# folder_path_list = [os.path.join(home_dir, "extracted_audio", str(1))]
 extract_features_from_folders(home_dir, folder_path_list)
