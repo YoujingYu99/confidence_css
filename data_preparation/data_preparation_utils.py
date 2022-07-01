@@ -112,6 +112,7 @@ def extract_segments(df, ogg_files, audio_path, excerpt_output_path):
             except:
                 pass
 
+
 def extract_all_audios(csv_path, audio_path, excerpt_output_path):
     """
     :param csv_path: Path of the csv file containing information about
@@ -438,7 +439,9 @@ def extract_timings(rss_folder_dir, file_name):
             mask = questions_df["sentence"].astype(str).str.len() > 30
             questions_df = questions_df.loc[mask]
             # Filter out sentences with too few interjecting sounds
-            questions_df = questions_df[questions_df["inter_freq"] > inter_freq_threshold]
+            questions_df = questions_df[
+                questions_df["inter_freq"] > inter_freq_threshold
+            ]
             # # Only keep audios with certain categories
             questions_df = questions_df[
                 questions_df["category"].isin(categories_chosen)
