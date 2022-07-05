@@ -25,7 +25,7 @@ interjecting_sounds_list = [
     "well well well",
 ]
 
-inter_freq_threshold = 0.005
+inter_freq_threshold = 0.0001
 
 categories_chosen = [
     "Business",
@@ -34,7 +34,6 @@ categories_chosen = [
     "News",
     "Science",
     "Religion & Spirituality",
-    "Health & Fitness",
     "Society & Culture",
     "Technology",
 ]

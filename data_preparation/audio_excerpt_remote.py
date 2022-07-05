@@ -6,7 +6,7 @@ short audio segments from the parent audio files.
 
 from data_preparation_utils import *
 
-folder_number = 1
+folder_number = 2
 dataframe_name = "confidence_dataframe_" + str(folder_number) + ".csv"
 
 home_dir = os.path.join("/home", "yyu")

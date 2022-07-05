@@ -5,7 +5,7 @@ information in a csv file.
 """
 from data_preparation_utils import *
 
-folder_number = 1
+folder_number = 0
 
 
 home_dir = os.path.join("/home", "yyu")

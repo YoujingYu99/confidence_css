@@ -1,7 +1,6 @@
-from containers import *
+from ..containers import *
 import json
 import os
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
@@ -115,7 +114,7 @@ def get_interjecting_frequency(sentence_string):
     return interjecting_frequency
 
 
-def plot_interjecting_frequencies(folder_path_list):
+def save_interjecting_frequencies(folder_path_list):
     frequency_list = []
     file_path_list = json_path_in_dir(folder_path_list)
     for json_file in file_path_list:
@@ -146,4 +145,4 @@ file_dir = os.path.join(
 app_dir = os.path.join(file_dir, str(folder_number))
 
 
-plot_interjecting_frequencies(folder_path_list=[app_dir])
+save_interjecting_frequencies(folder_path_list=[app_dir])
