@@ -56,8 +56,10 @@ def train_text(model, train_data, val_data, learning_rate, epochs):
     train, val = train_data.reset_index(drop=True), val_data.reset_index(drop=True)
     train, val = TextDataset(train), TextDataset(val)
 
-    train_dataloader = torch.utils.data.DataLoader(train, batch_size=1000, shuffle=True)
-    val_dataloader = torch.utils.data.DataLoader(val, batch_size=1000)
+    train_dataloader = torch.utils.data.DataLoader(
+        train, batch_size=10, shuffle=True, drop_last=True, num_workers=4
+    )
+    val_dataloader = torch.utils.data.DataLoader(val, batch_size=10, num_workers=4)
 
     use_cuda = torch.cuda.is_available()
     device = torch.device("cuda" if use_cuda else "cpu")
@@ -66,12 +68,11 @@ def train_text(model, train_data, val_data, learning_rate, epochs):
     optimizer = Adam(model.parameters(), lr=learning_rate)
 
     if use_cuda:
-        print('Using cuda!')
+        print("Using cuda!")
         model = model.cuda()
         criterion = criterion.cuda()
 
     for epoch_num in range(epochs):
-        print(epoch_num)
         total_acc_train = 0
         total_loss_train = 0
 
@@ -120,7 +121,8 @@ def train_text(model, train_data, val_data, learning_rate, epochs):
 
 def evaluate_text(model, test_data):
     """Evaluate accuracy for text data."""
-    test = TextDataset(test_data)
+    test = test_data.reset_index(drop=True)
+    test = TextDataset(test)
 
     test_dataloader = torch.utils.data.DataLoader(test, batch_size=2)
 

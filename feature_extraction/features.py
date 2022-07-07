@@ -47,13 +47,16 @@ class SingleFileFeatureExtraction:
     write_features_to_csv(self): Write all features extracted to a csv file.
     """
 
-    def __init__(self, home_dir, audio_path, feature_csv_folder_path):
+    def __init__(
+        self, home_dir, audio_path, feature_csv_folder_path, target_sampling_rate
+    ):
         # Load paths
         self.home_dir = home_dir
         self.audio_path = audio_path
         self.feature_csv_folder_path = feature_csv_folder_path
 
         # Set parameters
+        self.target_sampling_rate = target_sampling_rate
         self.frame_length = 1024
         self.hop_length = 512
         self.eps = 0.000000001
@@ -388,8 +391,16 @@ class SingleFileFeatureExtraction:
         """Extract all features and write to a csv."""
         # Extract audio features
         frames = []
+
+        # Audio array
         self.load_audio()
+        audio_df = pd.DataFrame(self.audio_array.tolist(), columns=["audio_array"])
+        frames.append(audio_df)
+
+        # Text
         self.get_transcription()
+        text_df = pd.DataFrame([self.transcript], columns=["text"])
+        frames.append(text_df)
 
         # Interjecting frequency
         self.get_interjecting_frequency()

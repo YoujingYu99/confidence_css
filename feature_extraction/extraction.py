@@ -4,7 +4,8 @@ This script extracts useful features for confidence assessment from all
 audio files and save to a csv.
 """
 import warnings
-warnings.simplefilter(action='ignore', category=FutureWarning)
+
+warnings.simplefilter(action="ignore", category=FutureWarning)
 
 from features import *
 
@@ -27,6 +28,7 @@ def extract_features_from_folders(home_dir, folder_path_list):
             home_dir=home_dir,
             audio_path=audio_path,
             feature_csv_folder_path=feature_csv_folder_path,
+            target_sampling_rate=16000,
         )
         features.write_features_to_csv()
 
