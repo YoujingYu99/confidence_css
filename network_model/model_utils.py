@@ -8,6 +8,7 @@ from torch.optim import Adam
 from tqdm import tqdm
 from transformers import BertTokenizer, BertModel
 
+
 tokenizer = BertTokenizer.from_pretrained("bert-base-cased")
 
 
@@ -52,10 +53,11 @@ class TextDataset(torch.utils.data.Dataset):
 
 def train_text(model, train_data, val_data, learning_rate, epochs):
     """Train the model based on extracted text."""
-    train, val = TextDataset(train_data), TextDataset(val_data)
+    train, val = train_data.reset_index(drop=True), val_data.reset_index(drop=True)
+    train, val = TextDataset(train), TextDataset(val)
 
-    train_dataloader = torch.utils.data.DataLoader(train, batch_size=2, shuffle=True)
-    val_dataloader = torch.utils.data.DataLoader(val, batch_size=2)
+    train_dataloader = torch.utils.data.DataLoader(train, batch_size=1000, shuffle=True)
+    val_dataloader = torch.utils.data.DataLoader(val, batch_size=1000)
 
     use_cuda = torch.cuda.is_available()
     device = torch.device("cuda" if use_cuda else "cpu")
@@ -64,11 +66,12 @@ def train_text(model, train_data, val_data, learning_rate, epochs):
     optimizer = Adam(model.parameters(), lr=learning_rate)
 
     if use_cuda:
+        print('Using cuda!')
         model = model.cuda()
         criterion = criterion.cuda()
 
     for epoch_num in range(epochs):
-
+        print(epoch_num)
         total_acc_train = 0
         total_loss_train = 0
 
@@ -113,7 +116,6 @@ def train_text(model, train_data, val_data, learning_rate, epochs):
                         | Val Loss: {total_loss_val / len(val_data): .3f} \
                         | Val Accuracy: {total_acc_val / len(val_data): .3f}"
         )
-
 
 
 def evaluate_text(model, test_data):
