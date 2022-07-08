@@ -9,6 +9,9 @@ warnings.simplefilter(action="ignore", category=FutureWarning)
 
 from features import *
 
+# Set target sampling rate
+target_sampling_rate = 16000
+
 
 def extract_features_from_folders(home_dir, folder_path_list):
     """
@@ -24,23 +27,26 @@ def extract_features_from_folders(home_dir, folder_path_list):
         feature_csv_folder_path = os.path.join(
             home_dir, "data_sheets", "features", str(audio_folder_name)
         )
-        features = SingleFileFeatureExtraction(
-            home_dir=home_dir,
-            audio_path=audio_path,
-            feature_csv_folder_path=feature_csv_folder_path,
-            target_sampling_rate=16000,
-        )
+        try:
+            features = SingleFileFeatureExtraction(
+                home_dir=home_dir,
+                audio_path=audio_path,
+                feature_csv_folder_path=feature_csv_folder_path,
+                target_sampling_rate=target_sampling_rate,
+            )
+        except:
+            continue
         features.write_features_to_csv()
 
 
 # home_dir is the location of script
 home_dir = os.path.join("/home", "yyu")
 
-# Create folder path list
-folder_path_list = []
-for i in range(8):
-    folder_path = os.path.join(home_dir, "extracted_audio", str(i))
-    folder_path_list.append(folder_path)
+# # Create folder path list
+# folder_path_list = []
+# for i in range(8):
+#     folder_path = os.path.join(home_dir, "extracted_audio", str(i))
+#     folder_path_list.append(folder_path)
 
-# folder_path_list = [os.path.join(home_dir, "extracted_audio", str(1))]
+folder_path_list = [os.path.join(home_dir, "extracted_audio", str(6))]
 extract_features_from_folders(home_dir, folder_path_list)

@@ -6,7 +6,7 @@ short audio segments from the parent audio files.
 
 from data_preparation_utils import *
 
-folder_number = 2
+folder_number = 0
 dataframe_name = "confidence_dataframe_" + str(folder_number) + ".csv"
 
 home_dir = os.path.join("/home", "yyu")
@@ -23,6 +23,10 @@ audio_path = os.path.join(
     "podcasts-audio",
     str(folder_number),
 )
+
+
+
+
 # Output path
 excerpt_output_path = os.path.join(home_dir, "extracted_audio", str(folder_number))
 
