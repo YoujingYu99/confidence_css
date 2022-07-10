@@ -3,6 +3,7 @@ confidence classification.
 """
 import os
 import pandas as pd
+import json
 import torch
 import numpy as np
 import random
@@ -162,7 +163,7 @@ def load_audio_and_score_from_folder(folder_path_dir):
         total_df = pd.read_csv(os.path.join(folder_path_dir, filename))
         try:
             # Convert to numpy array
-            audio_list.append(total_df["audio_array"])
+            audio_list.append(total_df["audio_array"].to_list())
             score_list.append(random.choice(range(1, 10, 1)))
             # Update max length if a longer audio occurs
             if len(total_df["audio_array"]) > max_length:
@@ -184,22 +185,43 @@ def load_audio_and_score_from_folder(folder_path_dir):
 
 class AudioDataset(torch.utils.data.Dataset):
     """
-    Prepare the dataset according to its attributes.
+    Prepare the audio dataset according to its attributes.
     """
 
     def __init__(self, df, feature_extractor):
         self.labels = df["score"]
-        self.audios = [
-            feature_extractor(
-                audio.to_numpy(),
+        self.df = df
+        self.feature_extractor = feature_extractor
+        self.audios = []
+        self.extract_audio_features()
+        # self.audios = [
+        #     feature_extractor(
+        #         json.loads(audio),
+        #         sampling_rate=16000,
+        #         padding=True,
+        #         max_length=999999999,
+        #         truncation=True,
+        #         return_tensors="pt",
+        #     )
+        #     for audio in df["audio_array"]
+        # ]
+        # print(type(df["audio_array"][0]))
+        # print(type(self.audios[0]))
+
+    def extract_audio_features(self):
+        audios = []
+        for audio in self.df["audio_array"]:
+            audio = np.asarray(audio)
+            extracted_tensor = self.feature_extractor(
+                audio,
                 sampling_rate=16000,
                 padding=True,
-                max_length=100000,
+                max_length=999999999,
                 truncation=True,
                 return_tensors="pt",
             )
-            for audio in df["audio_array"]
-        ]
+            audios.append(extracted_tensor)
+        self.audios = audios
 
     def classes(self):
         return self.labels

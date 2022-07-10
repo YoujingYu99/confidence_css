@@ -81,7 +81,7 @@ folder_path_dir = os.path.join(home_dir, "data_sheets", "features", "6")
 # train_dataset = load_audio_and_score_from_folder(folder_path_dir)
 
 audio_df = load_audio_and_score_from_folder(folder_path_dir)
-print(audio_df.head())
+# print(audio_df.head())
 df_train, df_val, df_test = np.split(
     audio_df.sample(frac=1, random_state=42),
     [int(0.8 * len(audio_df)), int(0.9 * len(audio_df))],
