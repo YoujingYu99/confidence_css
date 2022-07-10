@@ -4,6 +4,7 @@ confidence classification.
 import os
 import pandas as pd
 import json
+import ast
 import torch
 import numpy as np
 import random
@@ -159,17 +160,29 @@ def load_audio_and_score_from_folder(folder_path_dir):
     audio_list = []
     score_list = []
     max_length = 0
-    for filename in os.listdir(folder_path_dir):
-        total_df = pd.read_csv(os.path.join(folder_path_dir, filename))
-        try:
-            # Convert to numpy array
-            audio_list.append(total_df["audio_array"].to_list())
-            score_list.append(random.choice(range(1, 10, 1)))
-            # Update max length if a longer audio occurs
-            if len(total_df["audio_array"]) > max_length:
-                max_length = len(total_df["audio_array"])
-        except:
-            continue
+    for i in range(40):
+        for filename in os.listdir(folder_path_dir):
+            total_df = pd.read_csv(
+                os.path.join(folder_path_dir, filename), encoding="utf-8"
+            )
+            try:
+                # Convert to numpy array
+                curr_audio_data = total_df["audio_array"].to_list()
+                # If list contains element of type string
+                if not all(isinstance(i, float) for i in curr_audio_data):
+                    print("Found wrong data type!")
+                    # Decode to float using jason
+                    curr_audio_data = json.loads(curr_audio_data[0])
+                    curr_audio_data = [float(elem) for elem in curr_audio_data]
+                    print(type(curr_audio_data[0]))
+                audio_list.append(curr_audio_data)
+                score_list.append(random.choice(range(1, 10, 1)))
+                # Update max length if a longer audio occurs
+                if len(total_df["audio_array"]) > max_length:
+                    max_length = len(total_df["audio_array"])
+            except:
+                print("Error in parsing! File name = " + filename)
+                continue
 
     print(len(audio_list))
     print(len(score_list))
@@ -194,31 +207,22 @@ class AudioDataset(torch.utils.data.Dataset):
         self.feature_extractor = feature_extractor
         self.audios = []
         self.extract_audio_features()
-        # self.audios = [
-        #     feature_extractor(
-        #         json.loads(audio),
-        #         sampling_rate=16000,
-        #         padding=True,
-        #         max_length=999999999,
-        #         truncation=True,
-        #         return_tensors="pt",
-        #     )
-        #     for audio in df["audio_array"]
-        # ]
-        # print(type(df["audio_array"][0]))
-        # print(type(self.audios[0]))
 
     def extract_audio_features(self):
         audios = []
         for audio in self.df["audio_array"]:
-            audio = np.asarray(audio)
+            print(type(audio))
+            print(type(audio[0]))
+            # audio_lst = json.loads(audio[0])
+            # audio = [float(ele) for ele in audio[0]]
             extracted_tensor = self.feature_extractor(
                 audio,
                 sampling_rate=16000,
-                padding=True,
-                max_length=999999999,
+                padding="max_length",
+                max_length=9999999,
                 truncation=True,
                 return_tensors="pt",
+                return_attention_mask=True,
             )
             audios.append(extracted_tensor)
         self.audios = audios
@@ -253,9 +257,9 @@ def train_audio(model, feature_extractor, train_data, val_data, learning_rate, e
     )
 
     train_dataloader = torch.utils.data.DataLoader(
-        train, batch_size=10, shuffle=True, drop_last=True, num_workers=4
+        train, batch_size=1, shuffle=True, drop_last=True, num_workers=4
     )
-    val_dataloader = torch.utils.data.DataLoader(val, batch_size=10, num_workers=4)
+    val_dataloader = torch.utils.data.DataLoader(val, batch_size=1, num_workers=4)
 
     use_cuda = torch.cuda.is_available()
     device = torch.device("cuda" if use_cuda else "cpu")
@@ -274,8 +278,9 @@ def train_audio(model, feature_extractor, train_data, val_data, learning_rate, e
 
         for train_input, train_label in tqdm(train_dataloader):
             train_label = train_label.to(device)
+            print(type(train_input))
             mask = train_input["attention_mask"].to(device)
-            input_values = train_input["input_ids"].squeeze(1).to(device)
+            input_values = train_input["input_values"].squeeze(1).to(device)
 
             output = model(input_values, mask)
 
@@ -297,7 +302,7 @@ def train_audio(model, feature_extractor, train_data, val_data, learning_rate, e
             for val_input, val_label in val_dataloader:
                 val_label = val_label.to(device)
                 mask = val_input["attention_mask"].to(device)
-                input_id = val_input["input_ids"].squeeze(1).to(device)
+                input_id = val_input["input_values"].squeeze(1).to(device)
 
                 output = model(input_id, mask)
 
@@ -334,7 +339,7 @@ def evaluate_audio(model, test_data):
         for test_input, test_label in test_dataloader:
             test_label = test_label.to(device)
             mask = test_input["attention_mask"].to(device)
-            input_id = test_input["input_ids"].squeeze(1).to(device)
+            input_id = test_input["input_values"].squeeze(1).to(device)
 
             output = model(input_id, mask)
 

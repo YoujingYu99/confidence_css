@@ -9,6 +9,7 @@ SingleFileFeatureExtraction: Extract features from a single audio file.
 """
 
 import os
+import json
 import scipy
 import numpy as np
 import pandas as pd
@@ -394,7 +395,14 @@ class SingleFileFeatureExtraction:
 
         # Audio array
         self.load_audio()
-        audio_df = pd.DataFrame(self.audio_array.tolist(), columns=["audio_array"])
+        loaded_audio = self.audio_array.tolist()
+        # Convert to list of floats if string.
+        if not all(isinstance(i, float) for i in loaded_audio):
+            print('Found wrong data type!')
+            # Decode to float using jason
+            curr_audio_data = json.loads(loaded_audio[0])
+            curr_audio_data = [float(elem) for elem in curr_audio_data]
+        audio_df = pd.DataFrame(curr_audio_data, columns=["audio_array"])
         frames.append(audio_df)
 
         # Text

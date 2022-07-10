@@ -27,7 +27,7 @@ from audio_features import *
 
 # Memory issues
 torch.cuda.empty_cache()
-torch.cuda.memory_summary(device=None, abbreviated=False)
+print(torch.cuda.memory_summary(device=None, abbreviated=False))
 
 
 # # loading model and tokenizer
@@ -42,43 +42,31 @@ torch.cuda.memory_summary(device=None, abbreviated=False)
 #
 # feature_extractor = Wav2Vec2FeatureExtractor.from_pretrained(model_name_or_path)
 
+import torch
+from GPUtil import showUtilization as gpu_usage
+from numba import cuda
+
+
+def free_gpu_cache():
+    print("Initial GPU Usage")
+    gpu_usage()
+
+    torch.cuda.empty_cache()
+
+    cuda.select_device(0)
+    cuda.close()
+    cuda.select_device(0)
+
+    print("GPU Usage after emptying the cache")
+    gpu_usage()
+
+
+free_gpu_cache()
 
 # home_dir is the location of script
 home_dir = os.path.join("/home", "yyu")
 folder_path_dir = os.path.join(home_dir, "data_sheets", "features", "6")
 
-
-# def load_audio_and_score_from_folder(folder_path_dir):
-#     """
-#     Load the confidence score and audio array from the csv files.
-#     :param home_dir: Primary directory.
-#     :param folder_path_list: Path of the folder of csvs
-#     :return:
-#     """
-#     audio_list = []
-#     score_list = []
-#     max_length = 0
-#     for filename in os.listdir(folder_path_dir):
-#         total_df = pd.read_csv(os.path.join(folder_path_dir, filename))
-#         try:
-#             # Convert to numpy array
-#             audio_list.append(total_df["audio_array"].to_numpy())
-#             print("converted")
-#             score_list.append(random.choice(range(1, 10, 1)))
-#             # Update max length if a longer audio occurs
-#             if len(total_df["audio_array"]) > max_length:
-#                 max_length = len(total_df["audio_array"])
-#         except:
-#             continue
-#
-#     print(len(audio_list))
-#     print(len(score_list))
-#     result = feature_extractor(audio_list, sampling_rate=16000, padding=True)
-#     result["labels"] = score_list
-#     return result
-#
-#
-# train_dataset = load_audio_and_score_from_folder(folder_path_dir)
 
 audio_df = load_audio_and_score_from_folder(folder_path_dir)
 # print(audio_df.head())
