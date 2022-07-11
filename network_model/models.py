@@ -36,7 +36,7 @@ class HubertClassifier(nn.Module):
 
         super(HubertClassifier, self).__init__()
 
-        self.hubert = HubertModel.from_pretrained("facebook/hubert-large-ls960-ft")
+        self.hubert = HubertModel.from_pretrained("facebook/hubert-base-ls960")
         self.dropout = nn.Dropout(dropout)
         # 10 categories
         self.linear = nn.Linear(768, 10)

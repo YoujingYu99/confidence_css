@@ -3,6 +3,7 @@ Extract the raw audio array and confidence score from the individual audio
 classes. Then use this data to train the network for classification.
 """
 import os
+import json
 import random
 import pandas as pd
 import numpy as np
@@ -25,50 +26,23 @@ from models import *
 from model_utils import *
 from audio_features import *
 
-# Memory issues
-torch.cuda.empty_cache()
-print(torch.cuda.memory_summary(device=None, abbreviated=False))
-
-
-# # loading model and tokenizer
-# model_name_or_path = "facebook/hubert-base-ls960"
-# pooling_mode = "mean"
-#
-# # config
-# config = AutoConfig.from_pretrained(
-#     model_name_or_path, num_labels=10, finetuning_task="wav2vec2_clf",
-# )
-# setattr(config, "pooling_mode", pooling_mode)
-#
-# feature_extractor = Wav2Vec2FeatureExtractor.from_pretrained(model_name_or_path)
-
-import torch
-from GPUtil import showUtilization as gpu_usage
-from numba import cuda
-
-
-def free_gpu_cache():
-    print("Initial GPU Usage")
-    gpu_usage()
-
-    torch.cuda.empty_cache()
-
-    cuda.select_device(0)
-    cuda.close()
-    cuda.select_device(0)
-
-    print("GPU Usage after emptying the cache")
-    gpu_usage()
-
-
-free_gpu_cache()
 
 # home_dir is the location of script
 home_dir = os.path.join("/home", "yyu")
 folder_path_dir = os.path.join(home_dir, "data_sheets", "features", "6")
+total_audio_file = os.path.join(folder_path_dir, "test_model.csv")
 
-
+print('start of application!')
 audio_df = load_audio_and_score_from_folder(folder_path_dir)
+# audio_df = pd.read_csv(total_audio_file, converters={'audio_array': pd.eval})
+# print(audio_df['DataFrame Column'].dtypes)
+# print(audio_df.head())
+# for i in audio_df:
+#     curr_audio_data = json.loads(curr_audio_data[0])
+#     curr_audio_data = [float(elem) for elem in curr_audio_data]
+
+
+
 # print(audio_df.head())
 df_train, df_val, df_test = np.split(
     audio_df.sample(frac=1, random_state=42),
