@@ -3,6 +3,7 @@ confidence classification.
 """
 import os
 import pandas as pd
+import itertools
 from prettytable import PrettyTable
 import json
 import ast
@@ -250,6 +251,51 @@ class AudioDataset(torch.utils.data.Dataset):
 
         return batch_audios, batch_y
 
+
+class AudioDatasetNew(torch.utils.data.Dataset):
+    """
+    Prepare the audio dataset according to its attributes.
+    """
+
+    def __init__(self, df):
+        self.labels = df["score"]
+        self.audios = df["audio_array"]
+        self.audios_list = self.audios.tolist()
+        print(type(self.audios_list[0]))
+        self.max_length = 0
+        self.padded_audio = None
+
+    def find_max_array_length(self):
+        list_len = [len(i) for i in self.audios_list]
+        max_length = max(list_len)
+        self.max_length = max_length
+
+    def pad_audio(self):
+        pad_token = float(0)
+        padded = zip(*itertools.zip_longest(*self.audios_list, fillvalue=pad_token))
+        self.padded_audio = padded
+
+    def classes(self):
+        return self.labels
+
+    def __len__(self):
+        return len(self.labels)
+
+    def get_batch_labels(self, idx):
+        # Fetch a batch of labels
+        return np.array(self.labels[idx])
+
+    def get_batch_audios(self, idx):
+        # Fetch a batch of inputs
+        return self.audios[idx]
+
+    def __getitem__(self, idx):
+        batch_audios = self.get_batch_audios(idx)
+        batch_y = self.get_batch_labels(idx)
+
+        return batch_audios, batch_y
+
+
 def count_parameters(model):
     table = PrettyTable(["Modules", "Parameters"])
     total_params = 0
@@ -266,7 +312,6 @@ def count_parameters(model):
     return total_params
 
 
-
 def train_audio(model, feature_extractor, train_data, val_data, learning_rate, epochs):
     """Train the model based on extracted audio."""
     train, val = train_data.reset_index(drop=True), val_data.reset_index(drop=True)
@@ -274,6 +319,10 @@ def train_audio(model, feature_extractor, train_data, val_data, learning_rate, e
         AudioDataset(train, feature_extractor),
         AudioDataset(val, feature_extractor),
     )
+    # train, val = (
+    #     AudioDatasetNew(train),
+    #     AudioDataset(val),
+    # )
 
     train_dataloader = torch.utils.data.DataLoader(
         train, batch_size=1, shuffle=True, num_workers=4
