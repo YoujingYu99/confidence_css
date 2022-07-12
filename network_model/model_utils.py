@@ -169,6 +169,7 @@ def load_audio_and_score_from_folder(folder_path_dir):
         total_df = pd.read_csv(
             os.path.join(folder_path_dir, filename), encoding="utf-8", low_memory=False
         )
+        print(filename)
         try:
             # Convert to numpy array
             curr_audio_data = total_df["audio_array"].to_list()
