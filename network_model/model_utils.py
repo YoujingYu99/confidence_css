@@ -314,7 +314,7 @@ def count_parameters(model):
 
 
 def train_audio(model, feature_extractor, train_data, val_data, learning_rate, epochs):
-    """Train the model based on extracted audio."""
+    """Train the model based on extracted audio features."""
     train, val = train_data.reset_index(drop=True), val_data.reset_index(drop=True)
     train, val = (
         AudioDataset(train, feature_extractor),
@@ -391,6 +391,80 @@ def train_audio(model, feature_extractor, train_data, val_data, learning_rate, e
                         | Val Accuracy: {total_acc_val / len(val_data): .3f}"
         )
 
+def train_audio_raw(model, train_data, val_data, learning_rate, epochs):
+    """Train the model based on extracted audio only."""
+    train, val = train_data.reset_index(drop=True), val_data.reset_index(drop=True)
+    train, val = (
+        AudioDatasetNew(train),
+        AudioDatasetNew(val),
+    )
+
+
+    train_dataloader = torch.utils.data.DataLoader(
+        train, batch_size=1, shuffle=True, num_workers=4
+    )
+    val_dataloader = torch.utils.data.DataLoader(val, batch_size=1, num_workers=4)
+
+    use_cuda = torch.cuda.is_available()
+    device = torch.device("cuda" if use_cuda else "cpu")
+
+    criterion = nn.CrossEntropyLoss()
+    optimizer = Adam(model.parameters(), lr=learning_rate)
+
+    if use_cuda:
+        print("Using cuda!")
+        model = model.to(device)
+        count_parameters(model)
+        model = nn.DataParallel(model, device_ids=list(range(num_gpus)))
+
+        # criterion = criterion.cuda()
+
+    for epoch_num in range(epochs):
+        total_acc_train = 0
+        total_loss_train = 0
+
+        for train_input, train_label in tqdm(train_dataloader):
+            train_label = train_label.to(device)
+            print(type(train_input))
+            mask = train_input["attention_mask"].to(device)
+            input_values = train_input["input_values"].squeeze(1).to(device)
+
+            output = model(input_values, mask)
+
+            batch_loss = criterion(output, train_label.long())
+            total_loss_train += batch_loss.item()
+
+            acc = (output.argmax(dim=1) == train_label).sum().item()
+            total_acc_train += acc
+
+            model.zero_grad()
+            batch_loss.backward()
+            optimizer.step()
+
+        total_acc_val = 0
+        total_loss_val = 0
+
+        with torch.no_grad():
+
+            for val_input, val_label in val_dataloader:
+                val_label = val_label.to(device)
+                mask = val_input["attention_mask"].to(device)
+                input_id = val_input["input_values"].squeeze(1).to(device)
+
+                output = model(input_id, mask)
+
+                batch_loss = criterion(output, val_label.long())
+                total_loss_val += batch_loss.item()
+
+                acc = (output.argmax(dim=1) == val_label).sum().item()
+                total_acc_val += acc
+
+        print(
+            f"Epochs: {epoch_num + 1} | Train Loss: {total_loss_train / len(train_data): .3f} \
+                        | Train Accuracy: {total_acc_train / len(train_data): .3f} \
+                        | Val Loss: {total_loss_val / len(val_data): .3f} \
+                        | Val Accuracy: {total_acc_val / len(val_data): .3f}"
+        )
 
 def evaluate_audio(model, test_data):
     """Evaluate accuracy for audio data."""
