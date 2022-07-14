@@ -64,9 +64,9 @@ def train_text(model, tokenizer, train_data, val_data, learning_rate, epochs):
 
     #
     train_dataloader = torch.utils.data.DataLoader(
-        train, batch_size=5, shuffle=True, drop_last=True, num_workers=4
+        train, batch_size=50, shuffle=True, drop_last=True, num_workers=4
     )
-    val_dataloader = torch.utils.data.DataLoader(val, batch_size=5, num_workers=4)
+    val_dataloader = torch.utils.data.DataLoader(val, batch_size=50, num_workers=4)
 
     use_cuda = torch.cuda.is_available()
     device = torch.device("cuda" if use_cuda else "cpu")
@@ -89,8 +89,6 @@ def train_text(model, tokenizer, train_data, val_data, learning_rate, epochs):
             input_id = train_input["input_ids"].squeeze(1).to(device)
 
             output = model(input_id, mask)
-            print(output.size())
-            print(train_label)
             batch_loss = criterion(output, train_label.long())
             total_loss_train += batch_loss.item()
 
@@ -172,7 +170,6 @@ def load_audio_and_score_from_folder(folder_path_dir):
                 encoding="utf-8",
                 low_memory=False,
             )
-            print(filename)
             try:
                 # Convert to numpy array
                 curr_audio_data = total_df["audio_array"].to_list()
@@ -197,13 +194,8 @@ def load_audio_and_score_from_folder(folder_path_dir):
     result_df = pd.DataFrame(
         np.column_stack([audio_list, score_list]), columns=["audio_array", "score"]
     )
-    # result = feature_extractor(audio_list, sampling_rate=16000, padding=True)
-    # result["labels"] = score_list
-    save_path = os.path.join(folder_path_dir, "test_model.json")
-    result_df.to_csv(save_path, index=False)
-    # json_file = result_df.to_json()
-    # with open(save_path, 'w') as outfile:
-    #     json.dump(json_file, outfile, indent=4)
+    # save_path = os.path.join(folder_path_dir, "test_model.csv)
+    # result_df.to_csv(save_path, index=False)
     return result_df
 
 
@@ -335,9 +327,9 @@ def train_audio_vector(
     )
 
     train_dataloader = torch.utils.data.DataLoader(
-        train, batch_size=2, shuffle=True, num_workers=4
+        train, batch_size=50, shuffle=True, num_workers=4
     )
-    val_dataloader = torch.utils.data.DataLoader(val, batch_size=2, num_workers=4)
+    val_dataloader = torch.utils.data.DataLoader(val, batch_size=50, num_workers=4)
 
     use_cuda = torch.cuda.is_available()
     device = torch.device("cuda" if use_cuda else "cpu")
@@ -360,7 +352,6 @@ def train_audio_vector(
         for train_input, train_label in tqdm(train_dataloader):
             train_label = train_label.to(device)
             # mask = train_input["attention_mask"].to(device)
-            print(type(train_input))
             input_values = train_input["input_values"].squeeze(1).to(device)
 
             output = model(input_values)
@@ -408,9 +399,9 @@ def train_audio_audio(model, train_data, val_data, learning_rate, epochs):
     )
 
     train_dataloader = torch.utils.data.DataLoader(
-        train, batch_size=1, shuffle=True, num_workers=4
+        train, batch_size=50, shuffle=True, num_workers=4
     )
-    val_dataloader = torch.utils.data.DataLoader(val, batch_size=1, num_workers=4)
+    val_dataloader = torch.utils.data.DataLoader(val, batch_size=50, num_workers=4)
 
     use_cuda = torch.cuda.is_available()
     device = torch.device("cuda" if use_cuda else "cpu")
@@ -432,16 +423,9 @@ def train_audio_audio(model, train_data, val_data, learning_rate, epochs):
 
         for train_input, train_label in tqdm(train_dataloader):
             train_label = train_label.to(device)
-            print("train input element type", type(train_input))
-            # mask = train_input["attention_mask"].to(device)
-            print("length of train input", len(train_input))
             # input_values = train_input["input_values"]
             input_values = torch.cat(train_input).to(device, dtype=torch.float)
-            print("size of train input", input_values.size())
-            # TODO: Fix the tensor problem when input is raw audio array.
             output = model(input_values)
-            print(output)
-            print(output.size())
             batch_loss = criterion(output, train_label.long())
             total_loss_train += batch_loss.item()
 
@@ -482,7 +466,7 @@ def evaluate_audio_vector(model, test_data):
     test = test_data.reset_index(drop=True)
     test = AudioDatasetVector(test)
 
-    test_dataloader = torch.utils.data.DataLoader(test, batch_size=2)
+    test_dataloader = torch.utils.data.DataLoader(test, batch_size=50)
 
     use_cuda = torch.cuda.is_available()
     device = torch.device("cuda" if use_cuda else "cpu")
@@ -511,7 +495,7 @@ def evaluate_audio_audio(model, test_data):
     test = test_data.reset_index(drop=True)
     test = AudioDatasetAudio(test)
 
-    test_dataloader = torch.utils.data.DataLoader(test, batch_size=2)
+    test_dataloader = torch.utils.data.DataLoader(test, batch_size=50)
 
     use_cuda = torch.cuda.is_available()
     device = torch.device("cuda" if use_cuda else "cpu")
