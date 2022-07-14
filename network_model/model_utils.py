@@ -408,9 +408,9 @@ def train_audio_audio(model, train_data, val_data, learning_rate, epochs):
     )
 
     train_dataloader = torch.utils.data.DataLoader(
-        train, batch_size=2, shuffle=True, num_workers=4
+        train, batch_size=1, shuffle=True, num_workers=4
     )
-    val_dataloader = torch.utils.data.DataLoader(val, batch_size=2, num_workers=4)
+    val_dataloader = torch.utils.data.DataLoader(val, batch_size=1, num_workers=4)
 
     use_cuda = torch.cuda.is_available()
     device = torch.device("cuda" if use_cuda else "cpu")
@@ -436,11 +436,12 @@ def train_audio_audio(model, train_data, val_data, learning_rate, epochs):
             # mask = train_input["attention_mask"].to(device)
             print("length of train input", len(train_input))
             # input_values = train_input["input_values"]
-            input_values = torch.cat(train_input)
+            input_values = torch.cat(train_input).to(device, dtype=torch.float)
             print("size of train input", input_values.size())
             # TODO: Fix the tensor problem when input is raw audio array.
             output = model(input_values)
-
+            print(output)
+            print(output.size())
             batch_loss = criterion(output, train_label.long())
             total_loss_train += batch_loss.item()
 
@@ -459,11 +460,9 @@ def train_audio_audio(model, train_data, val_data, learning_rate, epochs):
             for val_input, val_label in val_dataloader:
                 val_label = val_label.to(device)
                 # mask = val_input["attention_mask"].to(device)
-                input_id = val_input["input_values"].to(device)
-
-                output = model(input_id)
-                print(output)
-                print(output.size())
+                # input_id = val_input["input_values"].to(device)
+                input_values = torch.cat(val_input).to(device, dtype=torch.float)
+                output = model(input_values)
                 batch_loss = criterion(output, val_label.long())
                 total_loss_val += batch_loss.item()
 
