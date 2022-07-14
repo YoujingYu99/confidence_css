@@ -26,21 +26,23 @@ from models import *
 from model_utils import *
 from audio_features import *
 
+# Read in files recursively
 
 # home_dir is the location of script
 home_dir = os.path.join("/home", "yyu")
 folder_path_dir = os.path.join(home_dir, "data_sheets", "features", "6")
 total_audio_file = os.path.join(folder_path_dir, "test_model.csv")
 
-print('start of application!')
-audio_df = load_audio_and_score_from_folder(folder_path_dir)
-# audio_df = pd.read_csv(total_audio_file, converters={'audio_array': pd.eval})
+print("start of application!")
+# audio_df = load_audio_and_score_from_folder(folder_path_dir)
+audio_df = pd.read_csv(
+    total_audio_file, converters={"audio_array": pd.eval}, encoding="ISO-8859-1"
+)
 # print(audio_df['DataFrame Column'].dtypes)
-# print(audio_df.head())
+print(audio_df.head())
 # for i in audio_df:
 #     curr_audio_data = json.loads(curr_audio_data[0])
 #     curr_audio_data = [float(elem) for elem in curr_audio_data]
-
 
 
 # print(audio_df.head())
@@ -67,7 +69,7 @@ EPOCHS = 5
 LR = 1e-6
 audio_model = HubertClassifier()
 # Train model
-train_audio(audio_model, feature_extractor, df_train, df_val, LR, EPOCHS)
+train_audio_vector(audio_model, feature_extractor, df_train, df_val, LR, EPOCHS)
 # # home_dir is the location of script
 # home_dir = os.path.join("/home", "yyu")
 #

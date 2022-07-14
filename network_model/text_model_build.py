@@ -29,4 +29,4 @@ LR = 1e-6
 
 # Train model
 train_text(text_model, text_tokenizer, df_train, df_val, LR, EPOCHS)
-evaluate_text(text_model, df_test)
+evaluate_text(text_model, df_test, text_tokenizer)
