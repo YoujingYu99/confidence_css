@@ -226,6 +226,7 @@ class AudioDataset(torch.utils.data.Dataset):
                 sampling_rate=16000,
                 padding="longest",
                 truncation=True,
+                max_length="9999999",
                 return_tensors="pt",
                 return_attention_mask=True,
             )
