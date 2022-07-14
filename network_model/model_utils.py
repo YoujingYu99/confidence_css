@@ -83,6 +83,7 @@ def train_text(model, tokenizer, train_data, val_data, learning_rate, epochs):
         total_acc_train = 0
         total_loss_train = 0
 
+        model.train()
         for train_input, train_label in tqdm(train_dataloader):
             train_label = train_label.to(device)
             mask = train_input["attention_mask"].to(device)
@@ -103,7 +104,7 @@ def train_text(model, tokenizer, train_data, val_data, learning_rate, epochs):
         total_loss_val = 0
 
         with torch.no_grad():
-
+            model.eval()
             for val_input, val_label in val_dataloader:
                 val_label = val_label.to(device)
                 mask = val_input["attention_mask"].to(device)
@@ -139,7 +140,7 @@ def evaluate_text(model, test_data, tokenizer):
 
     total_acc_test = 0
     with torch.no_grad():
-
+        model.eval()
         for test_input, test_label in test_dataloader:
             test_label = test_label.to(device)
             mask = test_input["attention_mask"].to(device)
@@ -349,6 +350,7 @@ def train_audio_vector(
         total_acc_train = 0
         total_loss_train = 0
 
+        model.train()
         for train_input, train_label in tqdm(train_dataloader):
             train_label = train_label.to(device)
             # mask = train_input["attention_mask"].to(device)
@@ -369,7 +371,7 @@ def train_audio_vector(
         total_loss_val = 0
 
         with torch.no_grad():
-
+            model.eval()
             for val_input, val_label in val_dataloader:
                 val_label = val_label.to(device)
                 # mask = val_input["attention_mask"].to(device)
@@ -421,6 +423,7 @@ def train_audio_audio(model, train_data, val_data, learning_rate, epochs):
         total_acc_train = 0
         total_loss_train = 0
 
+        model.train()
         for train_input, train_label in tqdm(train_dataloader):
             train_label = train_label.to(device)
             # input_values = train_input["input_values"]
@@ -440,7 +443,7 @@ def train_audio_audio(model, train_data, val_data, learning_rate, epochs):
         total_loss_val = 0
 
         with torch.no_grad():
-
+            model.eval()
             for val_input, val_label in val_dataloader:
                 val_label = val_label.to(device)
                 # mask = val_input["attention_mask"].to(device)
@@ -476,7 +479,7 @@ def evaluate_audio_vector(model, test_data):
 
     total_acc_test = 0
     with torch.no_grad():
-
+        model.eval()
         for test_input, test_label in test_dataloader:
             test_label = test_label.to(device)
             # mask = test_input["attention_mask"].to(device)
@@ -505,7 +508,7 @@ def evaluate_audio_audio(model, test_data):
 
     total_acc_test = 0
     with torch.no_grad():
-
+        model.eval()
         for test_input, test_label in test_dataloader:
             test_label = test_label.to(device)
             # mask = test_input["attention_mask"].to(device)
