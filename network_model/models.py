@@ -41,9 +41,9 @@ class HubertClassifier(nn.Module):
 
         output_tuple = self.hubert(input_values=input_values, return_dict=False)
         (pooled_output,) = output_tuple
-        print("pooled", pooled_output.size())
+        # print("pooled", pooled_output.size())
         output_reduced = torch.mean(pooled_output, -2)
-        print("reduced", output_reduced.size())
+        # print("reduced", output_reduced.size())
         dropout_output = self.dropout(output_reduced)
         linear_output = self.linear(dropout_output)
         final_layer = self.relu(linear_output)
