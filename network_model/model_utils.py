@@ -1,5 +1,10 @@
 """Utility functions for training and building models for text and audio
 confidence classification.
+
+----------------------------------
+Class TextDataset: Class that handles the preparation of text for training.
+Class AudioDataset: Class that handles the preparation of audio for training.
+
 """
 import os
 import pandas as pd
@@ -73,7 +78,6 @@ def train_text(
     train, val = train_data.reset_index(drop=True), val_data.reset_index(drop=True)
     train, val = TextDataset(train, tokenizer), TextDataset(val, tokenizer)
 
-    #
     train_dataloader = torch.utils.data.DataLoader(
         train, batch_size=batch_size, shuffle=True, drop_last=True, num_workers=4
     )
@@ -231,6 +235,7 @@ class AudioDataset(torch.utils.data.Dataset):
     Vectorise the audio arrays using the Wav2Vec transformer and prepare
     as dataset.
     """
+
     def __init__(self, df, feature_extractor, vectorise):
         self.df = df
         self.labels = df["score"]
@@ -458,7 +463,6 @@ def evaluate_audio(model, test_data, batch_size, vectorise):
     if use_cuda:
         model = model.to(device)
         model = nn.DataParallel(model, device_ids=list(range(num_gpus)))
-
 
     total_acc_test = 0
     with torch.no_grad():

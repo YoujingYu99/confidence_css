@@ -1,7 +1,6 @@
 import torch
 from torch import nn
-from torch.nn import BCEWithLogitsLoss, CrossEntropyLoss, MSELoss
-from transformers import BertTokenizer, BertModel, HubertModel
+from transformers import BertModel, HubertModel
 
 
 class BertClassifier(nn.Module):
