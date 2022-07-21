@@ -39,7 +39,7 @@ class SingleFileFeatureExtraction:
     get_spectral_contrast(self): Calculate all spectral contrasts.
     get_zero_crossings(self) Calculate the zero-crossing rate.
     get_mfcc(self): Get the MFCCs.
-    get_autocorrelation(self): Get the autocorrelation array of aidio.
+    get_autocorrelation(self): Get the autocorrelation array of audio.
     get_pitch(self): Get pitch data.
     get_tonnetz(self): Get tonnetz data.
     get_sharp_rough(self): Get sharpness and roughness of audio.
@@ -398,7 +398,7 @@ class SingleFileFeatureExtraction:
         loaded_audio = self.audio_array.tolist()
         # Convert to list of floats if string.
         if not all(isinstance(i, float) for i in loaded_audio):
-            print('Found wrong data type!')
+            print("Found wrong data type!")
             # Decode to float using jason
             curr_audio_data = json.loads(loaded_audio[0])
             curr_audio_data = [float(elem) for elem in curr_audio_data]

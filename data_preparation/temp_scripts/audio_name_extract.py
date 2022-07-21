@@ -1,3 +1,9 @@
+"""Generate audio names to be uploaded.
+
+This script generates a txt file with the names of the audio files to be used to give
+Dr Lipani so as to avoid uploading of unnecessary audios."""
+
+
 import os
 import pandas as pd
 

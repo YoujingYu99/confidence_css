@@ -1,4 +1,9 @@
-from ..containers import *
+"""Get interjecting sound frequencies distribution.
+
+Save the interjecting frequencies to a csv for plotting and choosing a
+threshold to keep."""
+
+from data_preparation.containers import *
 import json
 import os
 import numpy as np

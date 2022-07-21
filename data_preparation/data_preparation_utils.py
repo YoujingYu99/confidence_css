@@ -104,12 +104,14 @@ def extract_segments(df, ogg_files, audio_path, excerpt_output_path):
             # working in milliseconds
             start = start * 1000
             end = end * 1000
-            try:
-                newAudio = AudioSegment.from_ogg(audio_file_path)
-                newAudio = newAudio[start:end]
-                newAudio.export(audio_excerpt_path_name + ".mp3", format="mp3")
-            except:
-                pass
+            # Only extract if file does not exist in directory
+            if not os.path.isfile(audio_excerpt_path_name + ".mp3"):
+                try:
+                    newAudio = AudioSegment.from_ogg(audio_file_path)
+                    newAudio = newAudio[start:end]
+                    newAudio.export(audio_excerpt_path_name + ".mp3", format="mp3")
+                except:
+                    pass
 
 
 def extract_all_audios(csv_path, audio_path, excerpt_output_path):
@@ -251,7 +253,7 @@ def find_last_word(before_word_list):
         ):
             end_word_list.append(word_dict)
     if len(end_word_list) == 0:
-        first = {"startTime": "0.000s", "endTime": None, "word": None}
+        first = {"startTime": "0.000s", "endTime": "0.000s", "word": None}
         first = Word(first)
     else:
         first = end_word_list[-1]
@@ -388,38 +390,51 @@ def extract_timings(rss_folder_dir, file_name):
             if isinstance(word_list, type(None)):
                 continue
             else:
-                for word_dic in word_list:
-                    if word_dic.speakerTag:
-                        # print('multiple speakers')
-                        if "?" in str(word_dic.word):
-                            # print('questions found')
-                            end_time = word_dic.endTime
-                            # find the start time of the word spoken next and use it as the end time of the sentence
-                            word_dic_index = word_list.index(word_dic)
-                            try:
-                                sent_end_time = word_list[word_dic_index + 1].startTime
-                                last_word_index = next(
-                                    (
-                                        index
-                                        for (index, d) in enumerate(word_list)
-                                        if d.word == word_dic.word
-                                        and d.endTime == end_time
-                                    ),
-                                    None,
-                                )
-                                before_word_list = word_list[:last_word_index]
-                                last_word = find_last_word(before_word_list)
-                                start_time = last_word.startTime
-                                sentence_string = from_timings_extract_transcript(
-                                    word_list, start_time, end_time
-                                )
-                                # print(sentence_string)
-                                start_time_list.append(start_time)
-                                end_time_list.append(end_time)
-                                sent_end_time_list.append(sent_end_time)
-                                sentence_string_list.append(sentence_string)
-                            except:
-                                continue
+                # Only keep if more than one speaker
+                try:
+                    speakerTag_list = [word_dict.speakerTag for word_dict in word_list]
+                    # Only keep if sentence uttered by same speaker
+                    if len(set(speakerTag_list)) == 1 and set(speakerTag_list) != {
+                        None
+                    }:
+                        print(set(speakerTag_list))
+                        for word_dic in word_list:
+                            # Check if this is a question
+                            if "?" in str(word_dic.word):
+                                # print('questions found')
+                                # End time of the last word of the question asked
+                                end_time = word_dic.endTime
+                                # Find the start time of the word spoken next and use it as the end time of the sentence
+                                word_dic_index = word_list.index(word_dic)
+                                try:
+                                    # End time is the start time of the next sentence.
+                                    sent_end_time = word_list[
+                                        word_dic_index + 1
+                                    ].startTime
+                                    last_word_index = next(
+                                        (
+                                            index
+                                            for (index, d) in enumerate(word_list)
+                                            if d.word == word_dic.word
+                                            and d.endTime == end_time
+                                        ),
+                                        None,
+                                    )
+                                    before_word_list = word_list[:last_word_index]
+                                    last_word = find_last_word(before_word_list)
+                                    # start_time = last_word.startTime
+                                    start_time = last_word.endTime
+                                    sentence_string = from_timings_extract_transcript(
+                                        word_list, start_time, end_time
+                                    )
+                                    start_time_list.append(start_time)
+                                    end_time_list.append(end_time)
+                                    sent_end_time_list.append(sent_end_time)
+                                    sentence_string_list.append(sentence_string)
+                                except:
+                                    continue
+                except:
+                    continue
             questions_df = pd.DataFrame(
                 np.column_stack(
                     [

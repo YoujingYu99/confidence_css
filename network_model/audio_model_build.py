@@ -11,7 +11,7 @@ folder_number = 6
 # Decide on whether to load whole dataframe or individual ones.
 loading_type = "many"
 # Decide on whether to tokenize audios before training or use raw audio arrays.
-vectorise = False
+vectorise = True
 
 # home_dir is the location of script
 home_dir = os.path.join("/home", "yyu")

@@ -116,7 +116,6 @@ def train_text(
             acc = (output.argmax(dim=1) == train_label).sum().item()
             total_acc_train += acc
 
-            model.zero_grad()
             batch_loss.backward()
             optimizer.step()
 
@@ -405,6 +404,7 @@ def train_audio(
                 input_values = train_input.squeeze(1).to(device, dtype=torch.float)
                 # input_values = torch.cat(train_input).to(device, dtype=torch.float)
 
+            optimizer.zero_grad()
             output = model(input_values)
             batch_loss = criterion(output, train_label.long())
             total_loss_train += batch_loss.item()
@@ -412,7 +412,6 @@ def train_audio(
             acc = (output.argmax(dim=1) == train_label).sum().item()
             total_acc_train += acc
 
-            model.zero_grad()
             batch_loss.backward()
             optimizer.step()
 
