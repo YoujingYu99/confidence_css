@@ -402,6 +402,8 @@ class SingleFileFeatureExtraction:
             # Decode to float using jason
             curr_audio_data = json.loads(loaded_audio[0])
             curr_audio_data = [float(elem) for elem in curr_audio_data]
+        else:
+            curr_audio_data = loaded_audio
         audio_df = pd.DataFrame(curr_audio_data, columns=["audio_array"])
         frames.append(audio_df)
 

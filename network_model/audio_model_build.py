@@ -7,7 +7,7 @@ from models import *
 from model_utils import *
 from audio_features import *
 
-folder_number = 6
+folder_number = 5
 # Decide on whether to load whole dataframe or individual ones.
 loading_type = "many"
 # Decide on whether to tokenize audios before training or use raw audio arrays.
