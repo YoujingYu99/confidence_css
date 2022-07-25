@@ -10,7 +10,7 @@ import os
 import random
 
 home_dir = os.path.join("/home", "yyu")
-folder_numbers = range(8)
+folder_numbers = [0]
 
 for folder_number in folder_numbers:
     prefix = str(folder_number) + "/"
