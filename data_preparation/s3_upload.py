@@ -9,6 +9,7 @@ import boto3
 home_dir = os.path.join("/home", "yyu")
 
 folder_numbers = [0]
+# folder_numbers = range(8)
 
 for folder_number in folder_numbers:
     excerpt_output_path = os.path.join(
