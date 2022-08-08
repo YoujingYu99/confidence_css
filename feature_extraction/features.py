@@ -49,12 +49,18 @@ class SingleFileFeatureExtraction:
     """
 
     def __init__(
-        self, home_dir, audio_path, feature_csv_folder_path, target_sampling_rate
+        self,
+        home_dir,
+        audio_path,
+        feature_csv_folder_path,
+        audio_array_csv_folder_path,
+        target_sampling_rate,
     ):
         # Load paths
         self.home_dir = home_dir
         self.audio_path = audio_path
         self.feature_csv_folder_path = feature_csv_folder_path
+        self.audio_array_csv_folder_path = audio_array_csv_folder_path
 
         # Set parameters
         self.target_sampling_rate = target_sampling_rate
@@ -520,7 +526,42 @@ class SingleFileFeatureExtraction:
         feature_csv_path = os.path.join(
             self.feature_csv_folder_path, str(self.audio_name[:-4] + ".csv")
         )
-        total_df.to_csv(feature_csv_path)
+        total_df.to_csv(feature_csv_path, encoding="utf-8")
+        try:
+            df = pd.read_csv(feature_csv_path, encoding="utf-8")
+        except Exception as e:
+            print("Unsuccessful in saving file. Tried again")
+            print(e)
+            audio_df.to_csv(feature_csv_path, encoding="utf-8")
+
+    def write_audio_array_to_csv(self):
+        """Extract all features and write to a csv."""
+        # Audio array
+        self.load_audio()
+        # Get audio name
+        self.get_transcription()
+        loaded_audio = self.audio_array.tolist()
+        # Convert to list of floats if string.
+        if not all(isinstance(i, float) for i in loaded_audio):
+            print("Found wrong data type!")
+            # Decode to float using jason
+            curr_audio_data = json.loads(loaded_audio[0])
+            curr_audio_data = [float(elem) for elem in curr_audio_data]
+        else:
+            curr_audio_data = loaded_audio
+        audio_df = pd.DataFrame(curr_audio_data, columns=["audio_array"])
+        audio_array_csv_path = os.path.join(
+            self.audio_array_csv_folder_path,
+            str(self.audio_name[:-4] + "_audio_only.csv"),
+        )
+        print(audio_array_csv_path)
+        audio_df.to_csv(audio_array_csv_path, encoding="utf-8")
+        try:
+            df = pd.read_csv(audio_array_csv_path, encoding="utf-8")
+        except Exception as e:
+            print("Unsuccessful in saving file. Tried again")
+            print(e)
+            audio_df.to_csv(audio_array_csv_path, encoding="utf-8")
 
 
 def audio_path_in_dir(folder_path_list):

@@ -16,6 +16,8 @@ import random
 from torch import nn
 from torch.optim import Adam
 from tqdm import tqdm
+import logging
+
 
 num_gpus = torch.cuda.device_count()
 
@@ -182,40 +184,81 @@ def evaluate_text(model, test_data, tokenizer, batch_size):
     print(f"Test Accuracy: {total_acc_test / len(test_data): .3f}")
 
 
-def load_audio_and_score_from_folder(folder_path_dir):
+def load_audio_and_score_from_folder_logging(
+    folder_path_dir,
+    file_type,
+    save_to_single_csv,
+    log_filename="load_audio_and_score_from_folder_log3.txt",
+):
     """
     Load the confidence score and audio array from the csv files.
     :param home_dir: Primary directory.
     :param folder_path_list: Path of the folder of csvs.
     :return: result_df: Pandas dataframe wit columns audio_array and score.
     """
+
+    # create logger
+    logger = logging.getLogger("load_audio_and_score_from_folder")
+    logger.setLevel(logging.DEBUG)
+    # create console handler and set level to debug
+    ch = logging.FileHandler(log_filename)
+    ch.setLevel(logging.DEBUG)
+    # create formatter
+    formatter = logging.Formatter(
+        "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    )
+    # add formatter to ch
+    ch.setFormatter(formatter)
+    # add ch to logger
+    logger.addHandler(ch)
+
     audio_list = []
     score_list = []
     max_length = 0
     for filename in tqdm(os.listdir(folder_path_dir)):
-        if filename != "test_model.csv":
-            total_df = pd.read_csv(
-                os.path.join(folder_path_dir, filename),
-                encoding="utf-8",
-                low_memory=False,
-            )
+        if (
+            filename != "audio_only_all_model.csv"
+            and filename != "all_features_all_model.csv"
+        ):
             try:
-                # Convert to numpy array
+                logger.info("Reading " + os.path.join(folder_path_dir, filename))
+                total_df = pd.read_csv(
+                    os.path.join(folder_path_dir, filename),
+                    encoding="utf-8",
+                    low_memory=False,
+                    delimiter=",",
+                )
+            except Exception as e:
+                print("Error in parsing! File name = " + filename)
+                print(e)
+                logger.warning("Error in parsing! File name = " + filename)
+                logger.warning(e.__str__())
+                continue
+
+            try:
+                # Convert to list
                 curr_audio_data = total_df["audio_array"].to_list()
                 # If list contains element of type string
                 if not all(isinstance(i, float) for i in curr_audio_data):
                     print("Found wrong data type!")
-                    # Decode to float using jason
+                    logger.warning(
+                        "Reading "
+                        + os.path.join(folder_path_dir, filename)
+                        + "Wrong data type"
+                    )
+                    # Decode to float using json
                     curr_audio_data = json.loads(curr_audio_data[0])
                     curr_audio_data = [float(elem) for elem in curr_audio_data]
                     print(type(curr_audio_data[0]))
                 audio_list.append(curr_audio_data)
-                score_list.append(random.choice(range(1, 10, 1)))
+                score_list.append(random.choice(range(1, 5, 1)))
                 # Update max length if a longer audio occurs
                 if len(total_df["audio_array"]) > max_length:
                     max_length = len(total_df["audio_array"])
-            except:
+            except Exception as e:
                 print("Error in parsing! File name = " + filename)
+                print(e)
+                logger.warning(e.__str__())
                 continue
 
     print(len(audio_list))
@@ -223,9 +266,76 @@ def load_audio_and_score_from_folder(folder_path_dir):
     result_df = pd.DataFrame(
         np.column_stack([audio_list, score_list]), columns=["audio_array", "score"]
     )
-    ## Save all data into a single csv file.
-    # save_path = os.path.join(folder_path_dir, "test_model.csv")
-    # result_df.to_csv(save_path, index=False)
+    if save_to_single_csv:
+        ## Save all data into a single csv file.
+        if file_type == "audio_only":
+            save_path = os.path.join(folder_path_dir, "audio_only_all_model.csv")
+        elif file_type == "all_features":
+            save_path = os.path.join(folder_path_dir, "all_features_all_model.csv")
+        result_df.to_csv(save_path, index=False)
+    return result_df
+
+
+def load_audio_and_score_from_folder(folder_path_dir, file_type, save_to_single_csv):
+    """
+    Load the confidence score and audio array from the csv files.
+    :param home_dir: Primary directory.
+    :param folder_path_list: Path of the folder of csvs.
+    :return: result_df: Pandas dataframe wit columns audio_array and score.
+    """
+
+    audio_list = []
+    score_list = []
+    max_length = 0
+    for filename in tqdm(os.listdir(folder_path_dir)):
+        if (
+            filename != "audio_only_all_model.csv"
+            and filename != "all_features_all_model.csv"
+        ):
+            try:
+                total_df = pd.read_csv(
+                    os.path.join(folder_path_dir, filename),
+                    encoding="utf-8",
+                    low_memory=False,
+                    delimiter=",",
+                )
+            except Exception as e:
+                print("Error in parsing! File name = " + filename)
+                print(e)
+                continue
+
+            try:
+                # Convert to list
+                curr_audio_data = total_df["audio_array"].to_list()
+                # If list contains element of type string
+                if not all(isinstance(i, float) for i in curr_audio_data):
+                    print("Found wrong data type!")
+                    # Decode to float using json
+                    curr_audio_data = json.loads(curr_audio_data[0])
+                    curr_audio_data = [float(elem) for elem in curr_audio_data]
+                    print(type(curr_audio_data[0]))
+                audio_list.append(curr_audio_data)
+                score_list.append(random.choice(range(1, 5, 1)))
+                # Update max length if a longer audio occurs
+                if len(total_df["audio_array"]) > max_length:
+                    max_length = len(total_df["audio_array"])
+            except Exception as e:
+                print("Error in parsing! File name = " + filename)
+                print(e)
+                continue
+
+    print(len(audio_list))
+    print(len(score_list))
+    result_df = pd.DataFrame(
+        np.column_stack([audio_list, score_list]), columns=["audio_array", "score"]
+    )
+    if save_to_single_csv:
+        ## Save all data into a single csv file.
+        if file_type == "audio_only":
+            save_path = os.path.join(folder_path_dir, "audio_only_all_model.csv")
+        elif file_type == "all_features":
+            save_path = os.path.join(folder_path_dir, "all_features_all_model.csv")
+        result_df.to_csv(save_path, index=False)
     return result_df
 
 
@@ -265,7 +375,7 @@ class AudioDataset(torch.utils.data.Dataset):
                 sampling_rate=16000,
                 padding="max_length",
                 truncation=True,
-                max_length=999999,
+                max_length=200000,
                 return_tensors="pt",
             )
             audios.append(extracted_tensor)
@@ -400,6 +510,7 @@ def train_audio(
             # mask = train_input["attention_mask"].to(device)
             if vectorise:
                 input_values = train_input["input_values"].squeeze(1).to(device)
+                print("input size", input_values.size())
             else:
                 input_values = train_input.squeeze(1).to(device, dtype=torch.float)
                 # input_values = torch.cat(train_input).to(device, dtype=torch.float)
