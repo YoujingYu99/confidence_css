@@ -18,9 +18,13 @@ class BertClassifier(nn.Module):
         _, pooled_output = self.bert(
             input_ids=input_id, attention_mask=mask, return_dict=False
         )
+        # print("pooled", pooled_output.size())
         dropout_output = self.dropout(pooled_output)
+        # print("dropout", dropout_output.size())
         linear_output = self.linear(dropout_output)
+        # print("linear", linear_output.size())
         final_layer = self.relu(linear_output)
+        # print("final", final_layer.size())
         return final_layer
 
 
@@ -40,11 +44,13 @@ class HubertClassifier(nn.Module):
 
         output_tuple = self.hubert(input_values=input_values, return_dict=False)
         (pooled_output,) = output_tuple
-        print("pooled", pooled_output.size())
-        output_reduced = torch.mean(pooled_output, -2)
-        print("reduced", output_reduced.size())
+        # print("pooled", pooled_output.size())
+        output_reduced = torch.mean(pooled_output, dim=1)
+        # print("reduced", output_reduced.size())
         dropout_output = self.dropout(output_reduced)
+        # print("dropout", dropout_output.size())
         linear_output = self.linear(dropout_output)
+        # print("linear", linear_output.size())
         final_layer = self.relu(linear_output)
-        print("final", final_layer.size())
+        # print("final", final_layer.size())
         return final_layer

@@ -84,7 +84,7 @@ def train_text(
         train, batch_size=batch_size, shuffle=True, drop_last=True, num_workers=4
     )
     val_dataloader = torch.utils.data.DataLoader(
-        val, batch_size=batch_size, num_workers=4
+        val, batch_size=batch_size, num_workers=4, drop_last=True
     )
 
     use_cuda = torch.cuda.is_available()
@@ -110,6 +110,8 @@ def train_text(
             train_label = train_label.to(device)
             mask = train_input["attention_mask"].to(device)
             input_id = train_input["input_ids"].squeeze(1).to(device)
+            print("input size", mask.size())
+            print("label size", train_label.size())
 
             output = model(input_id, mask)
             batch_loss = criterion(output, train_label.long())
@@ -158,7 +160,9 @@ def evaluate_text(model, test_data, tokenizer, batch_size):
     test = test_data.reset_index(drop=True)
     test = TextDataset(test, tokenizer)
 
-    test_dataloader = torch.utils.data.DataLoader(test, batch_size=batch_size)
+    test_dataloader = torch.utils.data.DataLoader(
+        test, batch_size=batch_size, drop_last=True
+    )
 
     use_cuda = torch.cuda.is_available()
     device = torch.device("cuda" if use_cuda else "cpu")
@@ -480,10 +484,10 @@ def train_audio(
     )
 
     train_dataloader = torch.utils.data.DataLoader(
-        train, batch_size=batch_size, shuffle=True, num_workers=4
+        train, batch_size=batch_size, shuffle=True, num_workers=4, drop_last=True
     )
     val_dataloader = torch.utils.data.DataLoader(
-        val, batch_size=batch_size, num_workers=4
+        val, batch_size=batch_size, num_workers=4, drop_last=True
     )
 
     use_cuda = torch.cuda.is_available()
@@ -507,13 +511,16 @@ def train_audio(
         model.train()
         for train_input, train_label in tqdm(train_dataloader):
             train_label = train_label.to(device)
+            print("label size", train_label.size())
             # mask = train_input["attention_mask"].to(device)
             if vectorise:
                 input_values = train_input["input_values"].squeeze(1).to(device)
                 print("input size", input_values.size())
             else:
-                input_values = train_input.squeeze(1).to(device, dtype=torch.float)
+                # input_values = train_input.squeeze(1).to(device, dtype=torch.float)
                 # input_values = torch.cat(train_input).to(device, dtype=torch.float)
+                input_values = train_input.squeeze(1).to(device, dtype=torch.float)
+                print("input size", input_values.size())
 
             optimizer.zero_grad()
             output = model(input_values)
@@ -537,7 +544,12 @@ def train_audio(
                 if vectorise:
                     input_values = train_input["input_values"].squeeze(1).to(device)
                 else:
-                    input_values = torch.cat(train_input).to(device, dtype=torch.float)
+                    # print("train input type", type(train_input))
+                    # print(train_input)
+                    # print(type(train_input["input_values"]))
+                    # input_values = train_input["input_values"].to(device, dtype=torch.float)
+                    # print(input_values.size())
+                    input_values = train_input.to(device, dtype=torch.float)
 
                 output = model(input_values)
                 batch_loss = criterion(output, val_label.long())
@@ -565,7 +577,9 @@ def evaluate_audio(model, test_data, batch_size, vectorise):
     """
     test = test_data.reset_index(drop=True)
     test = AudioDataset(test, vectorise)
-    test_dataloader = torch.utils.data.DataLoader(test, batch_size=batch_size)
+    test_dataloader = torch.utils.data.DataLoader(
+        test, batch_size=batch_size, drop_last=True
+    )
 
     use_cuda = torch.cuda.is_available()
     device = torch.device("cuda" if use_cuda else "cpu")

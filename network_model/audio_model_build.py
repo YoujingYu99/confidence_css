@@ -86,7 +86,8 @@ feature_extractor = AutoFeatureExtractor.from_pretrained("facebook/wav2vec2-base
 # Training parameters
 epochs = 5
 LR = 1e-6
-batch_size = 7
+
+batch_size = 3
 audio_model = HubertClassifier()
 
 # Train model
