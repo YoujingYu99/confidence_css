@@ -63,7 +63,14 @@ class TextDataset(torch.utils.data.Dataset):
 
 
 def train_text(
-    model, tokenizer, train_data, val_data, learning_rate, epochs, batch_size
+    model,
+    tokenizer,
+    train_data,
+    val_data,
+    learning_rate,
+    epochs,
+    batch_size,
+    num_workers,
 ):
     """
     Train the model based on extracted text.
@@ -80,10 +87,19 @@ def train_text(
     train, val = TextDataset(train, tokenizer), TextDataset(val, tokenizer)
 
     train_dataloader = torch.utils.data.DataLoader(
-        train, batch_size=batch_size, shuffle=True, drop_last=True, num_workers=4
+        train,
+        batch_size=batch_size,
+        shuffle=True,
+        drop_last=True,
+        num_workers=num_workers,
+        pin_memory=True,
     )
     val_dataloader = torch.utils.data.DataLoader(
-        val, batch_size=batch_size, num_workers=4, drop_last=True
+        val,
+        batch_size=batch_size,
+        num_workers=num_workers,
+        drop_last=True,
+        pin_memory=True,
     )
 
     use_cuda = torch.cuda.is_available()
@@ -109,8 +125,6 @@ def train_text(
             train_label = train_label.to(device)
             mask = train_input["attention_mask"].to(device)
             input_id = train_input["input_ids"].squeeze(1).to(device)
-            print("input size", mask.size())
-            print("label size", train_label.size())
 
             output = model(input_id, mask)
             batch_loss = criterion(output, train_label.long())
@@ -160,7 +174,7 @@ def evaluate_text(model, test_data, tokenizer, batch_size):
     test = TextDataset(test, tokenizer)
 
     test_dataloader = torch.utils.data.DataLoader(
-        test, batch_size=batch_size, drop_last=True
+        test, batch_size=batch_size, drop_last=True, pin_memory=True
     )
 
     use_cuda = torch.cuda.is_available()
@@ -462,6 +476,7 @@ def train_audio(
     epochs,
     batch_size,
     vectorise,
+    num_workers,
 ):
     """
     Train the model based on extracted audio vectors.
@@ -483,10 +498,19 @@ def train_audio(
     )
 
     train_dataloader = torch.utils.data.DataLoader(
-        train, batch_size=batch_size, shuffle=True, num_workers=4, drop_last=True
+        train,
+        batch_size=batch_size,
+        shuffle=True,
+        num_workers=num_workers,
+        drop_last=True,
+        pin_memory=True,
     )
     val_dataloader = torch.utils.data.DataLoader(
-        val, batch_size=batch_size, num_workers=4, drop_last=True
+        val,
+        batch_size=batch_size,
+        num_workers=num_workers,
+        drop_last=True,
+        pin_memory=True,
     )
 
     use_cuda = torch.cuda.is_available()
@@ -510,11 +534,9 @@ def train_audio(
         model.train()
         for train_input, train_label in tqdm(train_dataloader):
             train_label = train_label.to(device)
-            print("label size", train_label.size())
             # mask = train_input["attention_mask"].to(device)
             if vectorise:
                 input_values = train_input["input_values"].squeeze(1).to(device)
-                print("input size", input_values.size())
             else:
                 # input_values = train_input.squeeze(1).to(device, dtype=torch.float)
                 # input_values = torch.cat(train_input).to(device, dtype=torch.float)
@@ -577,7 +599,7 @@ def evaluate_audio(model, test_data, batch_size, vectorise):
     test = test_data.reset_index(drop=True)
     test = AudioDataset(test, vectorise)
     test_dataloader = torch.utils.data.DataLoader(
-        test, batch_size=batch_size, drop_last=True
+        test, batch_size=batch_size, drop_last=True, pin_memory=True
     )
 
     use_cuda = torch.cuda.is_available()

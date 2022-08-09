@@ -86,12 +86,22 @@ print(audio_df.head())
 # Training parameters
 epochs = 5
 LR = 1e-6
-
 batch_size = 3
+num_workers = 4
+
+# Initialise audio model
 audio_model = HubertClassifier()
 
 # Train model
 
 train_audio(
-    audio_model, feature_extractor, df_train, df_val, LR, epochs, batch_size, vectorise
+    audio_model,
+    feature_extractor,
+    df_train,
+    df_val,
+    LR,
+    epochs,
+    batch_size,
+    vectorise,
+    num_workers,
 )
