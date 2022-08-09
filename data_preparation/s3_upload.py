@@ -1,5 +1,4 @@
 """Upload audios to Amazon s3.
-
 This scripts uploads the extracted audio files on the Ubuntu server into
 the Amazon s3 bucket.
 """
@@ -8,8 +7,9 @@ import boto3
 
 home_dir = os.path.join("/home", "yyu")
 
-folder_numbers = [0]
-# folder_numbers = range(8)
+# Only upload 0 to 6
+folder_numbers = range(7)
+
 
 for folder_number in folder_numbers:
     excerpt_output_path = os.path.join(

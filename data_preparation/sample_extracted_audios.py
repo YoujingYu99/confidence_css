@@ -5,9 +5,9 @@ import os
 import random
 import shutil
 
-folder_numbers = [0]
-# folder_numbers = range(8)
-no_of_files = 100
+# folder_numbers = [0]
+folder_numbers = range(7)
+no_of_files = 1100
 
 home_dir = os.path.join("/home", "yyu")
 # Get datasheet path

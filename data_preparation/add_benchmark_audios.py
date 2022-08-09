@@ -14,7 +14,9 @@ folder_numbers = [0]
 
 
 benchmark_url_df = pd.read_csv(
-    os.path.join(home_dir, "data_sheets", "sw3_urls", "samples_benchmark_marked.csv")
+    os.path.join(
+        home_dir, "data_sheets", "sw3_urls", "samples_benchmark_200_marked.csv"
+    )
 )
 for folder_number in folder_numbers:
     datasheet_name = "input_" + str(folder_number) + ".csv"
