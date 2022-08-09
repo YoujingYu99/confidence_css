@@ -14,9 +14,9 @@ no_of_files = 200
 home_dir = os.path.join("/home", "yyu")
 
 # Get datasheet path
-old_path = os.path.join(home_dir, "extracted_audio")
-new_path = os.path.join(home_dir, "extracted_audio_samples_benchmark_200")
-existed_path = os.path.join(home_dir, "extracted_audio_samples_benchmark")
+old_path = os.path.join(home_dir, "extracted_audio", "extracted_audio_total")
+new_path = os.path.join(home_dir, "extracted_audio", "extracted_audio_samples_benchmark_200")
+existed_path = os.path.join(home_dir, "extracted_audio", "extracted_audio_samples_benchmark_20")
 
 for i in folder_numbers:
     source = os.path.join(old_path, str(i))
@@ -31,7 +31,7 @@ for i in folder_numbers:
 
 # # Upload to amazon s3
 # excerpt_output_path = os.path.join(
-#     home_dir, "extracted_audio_samples_benchmark"
+#     home_dir, "extracted_audio", "extracted_audio_samples_benchmark_200"
 # )
 #
 # # get an access token, local (from) directory, and S3 (to) directory

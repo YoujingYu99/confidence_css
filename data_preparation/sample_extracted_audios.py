@@ -11,8 +11,8 @@ no_of_files = 1100
 
 home_dir = os.path.join("/home", "yyu")
 # Get datasheet path
-old_path = os.path.join(home_dir, "extracted_audio")
-new_path = os.path.join(home_dir, "extracted_audio_samples")
+old_path = os.path.join(home_dir, "extracted_audio", "extracted_audio_total")
+new_path = os.path.join(home_dir, "extracted_audio", "extracted_audio_samples")
 
 for i in folder_numbers:
     source = os.path.join(old_path, str(i))
