@@ -1,7 +1,7 @@
 """Add benchmark example audios to the batch.
 
-This scripts add benchmark example audios to the batch csv and sabe to new
-csv
+This scripts add benchmark example audios to the batch csv and save to new
+csv.
 """
 
 

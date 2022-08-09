@@ -6,6 +6,7 @@ import random
 import shutil
 
 # folder_numbers = [0]
+# Get a total of 7700 files
 folder_numbers = range(7)
 no_of_files = 1100
 

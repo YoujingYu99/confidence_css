@@ -2,15 +2,15 @@
 Extract the text and confidence score to a csv. Then from the csv train the
 BERT model for confidence classification.
 """
-import os
-import pandas as pd
 from transformers import BertTokenizer
 from model_utils import *
 from models import *
 
-# Memory issues
-torch.cuda.empty_cache()
-torch.cuda.memory_summary(device=None, abbreviated=False)
+# # Memory issues
+# torch.cuda.empty_cache()
+# torch.cuda.memory_summary(device=None, abbreviated=False)
+
+text_tokenizer = BertTokenizer.from_pretrained("bert-base-cased")
 
 # Load dataset
 home_dir = os.path.join("/home", "yyu")
@@ -22,7 +22,6 @@ df_train, df_val, df_test = np.split(
     [int(0.8 * len(text_df)), int(0.9 * len(text_df))],
 )
 print(len(df_train), len(df_val), len(df_test))
-text_tokenizer = BertTokenizer.from_pretrained("bert-base-cased")
 
 # Decide on Epoch and model
 EPOCHS = 5

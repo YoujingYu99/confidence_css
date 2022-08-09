@@ -18,6 +18,8 @@ folder_numbers = range(7)
 
 num_tasks_per_HIT = 10
 audio_column_name_list = []
+
+# Set the names of columns
 for i in range(1, num_tasks_per_HIT + 1, 1):
     audio_column_name = "audio_url_" + str(i)
     audio_column_name_list.append(audio_column_name)
@@ -46,16 +48,17 @@ for folder_number in folder_numbers:
     # Remove duplicates from list and shuffle it
     res = list(set(res))
     random.shuffle(res)
-    # get number of elements in res
+    # Get number of audio urls in res
     total_number_urls = len(res)
-    number_rows = math.floor(total_number_urls / num_tasks_per_HIT)
-    # Only choose some audios so we can segment into 10 per HIT
-    res = res[: number_rows * num_tasks_per_HIT]
+    # Get number of HITs we can get
+    number_HIT = math.floor(total_number_urls / num_tasks_per_HIT)
+    # Only choose some audios so we can segment into 10 per HIT / Leave the last incomplete out
+    res = res[: number_HIT * num_tasks_per_HIT]
     # Save to csv
     home_dir = os.path.join("/home", "yyu")
     datasheet_name = "input_" + str(folder_number) + ".csv"
     csv_output_path = os.path.join(home_dir, "data_sheets", "sw3_urls", datasheet_name)
-    array_of_list = np.array_split(res, number_rows)
+    array_of_list = np.array_split(res, number_HIT)
     # A list of 100 lists, each has 10 values
     print(len(array_of_list[0]))
     df = pd.DataFrame(array_of_list, columns=audio_column_name_list)

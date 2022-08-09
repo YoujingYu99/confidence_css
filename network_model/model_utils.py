@@ -4,7 +4,6 @@ confidence classification.
 ----------------------------------
 Class TextDataset: Class that handles the preparation of text for training.
 Class AudioDataset: Class that handles the preparation of audio for training.
-
 """
 import os
 import pandas as pd

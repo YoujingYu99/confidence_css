@@ -16,6 +16,8 @@ loading_type = "many"
 file_type = "audio_only"
 # Decide on whether to tokenize audios before training or use raw audio arrays.
 vectorise = True
+# Load feature extractor
+feature_extractor = AutoFeatureExtractor.from_pretrained("facebook/wav2vec2-base")
 
 # home_dir is the location of script
 home_dir = os.path.join("/home", "yyu")
@@ -28,11 +30,11 @@ featuers_folder_path_dir = os.path.join(
 audio_only_folder_path_dir = os.path.join(
     home_dir, "data_sheets", "features_audio_array", "5_test"
 )
-## TODO: these files do not exist yet due to failure in loading large csvs
+## TODO: these files do not exist yet
 all_features_total_audio_file_path = os.path.join(
     featuers_folder_path_dir, "all_features_all_model.csv"
 )
-## TODO: these files do not exist yet due to failure in loading large csvs
+## TODO: these files do not exist yet
 audio_only_total_audio_file_path = os.path.join(
     featuers_folder_path_dir, "audio_only_all_model.csv"
 )
@@ -66,13 +68,13 @@ elif loading_type == "single":
         audio_df = pd.read_csv(
             all_features_total_audio_file_path,
             converters={"audio_array": pd.eval},
-            encoding="ISO-8859-1",
+            encoding="utf-8",
         )
     elif file_type == "all_features":
         audio_df = pd.read_csv(
             audio_only_total_audio_file_path,
             converters={"audio_array": pd.eval},
-            encoding="ISO-8859-1",
+            encoding="utf-8",
         )
     # Split to train, eval and test datasets.
     df_train, df_val, df_test = audio_df.random_split([0.8, 0.1, 0.1], random_state=123)
@@ -80,8 +82,6 @@ elif loading_type == "single":
 print(len(df_train), len(df_val), len(df_test))
 print(audio_df.head())
 
-# Load feature extractor
-feature_extractor = AutoFeatureExtractor.from_pretrained("facebook/wav2vec2-base")
 
 # Training parameters
 epochs = 5
