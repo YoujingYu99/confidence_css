@@ -10,14 +10,31 @@ from models import *
 # torch.cuda.empty_cache()
 # torch.cuda.memory_summary(device=None, abbreviated=False)
 
+# Decide whether to save the concatenated file to a single csv
+save_to_single_csv = True
+
 text_tokenizer = BertTokenizer.from_pretrained("bert-base-cased")
 
 # Load dataset
 home_dir = os.path.join("/home", "yyu")
-train_csv_dir = os.path.join(home_dir, "data_sheets", "train_new2.csv")
-text_df = pd.read_csv(train_csv_dir, nrows=1000)
+
+# Path for crowdsourcing results
+crowdsourcing_results_df_path = os.path.join(
+    home_dir,
+    "data_sheets",
+    "crowdsourcing_results",
+    "Batch_4799159_batch_results_complete_reject_filtered_numbered_cleaned_renamed.csv",
+)
+
+
+print("start of application!")
+
+# Read in individual csvs and load into a final dataframe
+text_df = load_text_and_score_from_crowdsourcing_results(
+    home_dir, crowdsourcing_results_df_path, save_to_single_csv
+)
+
 print(text_df.head())
-print(type(text_df["score"][0]))
 df_train, df_val, df_test = np.split(
     text_df.sample(frac=1, random_state=42),
     [int(0.8 * len(text_df)), int(0.9 * len(text_df))],

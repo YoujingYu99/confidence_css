@@ -18,13 +18,9 @@ class BertClassifier(nn.Module):
         _, pooled_output = self.bert(
             input_ids=input_id, attention_mask=mask, return_dict=False
         )
-        # print("pooled", pooled_output.size())
         dropout_output = self.dropout(pooled_output)
-        # print("dropout", dropout_output.size())
         linear_output = self.linear(dropout_output)
-        # print("linear", linear_output.size())
         final_layer = self.relu(linear_output)
-        # print("final", final_layer.size())
         return final_layer
 
 

@@ -6,6 +6,7 @@ Class TextDataset: Class that handles the preparation of text for training.
 Class AudioDataset: Class that handles the preparation of audio for training.
 """
 import os
+import math
 import pandas as pd
 from prettytable import PrettyTable
 import json
@@ -356,6 +357,27 @@ def load_audio_and_score_from_folder(folder_path_dir, file_type, save_to_single_
     return result_df
 
 
+def categorise_score(score):
+    """
+    Categorise the confidnece scores into 5 categories.
+    :param score: Raw score input by user.
+    :return: Categorised score.
+    """
+
+    if score < 1:
+        score_cat = 0
+    elif score < 2:
+        score_cat = 1
+    elif score < 3:
+        score_cat = 2
+    elif score < 4:
+        score_cat = 3
+    else:
+        score_cat = 4
+
+    return score_cat
+
+
 def load_audio_and_score_from_crowdsourcing_results(
     home_dir, crowdsourcing_results_df_path, save_to_single_csv
 ):
@@ -373,7 +395,6 @@ def load_audio_and_score_from_crowdsourcing_results(
     score_list = []
     # Find the feature csv locally
     for index, row in results_df.iterrows():
-        score_list.append(row["average"])
         audio_url = row["audio_url"]
         # https://extractedaudio.s3.eu-west-2.amazonaws.com/5/C_show_5CnDmMUG0S5bSSw612fs8C_3fxFPVGSzFLKf5iyg5rWCa_1917.0.mp3
         folder_number = audio_url.split("/")[-2]
@@ -385,34 +406,106 @@ def load_audio_and_score_from_crowdsourcing_results(
             str(folder_number),
             segment_name + "_audio_only.csv",
         )
-        audio_only_df = pd.read_csv(audio_only_csv_path)
-        # all_features_csv_path = os.path.join(home_dir, "data_sheets",
-        #                                    "features",
-        #                                    str(folder_number),
-        #                                    segment_name + ".csv")
-        # all_features_df = pd.read_csv(all_features_csv_path)
-        try:
-            # Convert to list
-            curr_audio_data = audio_only_df["audio_array"].to_list()
-            # If list contains element of type string
-            if not all(isinstance(i, float) for i in curr_audio_data):
-                print("Found wrong data type!")
-                # Decode to float using json
-                curr_audio_data = json.loads(curr_audio_data[0])
-                curr_audio_data = [float(elem) for elem in curr_audio_data]
-                print(type(curr_audio_data[0]))
-            audio_list.append(curr_audio_data)
-        except Exception as e:
-            print("Error in parsing! File name = " + audio_only_csv_path)
-            print(e)
-            continue
+        # Only proceed if file exists
+        if os.path.isfile(audio_only_csv_path):
+            audio_only_df = pd.read_csv(audio_only_csv_path)
+            score_list.append(categorise_score(row["average"]))
+            # all_features_csv_path = os.path.join(home_dir, "data_sheets",
+            #                                    "features",
+            #                                    str(folder_number),
+            #                                    segment_name + ".csv")
+            # all_features_df = pd.read_csv(all_features_csv_path)
+            try:
+                # Convert to list
+                curr_audio_data = audio_only_df["audio_array"].to_list()
+                # If list contains element of type string
+                if not all(isinstance(i, float) for i in curr_audio_data):
+                    print("Found wrong data type!")
+                    # Decode to float using json
+                    curr_audio_data = json.loads(curr_audio_data[0])
+                    curr_audio_data = [float(elem) for elem in curr_audio_data]
+                    print(type(curr_audio_data[0]))
+                audio_list.append(curr_audio_data)
+            except Exception as e:
+                print("Error in parsing! File name = " + audio_only_csv_path)
+                print(e)
+                continue
 
-        result_df = pd.DataFrame(
-            np.column_stack([audio_list, score_list]), columns=["audio_array", "score"]
-        )
+    print(len(audio_list))
+    print(len(score_list))
+    result_df = pd.DataFrame(
+        np.column_stack([audio_list, score_list]), columns=["audio_array", "score"]
+    )
     if save_to_single_csv:
         ## Save all data into a single csv file.
         save_path = os.path.join(home_dir, "data_sheets", "audio_only_all_model.csv")
+        result_df.to_csv(save_path, index=False)
+    return result_df
+
+
+def load_text_and_score_from_crowdsourcing_results(
+    home_dir, crowdsourcing_results_df_path, save_to_single_csv
+):
+    """
+    Load the text and user scores from the csv files.
+    :param home_dir: Home directory.
+    :param crowdsourcing_results_df_path: Path to the results dataframe.
+    :param save_to_single_csv: Whether to save to a single csv file.
+    :return: Dataframe of text and average score.
+    """
+    # Load crowdsourcing results df
+    results_df = pd.read_csv(crowdsourcing_results_df_path)
+    # Initialise empty lists
+    text_list = []
+    score_list = []
+    # Find the feature csv locally
+    for index, row in results_df.iterrows():
+        audio_url = row["audio_url"]
+        # https://extractedaudio.s3.eu-west-2.amazonaws.com/5/C_show_5CnDmMUG0S5bSSw612fs8C_3fxFPVGSzFLKf5iyg5rWCa_1917.0.mp3
+        folder_number = audio_url.split("/")[-2]
+        segment_name = audio_url.split("/")[-1][:-4]
+        all_features_csv_path = os.path.join(
+            home_dir,
+            "data_sheets",
+            "features",
+            str(folder_number),
+            segment_name + ".csv",
+        )
+        # Only proceed if file exists
+        if os.path.isfile(all_features_csv_path):
+            # print(all_features_csv_path)
+            # all_features_df = pd.read_csv(all_features_csv_path, encoding="utf-8", dtype="unicode")
+            # score_list.append(row["average"])
+            # all_features_csv_path = os.path.join(home_dir, "data_sheets",
+            #                                    "features",
+            #                                    str(folder_number),
+            #                                    segment_name + ".csv")
+            # all_features_df = pd.read_csv(all_features_csv_path)
+            try:
+                all_features_df = pd.read_csv(
+                    all_features_csv_path, encoding="utf-8", dtype="unicode"
+                )
+                # Conver to numpy integer type
+                score_list.append(categorise_score(row["average"]))
+                # Convert to list
+                curr_text_data = all_features_df["text"].to_list()[0]
+                # print("curr text data", curr_text_data)
+                # print(type(curr_text_data))
+                text_list.append([curr_text_data])
+            except Exception as e:
+                print("Error in parsing! File name = " + all_features_csv_path)
+                print(e)
+                continue
+
+    print(len(text_list))
+    print(len(score_list))
+    result_df = pd.DataFrame(
+        np.column_stack([text_list, score_list]), columns=["sentence", "score"]
+    )
+    result_df["score"] = result_df["score"].astype(int)
+    if save_to_single_csv:
+        ## Save all data into a single csv file.
+        save_path = os.path.join(home_dir, "data_sheets", "text_only_all_model.csv")
         result_df.to_csv(save_path, index=False)
     return result_df
 

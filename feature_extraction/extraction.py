@@ -75,5 +75,9 @@ def extract_features_from_folders(home_dir, folder_path_list, type):
 # home_dir is the location of script
 home_dir = os.path.join("/home", "yyu")
 
-folder_path_list = [os.path.join(home_dir, "extracted_audio", str(folder_number))]
-extract_features_from_folders(home_dir, folder_path_list, "audio_array")
+folder_path_list = [
+    os.path.join(
+        home_dir, "extracted_audio", "extracted_audio_samples", str(folder_number)
+    )
+]
+extract_features_from_folders(home_dir, folder_path_list, "all_features")

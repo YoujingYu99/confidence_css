@@ -9,7 +9,7 @@ from audio_features import *
 
 
 # Decide whether to save the concatenated file to a single csv
-save_to_single_csv = False
+save_to_single_csv = True
 # Decide on whether to tokenize audios before training or use raw audio arrays.
 vectorise = True
 # Load feature extractor
@@ -21,7 +21,10 @@ featuers_folder_path_dir = os.path.join(home_dir, "data_sheets", "features")
 
 # Path for crowdsourcing results
 crowdsourcing_results_df_path = os.path.join(
-    home_dir, "data_sheets", "crowdsourcing_results", "results.csv"
+    home_dir,
+    "data_sheets",
+    "crowdsourcing_results",
+    "Batch_4799159_batch_results_complete_reject_filtered_numbered_cleaned_renamed.csv",
 )
 
 
