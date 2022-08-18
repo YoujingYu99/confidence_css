@@ -510,6 +510,280 @@ def load_text_and_score_from_crowdsourcing_results(
     return result_df
 
 
+def load_all_features_and_score_from_crowdsourcing_results(
+    home_dir, crowdsourcing_results_df_path
+):
+    """
+    Load the text and user scores from the csv files.
+    :param home_dir: Home directory.
+    :param crowdsourcing_results_df_path: Path to the results dataframe.
+    :return: A dictoinary of dataframes.
+    """
+    # Load crowdsourcing results df
+    results_df = pd.read_csv(crowdsourcing_results_df_path)
+    all_dict = {}
+    # Initialise empty lists
+    # Find the feature csv locally
+    for index, row in results_df.iterrows():
+        audio_url = row["audio_url"]
+        # https://extractedaudio.s3.eu-west-2.amazonaws.com/5/C_show_5CnDmMUG0S5bSSw612fs8C_3fxFPVGSzFLKf5iyg5rWCa_1917.0.mp3
+        folder_number = audio_url.split("/")[-2]
+        segment_name = audio_url.split("/")[-1][:-4]
+        all_features_csv_path = os.path.join(
+            home_dir,
+            "data_sheets",
+            "features",
+            str(folder_number),
+            segment_name + ".csv",
+        )
+        # Only proceed if file exists
+        if os.path.isfile(all_features_csv_path):
+            # print(all_features_csv_path)
+            # all_features_df = pd.read_csv(all_features_csv_path, encoding="utf-8", dtype="unicode")
+            score = [row["average"]]
+            # all_features_csv_path = os.path.join(home_dir, "data_sheets",
+            #                                    "features",
+            #                                    str(folder_number),
+            #                                    segment_name + ".csv")
+            # all_features_df = pd.read_csv(all_features_csv_path)
+            try:
+                all_features_df = pd.read_csv(
+                    all_features_csv_path, encoding="utf-8", dtype="unicode"
+                )
+                # Remove the audio array
+                all_features_df.drop("audio_array", axis=1, inplace=True)
+                new_length = all_features_df["energy"].count()
+                all_features_df_new = all_features_df.iloc[:new_length].copy()
+                # Extend the list with 0 to match size of other columns
+                score.extend([0] * (all_features_df_new.shape[0] - 1))
+                # Add the audio score to the dataframe
+                all_features_df_new["score"] = score
+                # Zero pad the dataframe
+                all_features_df_new.fillna(0)
+                all_dict[audio_url] = all_features_df_new
+            except Exception as e:
+                print("Error in parsing! File name = " + all_features_csv_path)
+                print(e)
+                continue
+    return all_dict
+
+
+class AllFeaturesDataset(torch.utils.data.Dataset):
+    """
+    Prepare features and lables separately as dataset.
+    """
+
+    def __init__(self, dict):
+        self.dict = dict
+        self.labels = self.get_labels()
+        self.features_dict = self.get_features_dict()
+        self.features_list = list(self.features_dict.items())
+        self.num_rows = 0
+        self.num_columns = 0
+
+    def get_labels(self):
+        """
+        Get the labels of the audios from the features df.
+        :return: A list of scores of the audios
+        """
+        score_list = []
+        for audio_name, all_features_df in self.dict.items():
+            score = all_features_df["score"][0]
+            score_list.append(score)
+        return score_list
+
+    def get_features_dict(self):
+        """
+        Get the features as training input and pad to same length.
+        :return: A dictionary of tensors with only features.
+        """
+        features_only_dict = {}
+        features_only_dict_new = {}
+        max_row_length = 0
+
+        for audio_name, all_features_df in self.dict.items():
+            # Remove the scores
+            all_features_df.drop("score", axis=1, inplace=True)
+            all_features_df.drop("text", axis=1, inplace=True)
+            features_only_dict[audio_name] = all_features_df
+            column_length = all_features_df.shape[1]
+            # Update max row length
+            if all_features_df.shape[0] > max_row_length:
+                max_row_length = all_features_df.shape[0]
+
+        # Assign to self
+        self.num_rows = max_row_length
+        self.num_columns = column_length
+
+        # Pad to zero so same length
+        for audio_name, all_features_df in features_only_dict.items():
+            # Zero pad dataframe to same num of rows
+            num_rows_to_append = self.num_rows - all_features_df.shape[0]
+            all_features_df = all_features_df.append([[] for _ in range(num_rows_to_append)], ignore_index=True)
+            features_only_dict_new[audio_name] = torch.tensor(all_features_df.values.astype(np.float64))
+
+        return features_only_dict_new
+
+    def classes(self):
+        """Get labels of each audio."""
+        return self.labels
+
+    def __len__(self):
+        """Get the total number of audios in the dataset."""
+        return len(self.labels)
+
+    def get_batch_labels(self, idx):
+        """Fetch a batch of labels."""
+        return np.array(self.labels[idx])
+
+    def get_batch_features(self, idx):
+        """Fetch a batch of inputs."""
+        return self.features_list[idx]
+
+    def __getitem__(self, idx):
+        batch_features = self.get_batch_features(idx)
+        batch_y = self.get_batch_labels(idx)
+
+        return batch_features, batch_y
+
+def train_all_features(
+    model,
+    train_data,
+    val_data,
+    learning_rate,
+    epochs,
+    batch_size,
+    num_workers,
+):
+    """
+    Train the model based on extracted text.
+    :param model: Deep learning model for the text.
+    :param train_data: Dict of Dataframe to be trained.
+    :param val_data: Dict of Dataframe to be evaluated.
+    :param learning_rate: Parameter; rate of learning.
+    :param epochs: Number of epochs to be trained.
+    :param batch_size: Number of batches.
+    :return: Training and evaluation accuracies.
+    """
+    train, val = train_data, val_data
+    train, val = AllFeaturesDataset(train), AllFeaturesDataset(val)
+
+    train_dataloader = torch.utils.data.DataLoader(
+        train,
+        batch_size=batch_size,
+        shuffle=True,
+        drop_last=True,
+        num_workers=num_workers,
+        pin_memory=True,
+    )
+    val_dataloader = torch.utils.data.DataLoader(
+        val,
+        batch_size=batch_size,
+        num_workers=num_workers,
+        drop_last=True,
+        pin_memory=True,
+    )
+
+    use_cuda = torch.cuda.is_available()
+    device = torch.device("cuda" if use_cuda else "cpu")
+
+    criterion = nn.CrossEntropyLoss()
+    optimizer = Adam(model.parameters(), lr=learning_rate)
+
+    if use_cuda:
+        print("Using cuda!")
+        model = model.to(device)
+        # count_parameters(model)
+        model = nn.DataParallel(model, device_ids=list(range(num_gpus)))
+
+        criterion = criterion.cuda()
+
+    for epoch_num in range(epochs):
+        total_acc_train = 0
+        total_loss_train = 0
+
+        model.train()
+        for train_input, train_label in tqdm(train_dataloader):
+            print("type of training input", type(train_input))
+            train_label = train_label.to(device)
+            ## TODO: fix the bug
+            mask = train_input["attention_mask"].to(device)
+            input_id = train_input["input_ids"].squeeze(1).to(device)
+
+            output = model(input_id, mask)
+            batch_loss = criterion(output, train_label.long())
+            total_loss_train += batch_loss.item()
+
+            acc = (output.argmax(dim=1) == train_label).sum().item()
+            total_acc_train += acc
+
+            batch_loss.backward()
+            optimizer.step()
+
+        total_acc_val = 0
+        total_loss_val = 0
+
+        with torch.no_grad():
+            model.eval()
+            for val_input, val_label in val_dataloader:
+                val_label = val_label.to(device)
+                mask = val_input["attention_mask"].to(device)
+                input_id = val_input["input_ids"].squeeze(1).to(device)
+
+                output = model(input_id, mask)
+                batch_loss = criterion(output, val_label.long())
+                total_loss_val += batch_loss.item()
+
+                acc = (output.argmax(dim=1) == val_label).sum().item()
+                total_acc_val += acc
+
+        print(
+            f"Epochs: {epoch_num + 1} | Train Loss: {total_loss_train / len(train_data): .3f} \
+                        | Train Accuracy: {total_acc_train / len(train_data): .3f} \
+                        | Val Loss: {total_loss_val / len(val_data): .3f} \
+                        | Val Accuracy: {total_acc_val / len(val_data): .3f}"
+        )
+
+
+def evaluate_all_features(model, test_data, tokenizer, batch_size):
+    """
+    Evaluate accuracy for the model on text data.
+    :param model: Model to be used for deep learning.
+    :param test_data: Dataframe to be tested.
+    :param tokenizer: Pre-trained transformer to tokenize the text.
+    :param batch_size: Number of batches.
+    :return: Test Accuracies.
+    """
+    test = test_data.reset_index(drop=True)
+    test = TextDataset(test, tokenizer)
+
+    test_dataloader = torch.utils.data.DataLoader(
+        test, batch_size=batch_size, drop_last=True, pin_memory=True
+    )
+
+    use_cuda = torch.cuda.is_available()
+    device = torch.device("cuda" if use_cuda else "cpu")
+
+    if use_cuda:
+        print("Using cuda!")
+        model = model.to(device)
+        model = nn.DataParallel(model, device_ids=list(range(num_gpus)))
+
+    total_acc_test = 0
+    with torch.no_grad():
+        model.eval()
+        for test_input, test_label in test_dataloader:
+            test_label = test_label.to(device)
+            mask = test_input["attention_mask"].to(device)
+            input_id = test_input["input_ids"].squeeze(1).to(device)
+
+            output = model(input_id, mask)
+
+            acc = (output.argmax(dim=1) == test_label).sum().item()
+            total_acc_test += acc
+
+    print(f"Test Accuracy: {total_acc_test / len(test_data): .3f}")
+
 class AudioDataset(torch.utils.data.Dataset):
     """
     Vectorise the audio arrays using the Wav2Vec transformer and prepare
