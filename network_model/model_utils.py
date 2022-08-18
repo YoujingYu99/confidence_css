@@ -18,6 +18,8 @@ from torch.optim import Adam
 from tqdm import tqdm
 import logging
 
+from models import *
+
 
 num_gpus = torch.cuda.device_count()
 
@@ -568,6 +570,20 @@ def load_all_features_and_score_from_crowdsourcing_results(
     return all_dict
 
 
+def get_num_rows(dictionary):
+    """
+    Get the maximum number of rows in the df in a dictionary.
+    :param dictionary: A dictionary of dataframes.
+    :return:
+    """
+    max_row_length = 0
+    for audio_name, all_features_df in dictionary.items():
+        # Update max row length
+        if all_features_df.shape[0] > max_row_length:
+            max_row_length = all_features_df.shape[0]
+    return max_row_length
+
+
 class AllFeaturesDataset(torch.utils.data.Dataset):
     """
     Prepare features and lables separately as dataset.
@@ -576,10 +592,10 @@ class AllFeaturesDataset(torch.utils.data.Dataset):
     def __init__(self, dict):
         self.dict = dict
         self.labels = self.get_labels()
-        self.features_dict = self.get_features_dict()
-        self.features_list = list(self.features_dict.items())
         self.num_rows = 0
         self.num_columns = 0
+        self.features_dict = self.get_features_dict()
+        self.features_list = list(self.features_dict.items())
 
     def get_labels(self):
         """
@@ -619,8 +635,12 @@ class AllFeaturesDataset(torch.utils.data.Dataset):
         for audio_name, all_features_df in features_only_dict.items():
             # Zero pad dataframe to same num of rows
             num_rows_to_append = self.num_rows - all_features_df.shape[0]
-            all_features_df = all_features_df.append([[] for _ in range(num_rows_to_append)], ignore_index=True)
-            features_only_dict_new[audio_name] = torch.tensor(all_features_df.values.astype(np.float64))
+            all_features_df = all_features_df.append(
+                [[] for _ in range(num_rows_to_append)], ignore_index=True
+            )
+            features_only_dict_new[audio_name] = torch.tensor(
+                all_features_df.values.astype(np.float32)
+            )
 
         return features_only_dict_new
 
@@ -642,18 +662,14 @@ class AllFeaturesDataset(torch.utils.data.Dataset):
 
     def __getitem__(self, idx):
         batch_features = self.get_batch_features(idx)
+        # batch_features is a tuple of (audio_url, tensor)
         batch_y = self.get_batch_labels(idx)
 
         return batch_features, batch_y
 
+
 def train_all_features(
-    model,
-    train_data,
-    val_data,
-    learning_rate,
-    epochs,
-    batch_size,
-    num_workers,
+    train_data, val_data, learning_rate, epochs, batch_size, num_workers,
 ):
     """
     Train the model based on extracted text.
@@ -688,6 +704,7 @@ def train_all_features(
     device = torch.device("cuda" if use_cuda else "cpu")
 
     criterion = nn.CrossEntropyLoss()
+    model = AllFeaturesClassifier(num_rows=train.num_rows)
     optimizer = Adam(model.parameters(), lr=learning_rate)
 
     if use_cuda:
@@ -704,13 +721,12 @@ def train_all_features(
 
         model.train()
         for train_input, train_label in tqdm(train_dataloader):
-            print("type of training input", type(train_input))
             train_label = train_label.to(device)
             ## TODO: fix the bug
-            mask = train_input["attention_mask"].to(device)
-            input_id = train_input["input_ids"].squeeze(1).to(device)
-
-            output = model(input_id, mask)
+            input_features = train_input[1]
+            # Input size is 3, 1305, 38 for test; 3, 2589, 38 for all.
+            print("input size before passing", input_features.size())
+            output = model(input_features)
             batch_loss = criterion(output, train_label.long())
             total_loss_train += batch_loss.item()
 
@@ -727,10 +743,8 @@ def train_all_features(
             model.eval()
             for val_input, val_label in val_dataloader:
                 val_label = val_label.to(device)
-                mask = val_input["attention_mask"].to(device)
-                input_id = val_input["input_ids"].squeeze(1).to(device)
 
-                output = model(input_id, mask)
+                output = model(val_input)
                 batch_loss = criterion(output, val_label.long())
                 total_loss_val += batch_loss.item()
 
@@ -745,17 +759,15 @@ def train_all_features(
         )
 
 
-def evaluate_all_features(model, test_data, tokenizer, batch_size):
+def evaluate_all_features(test_data, batch_size):
     """
     Evaluate accuracy for the model on text data.
-    :param model: Model to be used for deep learning.
     :param test_data: Dataframe to be tested.
-    :param tokenizer: Pre-trained transformer to tokenize the text.
     :param batch_size: Number of batches.
     :return: Test Accuracies.
     """
-    test = test_data.reset_index(drop=True)
-    test = TextDataset(test, tokenizer)
+    test = test_data
+    test = AllFeaturesDataset(test)
 
     test_dataloader = torch.utils.data.DataLoader(
         test, batch_size=batch_size, drop_last=True, pin_memory=True
@@ -763,6 +775,8 @@ def evaluate_all_features(model, test_data, tokenizer, batch_size):
 
     use_cuda = torch.cuda.is_available()
     device = torch.device("cuda" if use_cuda else "cpu")
+
+    model = AllFeaturesClassifier(num_rows=test.num_rows)
 
     if use_cuda:
         print("Using cuda!")
@@ -774,15 +788,14 @@ def evaluate_all_features(model, test_data, tokenizer, batch_size):
         model.eval()
         for test_input, test_label in test_dataloader:
             test_label = test_label.to(device)
-            mask = test_input["attention_mask"].to(device)
-            input_id = test_input["input_ids"].squeeze(1).to(device)
 
-            output = model(input_id, mask)
+            output = model(test_input)
 
             acc = (output.argmax(dim=1) == test_label).sum().item()
             total_acc_test += acc
 
     print(f"Test Accuracy: {total_acc_test / len(test_data): .3f}")
+
 
 class AudioDataset(torch.utils.data.Dataset):
     """
