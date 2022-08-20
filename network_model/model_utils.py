@@ -620,10 +620,6 @@ class AllFeaturesDataset(torch.utils.data.Dataset):
             all_features_df.drop("score", axis=1, inplace=True)
             all_features_df.drop("text", axis=1, inplace=True)
             features_only_dict[audio_name] = all_features_df
-            print("shape of features df", all_features_df.shape)
-            # if all_features_df.shape[1] != 38:
-            #     print("This is wrong!")
-            #     print(all_features_df.columns)
 
         # Pad to zero so same length
         for audio_name, all_features_df in features_only_dict.items():
@@ -632,9 +628,14 @@ class AllFeaturesDataset(torch.utils.data.Dataset):
             all_features_df = all_features_df.append(
                 [[0] for _ in range(num_rows_to_append)], ignore_index=True
             )
+            # Replace nan with 0
+            all_features_df = all_features_df.fillna(0)
+            all_features_df.drop(columns=all_features_df.columns[1],
+                                 axis=1, inplace=True)
             # Deal with the situation where an additional column is added
-            if all_features_df.shape[1] == 39:
+            if all_features_df.shape[1] == 38:
                 all_features_df.drop(columns=all_features_df.columns[-1], axis=1, inplace=True)
+            # Append to the new dictionary
             features_only_dict_new[audio_name] = torch.tensor(
                 all_features_df.values.astype(np.float32)
             )
@@ -723,7 +724,6 @@ def train_all_features(
         model.train()
         for train_input, train_label in tqdm(train_dataloader):
             train_label = train_label.to(device)
-            print(train_label)
             input_features = train_input[1]
             output = model(input_features)
             batch_loss = criterion(output, train_label.long())
