@@ -57,24 +57,33 @@ class AllFeaturesClassifier(nn.Module):
         super().__init__()
         # store the different layers
         self.flatten = nn.Flatten()
-        self.linear1 = nn.Linear(num_rows * 38, 256)
+        self.linear1 = nn.Linear(num_rows * 39, 256)
+        # self.linear1 = nn.Linear(38, 256)
         self.relu = nn.ReLU()
         self.linear2 = nn.Linear(256, 5)
         self.softmax = nn.Softmax(dim=1)
 
     # in what sequence do we input the data
     def forward(self, input_data):
-        # Input should be
-        print("input size", input_data.size())
+        # input_data = input_data[1]
+        print("input type in model", type(input_data))
+        if isinstance(input_data, list):
+            print("This input is a list")
+            print("list size", len(input_data))
+            # print(input_data)
+            input_data = input_data[1]
+            print(input_data)
+            print("size of this tensor", input_data.size())
+        print("final input size", input_data.size())
         flattened_data = self.flatten(input_data)
-        print("flattened size", flattened_data.size())
+        # print("flattened size", flattened_data.size())
         # logits = self.dense_layers(flattened_data)
         linear1 = self.linear1(flattened_data)
-        print("linear1 size", linear1.size())
+        # print("linear1 size", linear1.size())
         relu = self.relu(linear1)
-        print("relu size", relu.size())
+        # print("relu size", relu.size())
         linear2 = self.linear2(relu)
-        print("linear2 size", linear2.size())
+        # print("linear2 size", linear2.size())
         predictions = self.softmax(linear2)
         return predictions
 

@@ -542,7 +542,7 @@ def load_all_features_and_score_from_crowdsourcing_results(
         if os.path.isfile(all_features_csv_path):
             # print(all_features_csv_path)
             # all_features_df = pd.read_csv(all_features_csv_path, encoding="utf-8", dtype="unicode")
-            score = [row["average"]]
+            score = [categorise_score(row["average"])]
             # all_features_csv_path = os.path.join(home_dir, "data_sheets",
             #                                    "features",
             #                                    str(folder_number),
@@ -589,11 +589,10 @@ class AllFeaturesDataset(torch.utils.data.Dataset):
     Prepare features and lables separately as dataset.
     """
 
-    def __init__(self, dict):
+    def __init__(self, dict, num_rows):
         self.dict = dict
         self.labels = self.get_labels()
-        self.num_rows = 0
-        self.num_columns = 0
+        self.num_rows = num_rows
         self.features_dict = self.get_features_dict()
         self.features_list = list(self.features_dict.items())
 
@@ -615,28 +614,19 @@ class AllFeaturesDataset(torch.utils.data.Dataset):
         """
         features_only_dict = {}
         features_only_dict_new = {}
-        max_row_length = 0
 
         for audio_name, all_features_df in self.dict.items():
             # Remove the scores
             all_features_df.drop("score", axis=1, inplace=True)
             all_features_df.drop("text", axis=1, inplace=True)
             features_only_dict[audio_name] = all_features_df
-            column_length = all_features_df.shape[1]
-            # Update max row length
-            if all_features_df.shape[0] > max_row_length:
-                max_row_length = all_features_df.shape[0]
-
-        # Assign to self
-        self.num_rows = max_row_length
-        self.num_columns = column_length
 
         # Pad to zero so same length
         for audio_name, all_features_df in features_only_dict.items():
-            # Zero pad dataframe to same num of rows
+            # Zero pad dataframe to same num of rows defined
             num_rows_to_append = self.num_rows - all_features_df.shape[0]
             all_features_df = all_features_df.append(
-                [[] for _ in range(num_rows_to_append)], ignore_index=True
+                [[0] for _ in range(num_rows_to_append)], ignore_index=True
             )
             features_only_dict_new[audio_name] = torch.tensor(
                 all_features_df.values.astype(np.float32)
@@ -669,7 +659,7 @@ class AllFeaturesDataset(torch.utils.data.Dataset):
 
 
 def train_all_features(
-    train_data, val_data, learning_rate, epochs, batch_size, num_workers,
+    train_data, val_data, learning_rate, epochs, batch_size, num_workers, num_of_rows
 ):
     """
     Train the model based on extracted text.
@@ -679,10 +669,14 @@ def train_all_features(
     :param learning_rate: Parameter; rate of learning.
     :param epochs: Number of epochs to be trained.
     :param batch_size: Number of batches.
+    :param num_of_rows: Maximum row number in the whole dataset.
     :return: Training and evaluation accuracies.
     """
     train, val = train_data, val_data
-    train, val = AllFeaturesDataset(train), AllFeaturesDataset(val)
+    train, val = (
+        AllFeaturesDataset(train, num_of_rows),
+        AllFeaturesDataset(val, num_of_rows),
+    )
 
     train_dataloader = torch.utils.data.DataLoader(
         train,
@@ -722,10 +716,14 @@ def train_all_features(
         model.train()
         for train_input, train_label in tqdm(train_dataloader):
             train_label = train_label.to(device)
-            ## TODO: fix the bug
+            ## TODO: fix the bug of input features being a list, not a tensor.
+            ## TODO: The bug lies in the different size of val and train data.
             input_features = train_input[1]
-            # Input size is 3, 1305, 38 for test; 3, 2589, 38 for all.
-            print("input size before passing", input_features.size())
+            print("type before in model", type(input_features))
+            # print("input audio url", train_input[0])
+            # print("input size before passing", input_features.size())
+            # print(input_features)
+            # print(type(input_features))
             output = model(input_features)
             batch_loss = criterion(output, train_label.long())
             total_loss_train += batch_loss.item()
@@ -759,15 +757,16 @@ def train_all_features(
         )
 
 
-def evaluate_all_features(test_data, batch_size):
+def evaluate_all_features(test_data, batch_size, num_of_rows):
     """
     Evaluate accuracy for the model on text data.
     :param test_data: Dataframe to be tested.
     :param batch_size: Number of batches.
+    :param num_of_rows: Maximum row number in the whole dataset.
     :return: Test Accuracies.
     """
     test = test_data
-    test = AllFeaturesDataset(test)
+    test = AllFeaturesDataset(test, num_of_rows)
 
     test_dataloader = torch.utils.data.DataLoader(
         test, batch_size=batch_size, drop_last=True, pin_memory=True

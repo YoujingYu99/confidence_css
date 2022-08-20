@@ -33,6 +33,8 @@ print("start of application!")
 all_dict = load_all_features_and_score_from_crowdsourcing_results(
     home_dir, crowdsourcing_results_df_path
 )
+# Get max number of rows
+num_of_rows = get_num_rows(all_dict)
 
 # Using items() + len() + list slicing
 # Split dictionary by half
@@ -45,8 +47,6 @@ dict_val = dict(
 dict_test = dict(list(all_dict.items())[math.floor(len(all_dict) * 0.9) :])
 print(len(dict_train), len(dict_val), len(dict_test))
 
-# num_rows = get_num_rows(all_dict)
-# print("max number of rows", num_rows)
 
 # Decide on Epoch and model
 EPOCHS = 5
@@ -56,5 +56,7 @@ num_workers = 4
 
 
 # Train model
-train_all_features(dict_train, dict_val, LR, EPOCHS, batch_size, num_workers)
-evaluate_all_features(dict_test, batch_size)
+train_all_features(
+    dict_train, dict_val, LR, EPOCHS, batch_size, num_workers, num_of_rows
+)
+evaluate_all_features(dict_test, batch_size, num_of_rows)
