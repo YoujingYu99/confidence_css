@@ -620,6 +620,10 @@ class AllFeaturesDataset(torch.utils.data.Dataset):
             all_features_df.drop("score", axis=1, inplace=True)
             all_features_df.drop("text", axis=1, inplace=True)
             features_only_dict[audio_name] = all_features_df
+            print("shape of features df", all_features_df.shape)
+            # if all_features_df.shape[1] != 38:
+            #     print("This is wrong!")
+            #     print(all_features_df.columns)
 
         # Pad to zero so same length
         for audio_name, all_features_df in features_only_dict.items():
@@ -628,6 +632,9 @@ class AllFeaturesDataset(torch.utils.data.Dataset):
             all_features_df = all_features_df.append(
                 [[0] for _ in range(num_rows_to_append)], ignore_index=True
             )
+            # Deal with the situation where an additional column is added
+            if all_features_df.shape[1] == 39:
+                all_features_df.drop(columns=all_features_df.columns[-1], axis=1, inplace=True)
             features_only_dict_new[audio_name] = torch.tensor(
                 all_features_df.values.astype(np.float32)
             )
@@ -716,14 +723,8 @@ def train_all_features(
         model.train()
         for train_input, train_label in tqdm(train_dataloader):
             train_label = train_label.to(device)
-            ## TODO: fix the bug of input features being a list, not a tensor.
-            ## TODO: The bug lies in the different size of val and train data.
+            print(train_label)
             input_features = train_input[1]
-            print("type before in model", type(input_features))
-            # print("input audio url", train_input[0])
-            # print("input size before passing", input_features.size())
-            # print(input_features)
-            # print(type(input_features))
             output = model(input_features)
             batch_loss = criterion(output, train_label.long())
             total_loss_train += batch_loss.item()
@@ -741,8 +742,8 @@ def train_all_features(
             model.eval()
             for val_input, val_label in val_dataloader:
                 val_label = val_label.to(device)
-
-                output = model(val_input)
+                input_features = val_input[1]
+                output = model(input_features)
                 batch_loss = criterion(output, val_label.long())
                 total_loss_val += batch_loss.item()
 
@@ -787,8 +788,9 @@ def evaluate_all_features(test_data, batch_size, num_of_rows):
         model.eval()
         for test_input, test_label in test_dataloader:
             test_label = test_label.to(device)
+            input_features = test_input[1]
+            output = model(input_features)
 
-            output = model(test_input)
 
             acc = (output.argmax(dim=1) == test_label).sum().item()
             total_acc_test += acc
