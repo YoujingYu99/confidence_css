@@ -23,7 +23,7 @@ crowdsourcing_results_df_path = os.path.join(
     home_dir,
     "data_sheets",
     "crowdsourcing_results",
-    "test_crowd2.csv",
+    "Batch_4799159_batch_results_complete_reject_filtered_numbered_cleaned_renamed_soft.csv",
 )
 
 
@@ -36,7 +36,7 @@ features_to_use = ["interjecting_frequency", "energy", "energy_entropy", "spectr
 "pause_ratio", "repetition_rate"]
 
 # Read in individual csvs and load into a final dataframe
-all_dict = load_all_features_and_score_from_crowdsourcing_results_selective(
+all_dict = load_select_features_and_score_from_crowdsourcing_results_selective(
     home_dir, crowdsourcing_results_df_path, features_to_use
 )
 # Get max number of rows
