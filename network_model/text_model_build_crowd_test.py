@@ -20,10 +20,7 @@ home_dir = os.path.join("/home", "yyu")
 
 # Path for crowdsourcing results
 crowdsourcing_results_df_path = os.path.join(
-    home_dir,
-    "data_sheets",
-    "crowdsourcing_results",
-    "Batch_4799159_batch_results_complete_reject_filtered_numbered_cleaned_renamed_soft.csv",
+    home_dir, "data_sheets", "crowdsourcing_results", "test_crowd.csv",
 )
 
 

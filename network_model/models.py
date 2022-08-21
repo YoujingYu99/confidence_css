@@ -5,7 +5,6 @@ from transformers import BertModel, HubertModel
 
 class BertClassifier(nn.Module):
     def __init__(self, dropout=0.5):
-
         super(BertClassifier, self).__init__()
 
         self.bert = BertModel.from_pretrained("bert-base-cased")
@@ -27,7 +26,6 @@ class BertClassifier(nn.Module):
 # Models
 class HubertClassifier(nn.Module):
     def __init__(self, dropout=0.5):
-
         super(HubertClassifier, self).__init__()
 
         self.hubert = HubertModel.from_pretrained("facebook/hubert-base-ls960")
@@ -37,7 +35,6 @@ class HubertClassifier(nn.Module):
         self.relu = nn.ReLU()
 
     def forward(self, input_values):
-
         output_tuple = self.hubert(input_values=input_values, return_dict=False)
         (pooled_output,) = output_tuple
         # print("pooled", pooled_output.size())
@@ -76,118 +73,55 @@ class SelectFeaturesClassifier(nn.Module):
         return predictions
 
 
-import torch
-import torch.nn as nn
-from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
-
-
-class LSTM(nn.Module):
-    def __init__(
-        self,
-        vocab_size,
-        embedding_dim,
-        hidden_dim1,
-        hidden_dim2,
-        output_dim,
-        n_layers,
-        bidirectional,
-        dropout,
-        pad_index,
-    ):
-        super().__init__()
-        self.embedding = nn.Embedding(vocab_size, embedding_dim, padding_idx=pad_index)
-        self.lstm = nn.LSTM(
-            embedding_dim,
-            hidden_dim1,
-            num_layers=n_layers,
-            bidirectional=bidirectional,
-            batch_first=True,
-        )
-        self.fc1 = nn.Linear(hidden_dim1 * 2, hidden_dim2)
-        self.fc2 = nn.Linear(hidden_dim2, output_dim)
+class CustomBERTModel(nn.Module):
+    def __init__(self):
+        super(CustomBERTModel, self).__init__()
+        self.bert = BertModel.from_pretrained("bert-base-cased")
+        self.lstm = nn.LSTM(768, 256, batch_first=True, bidirectional=True)
+        self.linear = nn.Linear(256 * 2, 5)
         self.relu = nn.ReLU()
-        self.dropout = nn.Dropout(dropout)
+        self.softmax = nn.Softmax(dim=1)
 
-    def forward(self, text, text_lengths):
-        embedded = self.embedding(text)
-        packed_embedded = pack_padded_sequence(embedded, text_lengths, batch_first=True)
+    def forward(self, input_id, mask):
+        sequence_output, pooled_output = self.bert(
+            input_ids=input_id, attention_mask=mask, return_dict=False
+        )
 
-        packed_output, (hidden, cell) = self.lstm(packed_embedded)
-        cat = torch.cat((hidden[-2, :, :], hidden[-1, :, :]), dim=1)
-        rel = self.relu(cat)
-        dense1 = self.fc1(rel)
-        drop = self.dropout(dense1)
-        preds = self.fc2(drop)
-        return preds
+        # sequence_output has the following shape: (batch_size, sequence_length, 768)
+        ## extract the 1st token's embeddings
+        lstm_output, (h, c) = self.lstm(sequence_output)
+        hidden = torch.cat((lstm_output[:, -1, :256], lstm_output[:, 0, 256:]), dim=-1)
+        ### assuming only using the output of the last LSTM cell to perform classification
+        linear_output = self.linear(hidden.view(-1, 256 * 2))
+        relu = self.relu(linear_output)
+        predictions = self.softmax(relu)
+
+        return predictions
 
 
-# class CNNNetwork(nn.Module):
-#
-#     def __init__(self):
-#         super().__init__()
-#         # 4 conv blocks / flatten / linear / softmax
-#         self.conv1 = nn.Sequential(
-#             nn.Conv2d(
-#                 in_channels=1,
-#                 out_channels=16,
-#                 kernel_size=3,
-#                 stride=1,
-#                 padding=2
-#             ),
-#             nn.ReLU(),
-#             nn.MaxPool2d(kernel_size=2)
-#         )
-#         self.conv2 = nn.Sequential(
-#             nn.Conv2d(
-#                 in_channels=16,
-#                 out_channels=32,
-#                 kernel_size=3,
-#                 stride=1,
-#                 padding=2
-#             ),
-#             nn.ReLU(),
-#             nn.MaxPool2d(kernel_size=2)
-#         )
-#         self.conv3 = nn.Sequential(
-#             nn.Conv2d(
-#                 in_channels=32,
-#                 out_channels=64,
-#                 kernel_size=3,
-#                 stride=1,
-#                 padding=2
-#             ),
-#             nn.ReLU(),
-#             nn.MaxPool2d(kernel_size=2)
-#         )
-#         self.conv4 = nn.Sequential(
-#             nn.Conv2d(
-#                 in_channels=64,
-#                 out_channels=128,
-#                 kernel_size=3,
-#                 stride=1,
-#                 padding=2
-#             ),
-#             nn.ReLU(),
-#             nn.MaxPool2d(kernel_size=2)
-#         )
-#         self.flatten = nn.Flatten()
-#         self.linear = nn.Linear(332, 5)
-#         self.softmax = nn.Softmax(dim=1)
-#
-#     def forward(self, input_data):
-#         print("input size", input_data.size())
-#         x = self.conv1(input_data)
-#         print("conv1", x.size())
-#         x = self.conv2(x)
-#         print("conv2", x.size())
-#         x = self.conv3(x)
-#         print("conv3", x.size())
-#         x = self.conv4(x)
-#         print("conv4", x.size())
-#         x = self.flatten(x)
-#         print("flatten", x.size())
-#         logits = self.linear(x)
-#         print("logits", logits.size())
-#         predictions = self.softmax(logits)
-#         print("predict", predictions.size())
-#         return predictions
+class CustomHUBERTModel(nn.Module):
+    def __init__(self):
+        super(CustomHUBERTModel, self).__init__()
+        self.hubert = HubertModel.from_pretrained("facebook/hubert-base-ls960")
+        self.lstm = nn.LSTM(768, 256, batch_first=True, bidirectional=True)
+        self.linear = nn.Linear(256 * 2, 5)
+        self.relu = nn.ReLU()
+        self.softmax = nn.Softmax(dim=1)
+
+    def forward(self, input_values):
+        output_tuple = self.hubert(input_values=input_values, return_dict=False)
+        (pooled_output,) = output_tuple
+
+        # sequence_output has the following shape: (batch_size, sequence_length, 768)
+        ## extract the 1st token's embeddings
+        lstm_output, (h, c) = self.lstm(pooled_output)
+        hidden = torch.cat((lstm_output[:, -1, :256], lstm_output[:, 0, 256:]), dim=-1)
+        ### assuming only using the output of the last LSTM cell to perform classification
+        linear_output = self.linear(hidden.view(-1, 256 * 2))
+        relu = self.relu(linear_output)
+        predictions = self.softmax(relu)
+
+        return predictions
+
+
+
