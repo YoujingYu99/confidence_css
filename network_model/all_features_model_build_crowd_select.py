@@ -23,18 +23,25 @@ crowdsourcing_results_df_path = os.path.join(
     home_dir,
     "data_sheets",
     "crowdsourcing_results",
-    "Batch_4799159_batch_results_complete_reject_filtered_numbered_cleaned_renamed_soft.csv",
+    "test_crowd2.csv",
 )
 
 
 print("start of application!")
 
+# Choose features to focus on
+features_to_use = ["interjecting_frequency", "energy", "energy_entropy", "spectral_centroids", "spectral_spread", "spectral_entropy", "spectral_rolloff", "spectral_contrast0", "spectral_contrast1", "spectral_contrast2", "spectral_contrast3", "spectral_contrast4", "spectral_contrast5", "spectral_contrast6", "zero_crossing_rate", "mfcc0",
+"mfcc1", "mfcc2", "mfcc3", "mfcc4", "mfcc5", "mfcc6", "mfcc7", "mfcc8", "mfcc9", "mfcc10", "mfcc11",
+"autocorrelation", "pitches", "tonnetz0", "tonnetz1", "tonnetz2", "tonnetz3", "tonnetz4", "tonnetz5",
+"pause_ratio", "repetition_rate"]
+
 # Read in individual csvs and load into a final dataframe
-all_dict = load_all_features_and_score_from_crowdsourcing_results(
-    home_dir, crowdsourcing_results_df_path
+all_dict = load_all_features_and_score_from_crowdsourcing_results_selective(
+    home_dir, crowdsourcing_results_df_path, features_to_use
 )
 # Get max number of rows
 num_of_rows = get_num_rows(all_dict)
+num_of_columns = len(features_to_use)
 
 # Using items() + len() + list slicing
 # Split dictionary by half
@@ -56,7 +63,7 @@ num_workers = 4
 
 
 # Train model
-train_all_features(
-    dict_train, dict_val, LR, EPOCHS, batch_size, num_workers, num_of_rows
+train_select_features(
+    dict_train, dict_val, LR, EPOCHS, batch_size, num_workers, num_of_rows, num_of_columns
 )
-evaluate_all_features(dict_test, batch_size, num_of_rows)
+evaluate_select_features(dict_test, batch_size, num_of_rows, num_of_columns)

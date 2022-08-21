@@ -238,7 +238,7 @@ def load_audio_and_score_from_folder_logging(
     for filename in tqdm(os.listdir(folder_path_dir)):
         if (
             filename != "audio_only_all_model.csv"
-            and filename != "all_features_all_model.csv"
+            and filename != "select_features_all_model.csv"
         ):
             try:
                 logger.info("Reading " + os.path.join(folder_path_dir, filename))
@@ -290,8 +290,8 @@ def load_audio_and_score_from_folder_logging(
         ## Save all data into a single csv file.
         if file_type == "audio_only":
             save_path = os.path.join(folder_path_dir, "audio_only_all_model.csv")
-        elif file_type == "all_features":
-            save_path = os.path.join(folder_path_dir, "all_features_all_model.csv")
+        elif file_type == "select_features":
+            save_path = os.path.join(folder_path_dir, "select_features_all_model.csv")
         result_df.to_csv(save_path, index=False)
     return result_df
 
@@ -310,7 +310,7 @@ def load_audio_and_score_from_folder(folder_path_dir, file_type, save_to_single_
     for filename in tqdm(os.listdir(folder_path_dir)):
         if (
             filename != "audio_only_all_model.csv"
-            and filename != "all_features_all_model.csv"
+            and filename != "select_features_all_model.csv"
         ):
             try:
                 total_df = pd.read_csv(
@@ -353,8 +353,8 @@ def load_audio_and_score_from_folder(folder_path_dir, file_type, save_to_single_
         ## Save all data into a single csv file.
         if file_type == "audio_only":
             save_path = os.path.join(folder_path_dir, "audio_only_all_model.csv")
-        elif file_type == "all_features":
-            save_path = os.path.join(folder_path_dir, "all_features_all_model.csv")
+        elif file_type == "select_features":
+            save_path = os.path.join(folder_path_dir, "select_features_all_model.csv")
         result_df.to_csv(save_path, index=False)
     return result_df
 
@@ -412,11 +412,11 @@ def load_audio_and_score_from_crowdsourcing_results(
         if os.path.isfile(audio_only_csv_path):
             audio_only_df = pd.read_csv(audio_only_csv_path)
             score_list.append(categorise_score(row["average"]))
-            # all_features_csv_path = os.path.join(home_dir, "data_sheets",
+            # select_features_csv_path = os.path.join(home_dir, "data_sheets",
             #                                    "features",
             #                                    str(folder_number),
             #                                    segment_name + ".csv")
-            # all_features_df = pd.read_csv(all_features_csv_path)
+            # select_features_df = pd.read_csv(select_features_csv_path)
             try:
                 # Convert to list
                 curr_audio_data = audio_only_df["audio_array"].to_list()
@@ -466,7 +466,7 @@ def load_text_and_score_from_crowdsourcing_results(
         # https://extractedaudio.s3.eu-west-2.amazonaws.com/5/C_show_5CnDmMUG0S5bSSw612fs8C_3fxFPVGSzFLKf5iyg5rWCa_1917.0.mp3
         folder_number = audio_url.split("/")[-2]
         segment_name = audio_url.split("/")[-1][:-4]
-        all_features_csv_path = os.path.join(
+        select_features_csv_path = os.path.join(
             home_dir,
             "data_sheets",
             "features",
@@ -474,28 +474,28 @@ def load_text_and_score_from_crowdsourcing_results(
             segment_name + ".csv",
         )
         # Only proceed if file exists
-        if os.path.isfile(all_features_csv_path):
-            # print(all_features_csv_path)
-            # all_features_df = pd.read_csv(all_features_csv_path, encoding="utf-8", dtype="unicode")
+        if os.path.isfile(select_features_csv_path):
+            # print(select_features_csv_path)
+            # select_features_df = pd.read_csv(select_features_csv_path, encoding="utf-8", dtype="unicode")
             # score_list.append(row["average"])
-            # all_features_csv_path = os.path.join(home_dir, "data_sheets",
+            # select_features_csv_path = os.path.join(home_dir, "data_sheets",
             #                                    "features",
             #                                    str(folder_number),
             #                                    segment_name + ".csv")
-            # all_features_df = pd.read_csv(all_features_csv_path)
+            # select_features_df = pd.read_csv(select_features_csv_path)
             try:
-                all_features_df = pd.read_csv(
-                    all_features_csv_path, encoding="utf-8", dtype="unicode"
+                select_features_df = pd.read_csv(
+                    select_features_csv_path, encoding="utf-8", dtype="unicode"
                 )
                 # Conver to numpy integer type
                 score_list.append(categorise_score(row["average"]))
                 # Convert to list
-                curr_text_data = all_features_df["text"].to_list()[0]
+                curr_text_data = select_features_df["text"].to_list()[0]
                 # print("curr text data", curr_text_data)
                 # print(type(curr_text_data))
                 text_list.append([curr_text_data])
             except Exception as e:
-                print("Error in parsing! File name = " + all_features_csv_path)
+                print("Error in parsing! File name = " + select_features_csv_path)
                 print(e)
                 continue
 
@@ -512,13 +512,72 @@ def load_text_and_score_from_crowdsourcing_results(
     return result_df
 
 
-def load_all_features_and_score_from_crowdsourcing_results(
+def load_select_features_and_score_from_crowdsourcing_results(
     home_dir, crowdsourcing_results_df_path
 ):
     """
     Load the text and user scores from the csv files.
     :param home_dir: Home directory.
     :param crowdsourcing_results_df_path: Path to the results dataframe.
+    :return: A dictoinary of dataframes.
+    """
+    # Load crowdsourcing results df
+    results_df = pd.read_csv(crowdsourcing_results_df_path)
+    all_dict = {}
+    # Initialise empty lists
+    # Find the feature csv locally
+    for index, row in results_df.iterrows():
+        audio_url = row["audio_url"]
+        # https://extractedaudio.s3.eu-west-2.amazonaws.com/5/C_show_5CnDmMUG0S5bSSw612fs8C_3fxFPVGSzFLKf5iyg5rWCa_1917.0.mp3
+        folder_number = audio_url.split("/")[-2]
+        segment_name = audio_url.split("/")[-1][:-4]
+        select_features_csv_path = os.path.join(
+            home_dir,
+            "data_sheets",
+            "features",
+            str(folder_number),
+            segment_name + ".csv",
+        )
+        # Only proceed if file exists
+        if os.path.isfile(select_features_csv_path):
+            # print(select_features_csv_path)
+            # select_features_df = pd.read_csv(select_features_csv_path, encoding="utf-8", dtype="unicode")
+            score = [categorise_score(row["average"])]
+            # select_features_csv_path = os.path.join(home_dir, "data_sheets",
+            #                                    "features",
+            #                                    str(folder_number),
+            #                                    segment_name + ".csv")
+            # select_features_df = pd.read_csv(select_features_csv_path)
+            try:
+                select_features_df = pd.read_csv(
+                    select_features_csv_path, encoding="utf-8", dtype="unicode"
+                )
+                # Remove the audio array
+                select_features_df.drop("audio_array", axis=1, inplace=True)
+                new_length = select_features_df["energy"].count()
+                select_features_df_new = select_features_df.iloc[:new_length].copy()
+                # Extend the list with 0 to match size of other columns
+                score.extend([0] * (select_features_df_new.shape[0] - 1))
+                # Add the audio score to the dataframe
+                select_features_df_new["score"] = score
+                # Zero pad the dataframe
+                select_features_df_new.fillna(0)
+                all_dict[audio_url] = select_features_df_new
+            except Exception as e:
+                print("Error in parsing! File name = " + select_features_csv_path)
+                print(e)
+                continue
+    return all_dict
+
+
+def load_select_features_and_score_from_crowdsourcing_results_selective(
+    home_dir, crowdsourcing_results_df_path, features_to_use
+):
+    """
+    Load the text and user scores from the csv files.
+    :param home_dir: Home directory.
+    :param crowdsourcing_results_df_path: Path to the results dataframe.
+    :param features_to_use: Features to be passed into the model.
     :return: A dictoinary of dataframes.
     """
     # Load crowdsourcing results df
@@ -540,29 +599,22 @@ def load_all_features_and_score_from_crowdsourcing_results(
         )
         # Only proceed if file exists
         if os.path.isfile(all_features_csv_path):
-            # print(all_features_csv_path)
-            # all_features_df = pd.read_csv(all_features_csv_path, encoding="utf-8", dtype="unicode")
             score = [categorise_score(row["average"])]
-            # all_features_csv_path = os.path.join(home_dir, "data_sheets",
-            #                                    "features",
-            #                                    str(folder_number),
-            #                                    segment_name + ".csv")
-            # all_features_df = pd.read_csv(all_features_csv_path)
             try:
                 all_features_df = pd.read_csv(
                     all_features_csv_path, encoding="utf-8", dtype="unicode"
                 )
-                # Remove the audio array
-                all_features_df.drop("audio_array", axis=1, inplace=True)
-                new_length = all_features_df["energy"].count()
-                all_features_df_new = all_features_df.iloc[:new_length].copy()
+                # select the features to be copied
+                select_features_df = all_features_df[features_to_use].copy()
+                new_length = select_features_df["energy"].count()
+                select_features_df_new = select_features_df.iloc[:new_length].copy()
                 # Extend the list with 0 to match size of other columns
-                score.extend([0] * (all_features_df_new.shape[0] - 1))
+                score.extend([0] * (select_features_df_new.shape[0] - 1))
                 # Add the audio score to the dataframe
-                all_features_df_new["score"] = score
+                select_features_df_new["score"] = score
                 # Zero pad the dataframe
-                all_features_df_new.fillna(0)
-                all_dict[audio_url] = all_features_df_new
+                select_features_df_new.fillna(0)
+                all_dict[audio_url] = select_features_df_new
             except Exception as e:
                 print("Error in parsing! File name = " + all_features_csv_path)
                 print(e)
@@ -577,22 +629,23 @@ def get_num_rows(dictionary):
     :return:
     """
     max_row_length = 0
-    for audio_name, all_features_df in dictionary.items():
+    for audio_name, select_features_df in dictionary.items():
         # Update max row length
-        if all_features_df.shape[0] > max_row_length:
-            max_row_length = all_features_df.shape[0]
+        if select_features_df.shape[0] > max_row_length:
+            max_row_length = select_features_df.shape[0]
     return max_row_length
 
 
-class AllFeaturesDataset(torch.utils.data.Dataset):
+class SelectFeaturesDataset(torch.utils.data.Dataset):
     """
     Prepare features and lables separately as dataset.
     """
 
-    def __init__(self, dict, num_rows):
+    def __init__(self, dict, num_rows, num_columns):
         self.dict = dict
         self.labels = self.get_labels()
         self.num_rows = num_rows
+        self.num_columns = num_columns
         self.features_dict = self.get_features_dict()
         self.features_list = list(self.features_dict.items())
 
@@ -602,8 +655,8 @@ class AllFeaturesDataset(torch.utils.data.Dataset):
         :return: A list of scores of the audios
         """
         score_list = []
-        for audio_name, all_features_df in self.dict.items():
-            score = all_features_df["score"][0]
+        for audio_name, select_features_df in self.dict.items():
+            score = select_features_df["score"][0]
             score_list.append(score)
         return score_list
 
@@ -615,29 +668,29 @@ class AllFeaturesDataset(torch.utils.data.Dataset):
         features_only_dict = {}
         features_only_dict_new = {}
 
-        for audio_name, all_features_df in self.dict.items():
+        for audio_name, select_features_df in self.dict.items():
             # Remove the scores
-            all_features_df.drop("score", axis=1, inplace=True)
-            all_features_df.drop("text", axis=1, inplace=True)
-            features_only_dict[audio_name] = all_features_df
+            select_features_df.drop("score", axis=1, inplace=True)
+            features_only_dict[audio_name] = select_features_df
 
         # Pad to zero so same length
-        for audio_name, all_features_df in features_only_dict.items():
+        for audio_name, select_features_df in features_only_dict.items():
             # Zero pad dataframe to same num of rows defined
-            num_rows_to_append = self.num_rows - all_features_df.shape[0]
-            all_features_df = all_features_df.append(
+            num_rows_to_append = self.num_rows - select_features_df.shape[0]
+            select_features_df = select_features_df.append(
                 [[0] for _ in range(num_rows_to_append)], ignore_index=True
             )
             # Replace nan with 0
-            all_features_df = all_features_df.fillna(0)
-            all_features_df.drop(columns=all_features_df.columns[1],
-                                 axis=1, inplace=True)
-            # Deal with the situation where an additional column is added
-            if all_features_df.shape[1] == 38:
-                all_features_df.drop(columns=all_features_df.columns[-1], axis=1, inplace=True)
+            select_features_df = select_features_df.fillna(0)
+            # Deal with the situation where an additional column is added at the end
+            if select_features_df.shape[1] != self.num_columns:
+                print("this wrong df no. columns", select_features_df.shape[1])
+                select_features_df.drop(
+                    columns=select_features_df.columns[-1], axis=1, inplace=True
+                )
             # Append to the new dictionary
             features_only_dict_new[audio_name] = torch.tensor(
-                all_features_df.values.astype(np.float32)
+                select_features_df.values.astype(np.float32)
             )
 
         return features_only_dict_new
@@ -666,24 +719,31 @@ class AllFeaturesDataset(torch.utils.data.Dataset):
         return batch_features, batch_y
 
 
-def train_all_features(
-    train_data, val_data, learning_rate, epochs, batch_size, num_workers, num_of_rows
+def train_select_features(
+    train_data,
+    val_data,
+    learning_rate,
+    epochs,
+    batch_size,
+    num_workers,
+    num_of_rows,
+    num_of_columns,
 ):
     """
     Train the model based on extracted text.
-    :param model: Deep learning model for the text.
     :param train_data: Dict of Dataframe to be trained.
     :param val_data: Dict of Dataframe to be evaluated.
     :param learning_rate: Parameter; rate of learning.
     :param epochs: Number of epochs to be trained.
     :param batch_size: Number of batches.
     :param num_of_rows: Maximum row number in the whole dataset.
+    :param num_of_columns: Number of columns in final df.
     :return: Training and evaluation accuracies.
     """
     train, val = train_data, val_data
     train, val = (
-        AllFeaturesDataset(train, num_of_rows),
-        AllFeaturesDataset(val, num_of_rows),
+        SelectFeaturesDataset(train, num_of_rows, num_of_columns),
+        SelectFeaturesDataset(val, num_of_rows, num_of_columns),
     )
 
     train_dataloader = torch.utils.data.DataLoader(
@@ -706,7 +766,9 @@ def train_all_features(
     device = torch.device("cuda" if use_cuda else "cpu")
 
     criterion = nn.CrossEntropyLoss()
-    model = AllFeaturesClassifier(num_rows=train.num_rows)
+    model = SelectFeaturesClassifier(
+        num_rows=train.num_rows, num_columns=train.num_columns
+    )
     optimizer = Adam(model.parameters(), lr=learning_rate)
 
     if use_cuda:
@@ -758,16 +820,17 @@ def train_all_features(
         )
 
 
-def evaluate_all_features(test_data, batch_size, num_of_rows):
+def evaluate_select_features(test_data, batch_size, num_of_rows, num_of_columns):
     """
     Evaluate accuracy for the model on text data.
     :param test_data: Dataframe to be tested.
     :param batch_size: Number of batches.
     :param num_of_rows: Maximum row number in the whole dataset.
+    :param num_of_columns: Number of columns in final df.
     :return: Test Accuracies.
     """
     test = test_data
-    test = AllFeaturesDataset(test, num_of_rows)
+    test = SelectFeaturesDataset(test, num_of_rows, num_of_columns)
 
     test_dataloader = torch.utils.data.DataLoader(
         test, batch_size=batch_size, drop_last=True, pin_memory=True
@@ -776,7 +839,9 @@ def evaluate_all_features(test_data, batch_size, num_of_rows):
     use_cuda = torch.cuda.is_available()
     device = torch.device("cuda" if use_cuda else "cpu")
 
-    model = AllFeaturesClassifier(num_rows=test.num_rows)
+    model = SelectFeaturesClassifier(
+        num_rows=test.num_rows, num_columns=test.num_columns
+    )
 
     if use_cuda:
         print("Using cuda!")
@@ -790,7 +855,6 @@ def evaluate_all_features(test_data, batch_size, num_of_rows):
             test_label = test_label.to(device)
             input_features = test_input[1]
             output = model(input_features)
-
 
             acc = (output.argmax(dim=1) == test_label).sum().item()
             total_acc_test += acc
