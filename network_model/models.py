@@ -1,3 +1,14 @@
+"""Models for training features, text and audio for confidence classification.
+
+----------------------------------
+Class BertClassifier: Model for text with Bert tokenized tensors.
+Class HubertClassifier: Model for audio with HuBert tokenized tensors.
+Class SelectFeaturesClassifier: Model for features as input tensors.
+Class ResidualBlock: Residual block for ResNet.
+Class CustomBERTModel: Model for text with Bert, Bi-LSTM and ResNet.
+Class CustomHUBERTModel: Model for audio with Hubert, Bi-LSTM and ResNet.
+"""
+
 import torch
 from torch import nn
 from transformers import BertModel, HubertModel
@@ -72,7 +83,24 @@ class SelectFeaturesClassifier(nn.Module):
         predictions = self.softmax(linear2)
         return predictions
 
+class ResidualBlock(nn.Module):
+    def __init__(self, in_channels, out_channels):
+        super().__init__()
+        self.in_channels, self.out_channels = in_channels, out_channels
+        self.blocks = nn.Identity()
+        self.activate = nn.LeakyReLU()
+        self.shortcut = nn.Identity()
 
+    def forward(self, x):
+        residual = x
+        if self.should_apply_shortcut: residual = self.shortcut(x)
+        x = self.blocks(x)
+        x += residual
+        x = self.activate(x)
+        return x
+
+    def should_apply_shortcut(self):
+        return self.in_channels != self.out_channels
 
 
 class CustomBERTModel(nn.Module):
@@ -107,24 +135,6 @@ class CustomBERTModel(nn.Module):
 
         return predictions
 
-class ResidualBlock(nn.Module):
-    def __init__(self, in_channels, out_channels):
-        super().__init__()
-        self.in_channels, self.out_channels = in_channels, out_channels
-        self.blocks = nn.Identity()
-        self.activate = nn.LeakyReLU()
-        self.shortcut = nn.Identity()
-
-    def forward(self, x):
-        residual = x
-        if self.should_apply_shortcut: residual = self.shortcut(x)
-        x = self.blocks(x)
-        x += residual
-        x = self.activate(x)
-        return x
-
-    def should_apply_shortcut(self):
-        return self.in_channels != self.out_channels
 
 class CustomHUBERTModel(nn.Module):
     def __init__(self, dropout=0.5):
@@ -146,14 +156,14 @@ class CustomHUBERTModel(nn.Module):
         ## extract the 1st token's embeddings
         lstm_output, (h, c) = self.lstm(pooled_output)
         hidden = torch.cat((lstm_output[:, -1, :256], lstm_output[:, 0, 256:]), dim=-1)
-        print("hidden size", hidden.size())
+        # print("hidden size", hidden.size())
         ### assuming only using the output of the last LSTM cell to perform classification
         linear1 = self.linear1(hidden.view(-1, 256 * 2))
-        print("linear output size", linear1.size())
+        # print("linear output size", linear1.size())
         res = self.resblock(linear1)
-        print("res output size", res.size())
+        # print("res output size", res.size())
         linear2 = self.linear2(res)
-        print("linear output 2 size", linear2.size())
+        # print("linear output 2 size", linear2.size())
         dropout = self.dropout(linear2)
         relu = self.relu(dropout)
         predictions = self.softmax(relu)
