@@ -83,7 +83,8 @@ def test_accuracy(output, actual):
             count += 1
     return count
 
-class EarlyStopping():
+
+class EarlyStopping:
     def __init__(self, tolerance=5, min_delta=0):
         # tolerance is the number of epochs to continue after deemed saturated
         self.tolerance = tolerance
@@ -97,6 +98,7 @@ class EarlyStopping():
             self.counter += 1
             if self.counter >= self.tolerance:
                 self.early_stop = True
+
 
 def train_text(
     model,
@@ -991,7 +993,7 @@ def train_audio(
     if use_cuda:
         print("Using cuda!")
         model = model.to(device)
-        # count_parameters(model)
+        count_parameters(model)
         model = nn.DataParallel(model, device_ids=list(range(num_gpus)))
 
         criterion = criterion.cuda()
