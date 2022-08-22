@@ -6,9 +6,6 @@ from transformers import BertTokenizer
 from model_utils import *
 from models import *
 
-# # Memory issues
-# torch.cuda.empty_cache()
-# torch.cuda.memory_summary(device=None, abbreviated=False)
 
 text_tokenizer = BertTokenizer.from_pretrained("bert-base-cased")
 

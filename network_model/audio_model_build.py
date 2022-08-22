@@ -3,7 +3,7 @@ Extract the raw audio array and confidence score from the individual audio
 classes. Then use this data to train the network for classification.
 """
 from transformers import AutoFeatureExtractor
-from models import *
+import ast
 from model_utils import *
 from audio_features import *
 
@@ -41,6 +41,9 @@ audio_only_total_audio_file_path = os.path.join(
 
 print("start of application!")
 
+def clean(seq_string):
+    return list(ast.literal_eval(seq_string))
+
 # Read in individual csvs and load into a final dataframe
 if loading_type == "many":
     if file_type == "audio_only":
@@ -62,6 +65,7 @@ if loading_type == "many":
             [int(0.8 * len(audio_df)), int(0.9 * len(audio_df))],
         )
 
+
 # Read in a single large scv file containing all the information of a whole batch
 elif loading_type == "single":
     if file_type == "audio_only":
@@ -76,6 +80,12 @@ elif loading_type == "single":
             converters={"audio_array": pd.eval},
             encoding="utf-8",
         )
+
+        # audio_df = pd.read_csv(
+        #     audio_only_total_audio_file_path,
+        #     converters={"audio_array": clean},
+        #     encoding="utf-8",
+        # )
     # Split to train, eval and test datasets.
     df_train, df_val, df_test = audio_df.random_split([0.8, 0.1, 0.1], random_state=123)
 
