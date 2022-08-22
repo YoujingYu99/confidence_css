@@ -10,17 +10,13 @@ import warnings
 warnings.simplefilter(action="ignore", category=FutureWarning)
 
 import os
-import math
 import pandas as pd
 from prettytable import PrettyTable
 import json
-import torch
 import numpy as np
 import random
-from torch import nn
 from torch.optim import Adam
 from tqdm import tqdm
-import logging
 
 from models import *
 
@@ -87,6 +83,20 @@ def test_accuracy(output, actual):
             count += 1
     return count
 
+class EarlyStopping():
+    def __init__(self, tolerance=5, min_delta=0):
+        # tolerance is the number of epochs to continue after deemed saturated
+        self.tolerance = tolerance
+        self.min_delta = min_delta
+        self.counter = 0
+        self.early_stop = False
+
+    def __call__(self, train_loss, validation_loss):
+        print("val loss - train loss", validation_loss - train_loss)
+        if (validation_loss - train_loss) > self.min_delta:
+            self.counter += 1
+            if self.counter >= self.tolerance:
+                self.early_stop = True
 
 def train_text(
     model,
@@ -133,6 +143,8 @@ def train_text(
 
     criterion = nn.MSELoss()
     optimizer = Adam(model.parameters(), lr=learning_rate)
+    # initialize the early_stopping object
+    early_stopping = EarlyStopping(tolerance=5, min_delta=0.2)
 
     if use_cuda:
         print("Using cuda!")
@@ -184,6 +196,11 @@ def train_text(
                 # Define accuracy as within 10% of the true label
                 acc = test_accuracy(output, val_label)
                 total_acc_val += acc
+            # early stopping
+            early_stopping(total_loss_train, total_loss_val)
+            if early_stopping.early_stop:
+                print("We are at epoch:", epoch_num)
+                break
 
         print(
             f"Epochs: {epoch_num + 1} | Train Loss: {total_loss_train / len(train_data): .3f} \
@@ -352,11 +369,6 @@ def load_audio_and_score_from_crowdsourcing_results(
         if os.path.isfile(audio_only_csv_path):
             audio_only_df = pd.read_csv(audio_only_csv_path)
             score_list.append(row["average"] - 2.5)
-            # select_features_csv_path = os.path.join(home_dir, "data_sheets",
-            #                                    "features",
-            #                                    str(folder_number),
-            #                                    segment_name + ".csv")
-            # select_features_df = pd.read_csv(select_features_csv_path)
             try:
                 # Convert to list
                 curr_audio_data = audio_only_df["audio_array"].to_list()
@@ -702,6 +714,8 @@ def train_select_features(
         num_rows=train.num_rows, num_columns=train.num_columns
     )
     optimizer = Adam(model.parameters(), lr=learning_rate)
+    # initialize the early_stopping object
+    early_stopping = EarlyStopping(tolerance=5, min_delta=0.2)
 
     if use_cuda:
         print("Using cuda!")
@@ -749,6 +763,12 @@ def train_select_features(
                 # Define accuracy as within 10% of the true label
                 acc = test_accuracy(output, val_label)
                 total_acc_val += acc
+
+            # early stopping
+            early_stopping(total_loss_train, total_loss_val)
+            if early_stopping.early_stop:
+                print("We are at epoch:", epoch_num)
+                break
 
         print(
             f"Epochs: {epoch_num + 1} | Train Loss: {total_loss_train / len(train_data): .3f} \
@@ -965,6 +985,8 @@ def train_audio(
 
     criterion = nn.MSELoss()
     optimizer = Adam(model.parameters(), lr=learning_rate)
+    # initialize the early_stopping object
+    early_stopping = EarlyStopping(tolerance=5, min_delta=0.01)
 
     if use_cuda:
         print("Using cuda!")
@@ -1031,6 +1053,12 @@ def train_audio(
                 # Define accuracy as within 10% of the true label
                 acc = test_accuracy(output, val_label)
                 total_acc_val += acc
+
+        # early stopping
+        early_stopping(total_loss_train, total_loss_val)
+        if early_stopping.early_stop:
+            print("We are at epoch:", epoch_num)
+            break
 
         print(
             f"Epochs: {epoch_num + 1} | Train Loss: {total_loss_train / len(train_data): .3f} \
