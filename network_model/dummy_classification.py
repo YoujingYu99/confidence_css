@@ -1,15 +1,12 @@
 from sklearn.dummy import DummyClassifier
-
-from transformers import AutoFeatureExtractor
-from models import *
-from model_utils import *
-from audio_features import *
+from model_utils import load_audio_and_score_from_crowdsourcing_results, categorise_score
+import os
+import numpy as np
 
 save_to_single_csv = False
 
 # home_dir is the location of script
 home_dir = os.path.join("/home", "yyu")
-featuers_folder_path_dir = os.path.join(home_dir, "data_sheets", "features")
 
 # Path for crowdsourcing results
 crowdsourcing_results_df_path = os.path.join(

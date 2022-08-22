@@ -37,14 +37,13 @@ df_train, df_val, df_test = np.split(
     [int(0.8 * len(audio_df)), int(0.9 * len(audio_df))],
 )
 
-
 print(len(df_train), len(df_val), len(df_test))
 print(audio_df.head())
 
 
 # Training parameters
 epochs = 500
-LR = 0.001
+LR = 1e-5
 batch_size = 2
 num_workers = 4
 

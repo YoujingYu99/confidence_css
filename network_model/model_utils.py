@@ -11,6 +11,7 @@ warnings.simplefilter(action="ignore", category=FutureWarning)
 
 import os
 import pandas as pd
+import math
 from prettytable import PrettyTable
 import json
 import numpy as np
@@ -64,6 +65,18 @@ class TextDataset(torch.utils.data.Dataset):
 
         return batch_texts, batch_y
 
+def categorise_score(score):
+    """
+    Categorise the confidnece scores into 5 categories.
+    :param score: Raw score input by user.
+    :return: Categorised score.
+    """
+    if score == 5:
+        score_cat = 4
+    else:
+        score_cat = math.floor(score)
+
+    return score_cat
 
 def test_accuracy(output, actual):
     """
@@ -315,26 +328,6 @@ def load_audio_and_score_from_folder(folder_path_dir, file_type, save_to_single_
         result_df.to_csv(save_path, index=False)
     return result_df
 
-
-def categorise_score(score):
-    """
-    Categorise the confidnece scores into 5 categories.
-    :param score: Raw score input by user.
-    :return: Categorised score.
-    """
-
-    if score < 1:
-        score_cat = 0
-    elif score < 2:
-        score_cat = 1
-    elif score < 3:
-        score_cat = 2
-    elif score < 4:
-        score_cat = 3
-    else:
-        score_cat = 4
-
-    return score_cat
 
 
 def load_audio_and_score_from_crowdsourcing_results(
