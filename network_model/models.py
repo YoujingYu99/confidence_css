@@ -20,8 +20,8 @@ class BertClassifier(nn.Module):
 
         self.bert = BertModel.from_pretrained("bert-base-cased")
         self.dropout = nn.Dropout(dropout)
-        # 5 categories
-        self.linear = nn.Linear(768, 5)
+        # Regression
+        self.linear = nn.Linear(768, 1)
         self.relu = nn.ReLU()
 
     def forward(self, input_id, mask):
@@ -41,8 +41,7 @@ class HubertClassifier(nn.Module):
 
         self.hubert = HubertModel.from_pretrained("facebook/hubert-base-ls960")
         self.dropout = nn.Dropout(dropout)
-        # 5 categories
-        self.linear = nn.Linear(768, 5)
+        self.linear = nn.Linear(768, 1)
         self.relu = nn.ReLU()
 
     def forward(self, input_values):
@@ -67,7 +66,7 @@ class SelectFeaturesClassifier(nn.Module):
         self.flatten = nn.Flatten()
         self.linear1 = nn.Linear(num_rows * num_columns, 256)
         self.relu = nn.ReLU()
-        self.linear2 = nn.Linear(256, 5)
+        self.linear2 = nn.Linear(256, 1)
         self.softmax = nn.Softmax(dim=1)
 
     # in what sequence do we input the data
@@ -111,10 +110,9 @@ class CustomBERTModel(nn.Module):
         self.bert = BertModel.from_pretrained("bert-base-cased")
         self.lstm = nn.LSTM(768, 256, batch_first=True, bidirectional=True)
         self.linear1 = nn.Linear(256 * 2, 32)
-        self.linear2 = nn.Linear(32, 5)
         self.dropout = nn.Dropout(dropout)
-        self.relu = nn.ReLU()
-        self.softmax = nn.Softmax(dim=1)
+        self.linear2 = nn.Linear(32, 1)
+        self.tanh = nn.Tanh()
 
     def forward(self, input_id, mask):
         sequence_output, pooled_output = self.bert(
@@ -127,12 +125,13 @@ class CustomBERTModel(nn.Module):
         hidden = torch.cat((lstm_output[:, -1, :256], lstm_output[:, 0, 256:]), dim=-1)
         ### assuming only using the output of the last LSTM cell to perform classification
         linear1 = self.linear1(hidden.view(-1, 256 * 2))
-        linear2 = self.linear2(linear1)
-        dropout = self.dropout(linear2)
-        relu = self.relu(dropout)
-        predictions = self.softmax(relu)
+        dropout = self.dropout(linear1)
+        linear2 = self.linear2(dropout)
+        tanh = self.tanh(linear2)
+        # Scale to match input
+        prediction = tanh * 2.5
 
-        return predictions
+        return prediction
 
 
 class CustomResiBERTModel(nn.Module):
@@ -142,10 +141,9 @@ class CustomResiBERTModel(nn.Module):
         self.lstm = nn.LSTM(768, 256, batch_first=True, bidirectional=True)
         self.linear1 = nn.Linear(256 * 2, 32)
         self.resblock = ResidualBlock(32, 32)
-        self.linear2 = nn.Linear(32, 5)
         self.dropout = nn.Dropout(dropout)
-        self.relu = nn.ReLU()
-        self.softmax = nn.Softmax(dim=1)
+        self.linear2 = nn.Linear(32, 1)
+        self.tanh = nn.Tanh()
 
     def forward(self, input_id, mask):
         sequence_output, pooled_output = self.bert(
@@ -159,12 +157,13 @@ class CustomResiBERTModel(nn.Module):
         ### assuming only using the output of the last LSTM cell to perform classification
         linear1 = self.linear1(hidden.view(-1, 256 * 2))
         res = self.resblock(linear1)
-        linear2 = self.linear2(res)
-        dropout = self.dropout(linear2)
-        relu = self.relu(dropout)
-        predictions = self.softmax(relu)
+        dropout = self.dropout(res)
+        linear2 = self.linear2(dropout)
+        tanh = self.tanh(linear2)
+        # Scale to match input
+        prediction = tanh * 2.5
 
-        return predictions
+        return prediction
 
 
 class CustomHUBERTModel(nn.Module):
@@ -173,10 +172,9 @@ class CustomHUBERTModel(nn.Module):
         self.hubert = HubertModel.from_pretrained("facebook/hubert-base-ls960")
         self.lstm = nn.LSTM(768, 256, batch_first=True, bidirectional=True)
         self.linear1 = nn.Linear(256 * 2, 32)
-        self.linear2 = nn.Linear(32, 5)
         self.dropout = nn.Dropout(dropout)
-        self.relu = nn.ReLU()
-        self.softmax = nn.Softmax(dim=1)
+        self.linear2 = nn.Linear(32, 1)
+        self.tanh = nn.Tanh()
 
     def forward(self, input_values):
         output_tuple = self.hubert(input_values=input_values, return_dict=False)
@@ -189,14 +187,13 @@ class CustomHUBERTModel(nn.Module):
         # print("hidden size", hidden.size())
         ### assuming only using the output of the last LSTM cell to perform classification
         linear1 = self.linear1(hidden.view(-1, 256 * 2))
-        # print("linear output size", linear1.size())
-        linear2 = self.linear2(linear1)
-        # print("linear output 2 size", linear2.size())
-        dropout = self.dropout(linear2)
-        relu = self.relu(dropout)
-        predictions = self.softmax(relu)
+        dropout = self.dropout(linear1)
+        linear2 = self.linear2(dropout)
+        tanh = self.tanh(linear2)
+        # Scale to match input
+        prediction = tanh * 2.5
 
-        return predictions
+        return prediction
 
 
 class CustomResiHUBERTModel(nn.Module):
@@ -206,10 +203,9 @@ class CustomResiHUBERTModel(nn.Module):
         self.lstm = nn.LSTM(768, 256, batch_first=True, bidirectional=True)
         self.linear1 = nn.Linear(256 * 2, 32)
         self.resblock = ResidualBlock(32, 32)
-        self.linear2 = nn.Linear(32, 5)
         self.dropout = nn.Dropout(dropout)
-        self.relu = nn.ReLU()
-        self.softmax = nn.Softmax(dim=1)
+        self.linear2 = nn.Linear(32, 1)
+        self.tanh = nn.Tanh()
 
     def forward(self, input_values):
         output_tuple = self.hubert(input_values=input_values, return_dict=False)
@@ -222,13 +218,11 @@ class CustomResiHUBERTModel(nn.Module):
         # print("hidden size", hidden.size())
         ### assuming only using the output of the last LSTM cell to perform classification
         linear1 = self.linear1(hidden.view(-1, 256 * 2))
-        # print("linear output size", linear1.size())
         res = self.resblock(linear1)
-        # print("res output size", res.size())
-        linear2 = self.linear2(res)
-        # print("linear output 2 size", linear2.size())
-        dropout = self.dropout(linear2)
-        relu = self.relu(dropout)
-        predictions = self.softmax(relu)
+        dropout = self.dropout(res)
+        linear2 = self.linear2(dropout)
+        tanh = self.tanh(linear2)
+        # Scale to match input
+        prediction = tanh * 2.5
 
-        return predictions
+        return prediction

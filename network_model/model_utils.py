@@ -69,6 +69,25 @@ class TextDataset(torch.utils.data.Dataset):
         return batch_texts, batch_y
 
 
+def test_accuracy(output, actual):
+    """
+    Testfy whether the output is accurate.
+    :param output: Score tensor output by model.
+    :param actual: Actual score tensor.
+    :return: Number of accurate predicitons
+    """
+    output_list = output.tolist()
+    actual_list = actual.tolist()
+    # Normalise the class
+    output_cat_list = [categorise_score(score + 2.5) for score in output_list]
+    actual_cat_list = [categorise_score(score + 2.5) for score in actual_list]
+    count = 0
+    for i in range(len(output_list)):
+        if actual_cat_list[i] == output_cat_list[i]:
+            count += 1
+    return count
+
+
 def train_text(
     model,
     tokenizer,
@@ -112,7 +131,7 @@ def train_text(
     use_cuda = torch.cuda.is_available()
     device = torch.device("cuda" if use_cuda else "cpu")
 
-    criterion = nn.CrossEntropyLoss()
+    criterion = nn.MSELoss()
     optimizer = Adam(model.parameters(), lr=learning_rate)
 
     if use_cuda:
@@ -134,10 +153,13 @@ def train_text(
             input_id = train_input["input_ids"].squeeze(1).to(device)
 
             output = model(input_id, mask)
-            batch_loss = criterion(output, train_label.long())
+            output = output.flatten()
+            batch_loss = criterion(output.float(), train_label.float())
             total_loss_train += batch_loss.item()
 
-            acc = (output.argmax(dim=1) == train_label).sum().item()
+            # acc = (output.argmax(dim=1) == train_label).sum().item()
+            # Define accuracy as within 10% of the true label
+            acc = test_accuracy(output, train_label)
             total_acc_train += acc
 
             batch_loss.backward()
@@ -154,10 +176,13 @@ def train_text(
                 input_id = val_input["input_ids"].squeeze(1).to(device)
 
                 output = model(input_id, mask)
-                batch_loss = criterion(output, val_label.long())
+                output = output.flatten()
+                batch_loss = criterion(output.float(), val_label.float())
                 total_loss_val += batch_loss.item()
 
-                acc = (output.argmax(dim=1) == val_label).sum().item()
+                # acc = (output.argmax(dim=1) == val_label).sum().item()
+                # Define accuracy as within 10% of the true label
+                acc = test_accuracy(output, val_label)
                 total_acc_val += acc
 
         print(
@@ -201,103 +226,14 @@ def evaluate_text(model, test_data, tokenizer, batch_size):
             input_id = test_input["input_ids"].squeeze(1).to(device)
 
             output = model(input_id, mask)
+            output = output.flatten()
 
-            acc = (output.argmax(dim=1) == test_label).sum().item()
+            # acc = (output.argmax(dim=1) == test_label).sum().item()
+            # Define accuracy as within 10% of the true label
+            acc = test_accuracy(output, test_label)
             total_acc_test += acc
 
     print(f"Test Accuracy: {total_acc_test / len(test_data): .3f}")
-
-
-def load_audio_and_score_from_folder_logging(
-    folder_path_dir,
-    file_type,
-    save_to_single_csv,
-    log_filename="load_audio_and_score_from_folder_log3.txt",
-):
-    """
-    Load the confidence score and audio array from the csv files.
-    :param home_dir: Primary directory.
-    :param folder_path_list: Path of the folder of csvs.
-    :return: result_df: Pandas dataframe wit columns audio_array and score.
-    """
-
-    # create logger
-    logger = logging.getLogger("load_audio_and_score_from_folder")
-    logger.setLevel(logging.DEBUG)
-    # create console handler and set level to debug
-    ch = logging.FileHandler(log_filename)
-    ch.setLevel(logging.DEBUG)
-    # create formatter
-    formatter = logging.Formatter(
-        "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-    )
-    # add formatter to ch
-    ch.setFormatter(formatter)
-    # add ch to logger
-    logger.addHandler(ch)
-
-    audio_list = []
-    score_list = []
-    max_length = 0
-    for filename in tqdm(os.listdir(folder_path_dir)):
-        if (
-            filename != "audio_only_all_model.csv"
-            and filename != "select_features_all_model.csv"
-        ):
-            try:
-                logger.info("Reading " + os.path.join(folder_path_dir, filename))
-                total_df = pd.read_csv(
-                    os.path.join(folder_path_dir, filename),
-                    encoding="utf-8",
-                    low_memory=False,
-                    delimiter=",",
-                )
-            except Exception as e:
-                print("Error in parsing! File name = " + filename)
-                print(e)
-                logger.warning("Error in parsing! File name = " + filename)
-                logger.warning(e.__str__())
-                continue
-
-            try:
-                # Convert to list
-                curr_audio_data = total_df["audio_array"].to_list()
-                # If list contains element of type string
-                if not all(isinstance(i, float) for i in curr_audio_data):
-                    print("Found wrong data type!")
-                    logger.warning(
-                        "Reading "
-                        + os.path.join(folder_path_dir, filename)
-                        + "Wrong data type"
-                    )
-                    # Decode to float using json
-                    curr_audio_data = json.loads(curr_audio_data[0])
-                    curr_audio_data = [float(elem) for elem in curr_audio_data]
-                    print(type(curr_audio_data[0]))
-                audio_list.append(curr_audio_data)
-                score_list.append(random.choice(range(1, 5, 1)))
-                # Update max length if a longer audio occurs
-                if len(total_df["audio_array"]) > max_length:
-                    max_length = len(total_df["audio_array"])
-            except Exception as e:
-                print("Error in parsing! File name = " + filename)
-                print(e)
-                logger.warning(e.__str__())
-                continue
-
-    print(len(audio_list))
-    print(len(score_list))
-    result_df = pd.DataFrame(
-        np.column_stack([audio_list, score_list]), columns=["audio_array", "score"]
-    )
-    if save_to_single_csv:
-        ## Save all data into a single csv file.
-        if file_type == "audio_only":
-            save_path = os.path.join(folder_path_dir, "audio_only_all_model.csv")
-        elif file_type == "select_features":
-            save_path = os.path.join(folder_path_dir, "select_features_all_model.csv")
-        result_df.to_csv(save_path, index=False)
-    return result_df
 
 
 def load_audio_and_score_from_folder(folder_path_dir, file_type, save_to_single_csv):
@@ -415,7 +351,7 @@ def load_audio_and_score_from_crowdsourcing_results(
         # Only proceed if file exists
         if os.path.isfile(audio_only_csv_path):
             audio_only_df = pd.read_csv(audio_only_csv_path)
-            score_list.append(categorise_score(row["average"]))
+            score_list.append(row["average"] - 2.5)
             # select_features_csv_path = os.path.join(home_dir, "data_sheets",
             #                                    "features",
             #                                    str(folder_number),
@@ -479,20 +415,12 @@ def load_text_and_score_from_crowdsourcing_results(
         )
         # Only proceed if file exists
         if os.path.isfile(select_features_csv_path):
-            # print(select_features_csv_path)
-            # select_features_df = pd.read_csv(select_features_csv_path, encoding="utf-8", dtype="unicode")
-            # score_list.append(row["average"])
-            # select_features_csv_path = os.path.join(home_dir, "data_sheets",
-            #                                    "features",
-            #                                    str(folder_number),
-            #                                    segment_name + ".csv")
-            # select_features_df = pd.read_csv(select_features_csv_path)
             try:
                 select_features_df = pd.read_csv(
                     select_features_csv_path, encoding="utf-8", dtype="unicode"
                 )
                 # Conver to numpy integer type
-                score_list.append(categorise_score(row["average"]))
+                score_list.append(row["average"] - 2.5)
                 # Convert to list
                 curr_text_data = select_features_df["text"].to_list()[0]
                 # print("curr text data", curr_text_data)
@@ -508,7 +436,7 @@ def load_text_and_score_from_crowdsourcing_results(
     result_df = pd.DataFrame(
         np.column_stack([text_list, score_list]), columns=["sentence", "score"]
     )
-    result_df["score"] = result_df["score"].astype(int)
+    result_df["score"] = result_df["score"].astype(float)
     if save_to_single_csv:
         ## Save all data into a single csv file.
         save_path = os.path.join(home_dir, "data_sheets", "text_only_all_model.csv")
@@ -546,7 +474,7 @@ def load_select_features_and_score_from_crowdsourcing_results(
         if os.path.isfile(select_features_csv_path):
             # print(select_features_csv_path)
             # select_features_df = pd.read_csv(select_features_csv_path, encoding="utf-8", dtype="unicode")
-            score = [categorise_score(row["average"])]
+            score = [row["average"] - 2.5]
             # select_features_csv_path = os.path.join(home_dir, "data_sheets",
             #                                    "features",
             #                                    str(folder_number),
@@ -603,7 +531,7 @@ def load_select_features_and_score_from_crowdsourcing_results_selective(
         )
         # Only proceed if file exists
         if os.path.isfile(all_features_csv_path):
-            score = [categorise_score(row["average"])]
+            score = [row["average"] - 2.5]
             try:
                 all_features_df = pd.read_csv(
                     all_features_csv_path, encoding="utf-8", dtype="unicode"
@@ -769,7 +697,7 @@ def train_select_features(
     use_cuda = torch.cuda.is_available()
     device = torch.device("cuda" if use_cuda else "cpu")
 
-    criterion = nn.CrossEntropyLoss()
+    criterion = nn.MSELoss()
     model = SelectFeaturesClassifier(
         num_rows=train.num_rows, num_columns=train.num_columns
     )
@@ -792,10 +720,13 @@ def train_select_features(
             train_label = train_label.to(device)
             input_features = train_input[1]
             output = model(input_features)
-            batch_loss = criterion(output, train_label.long())
+            output = output.flatten()
+            batch_loss = criterion(output.float(), train_label.float())
             total_loss_train += batch_loss.item()
 
-            acc = (output.argmax(dim=1) == train_label).sum().item()
+            # acc = (output.argmax(dim=1) == train_label).sum().item()
+            # Define accuracy as within 10% of the true label
+            acc = test_accuracy(output, train_label)
             total_acc_train += acc
 
             batch_loss.backward()
@@ -810,10 +741,13 @@ def train_select_features(
                 val_label = val_label.to(device)
                 input_features = val_input[1]
                 output = model(input_features)
-                batch_loss = criterion(output, val_label.long())
+                output = output.flatten()
+                batch_loss = criterion(output.float(), val_label.float())
                 total_loss_val += batch_loss.item()
 
-                acc = (output.argmax(dim=1) == val_label).sum().item()
+                # acc = (output.argmax(dim=1) == val_label).sum().item()
+                # Define accuracy as within 10% of the true label
+                acc = test_accuracy(output, val_label)
                 total_acc_val += acc
 
         print(
@@ -859,8 +793,11 @@ def evaluate_select_features(test_data, batch_size, num_of_rows, num_of_columns)
             test_label = test_label.to(device)
             input_features = test_input[1]
             output = model(input_features)
+            output = output.flatten()
 
-            acc = (output.argmax(dim=1) == test_label).sum().item()
+            # acc = (output.argmax(dim=1) == test_label).sum().item()
+            # Define accuracy as within 10% of the true label
+            acc = test_accuracy(output, test_label)
             total_acc_test += acc
 
     print(f"Test Accuracy: {total_acc_test / len(test_data): .3f}")
@@ -1026,7 +963,7 @@ def train_audio(
     use_cuda = torch.cuda.is_available()
     device = torch.device("cuda" if use_cuda else "cpu")
 
-    criterion = nn.CrossEntropyLoss()
+    criterion = nn.MSELoss()
     optimizer = Adam(model.parameters(), lr=learning_rate)
 
     if use_cuda:
@@ -1055,10 +992,13 @@ def train_audio(
 
             optimizer.zero_grad()
             output = model(input_values)
-            batch_loss = criterion(output, train_label.long())
+            output = output.flatten()
+            batch_loss = criterion(output.float(), train_label.float())
             total_loss_train += batch_loss.item()
 
-            acc = (output.argmax(dim=1) == train_label).sum().item()
+            # acc = (output.argmax(dim=1) == train_label).sum().item()
+            # Define accuracy as within 10% of the true label
+            acc = test_accuracy(output, train_label)
             total_acc_train += acc
 
             batch_loss.backward()
@@ -1083,10 +1023,13 @@ def train_audio(
                     input_values = train_input.to(device, dtype=torch.float)
 
                 output = model(input_values)
-                batch_loss = criterion(output, val_label.long())
+                output = output.flatten()
+                batch_loss = criterion(output.float(), train_label.float())
                 total_loss_val += batch_loss.item()
 
-                acc = (output.argmax(dim=1) == val_label).sum().item()
+                # acc = (output.argmax(dim=1) == val_label).sum().item()
+                # Define accuracy as within 10% of the true label
+                acc = test_accuracy(output, val_label)
                 total_acc_val += acc
 
         print(
@@ -1132,8 +1075,11 @@ def evaluate_audio(model, test_data, batch_size, feature_extractor, vectorise):
                 input_values = torch.cat(test_input).to(device, dtype=torch.float)
 
             output = model(input_values)
+            output = output.flatten()
 
-            acc = (output.argmax(dim=1) == test_label).sum().item()
+            # acc = (output.argmax(dim=1) == test_label).sum().item()
+            # Define accuracy as within 10% of the true label
+            acc = test_accuracy(output, test_label)
             total_acc_test += acc
 
     print(f"Test Accuracy: {total_acc_test / len(test_data): .3f}")

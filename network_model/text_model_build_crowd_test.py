@@ -40,7 +40,7 @@ print(len(df_train), len(df_val), len(df_test))
 
 # Decide on Epoch and model
 epochs = 500
-LR = 1e-6
+LR = 0.001
 batch_size = 3
 num_workers = 4
 
