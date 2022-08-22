@@ -68,3 +68,5 @@ train_audio(
     vectorise,
     num_workers,
 )
+
+evaluate_audio(audio_model, df_test, batch_size, feature_extractor, vectorise)

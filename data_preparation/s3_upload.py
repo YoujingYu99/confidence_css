@@ -23,8 +23,8 @@ for folder_number in folder_numbers:
     # Set properties
     bucket = "extractedaudio"
     destination = str(folder_number)
-    ACCESS_KEY = "AKIA5JV4AUW3DNDSDB76"
-    SECRET_KEY = "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"
+    ACCESS_KEY = "AKIA5JV4AUW3NGHWKPMT"
+    SECRET_KEY = "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"
 
     client = boto3.client(
         "s3", aws_access_key_id=ACCESS_KEY, aws_secret_access_key=SECRET_KEY

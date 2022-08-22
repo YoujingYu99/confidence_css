@@ -43,7 +43,7 @@ print(audio_df.head())
 
 
 # Training parameters
-epochs = 5
+epochs = 500
 LR = 1e-6
 batch_size = 3
 num_workers = 4
@@ -65,3 +65,5 @@ train_audio(
     vectorise,
     num_workers,
 )
+
+evaluate_audio(audio_model, df_test, batch_size, feature_extractor, vectorise)

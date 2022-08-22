@@ -83,6 +83,7 @@ class SelectFeaturesClassifier(nn.Module):
         predictions = self.softmax(linear2)
         return predictions
 
+
 class ResidualBlock(nn.Module):
     def __init__(self, in_channels, out_channels):
         super().__init__()
@@ -93,7 +94,8 @@ class ResidualBlock(nn.Module):
 
     def forward(self, x):
         residual = x
-        if self.should_apply_shortcut: residual = self.shortcut(x)
+        if self.should_apply_shortcut:
+            residual = self.shortcut(x)
         x = self.blocks(x)
         x += residual
         x = self.activate(x)
@@ -104,6 +106,36 @@ class ResidualBlock(nn.Module):
 
 
 class CustomBERTModel(nn.Module):
+    def __init__(self, dropout=0.5):
+        super(CustomBERTModel, self).__init__()
+        self.bert = BertModel.from_pretrained("bert-base-cased")
+        self.lstm = nn.LSTM(768, 256, batch_first=True, bidirectional=True)
+        self.linear1 = nn.Linear(256 * 2, 32)
+        self.linear2 = nn.Linear(32, 5)
+        self.dropout = nn.Dropout(dropout)
+        self.relu = nn.ReLU()
+        self.softmax = nn.Softmax(dim=1)
+
+    def forward(self, input_id, mask):
+        sequence_output, pooled_output = self.bert(
+            input_ids=input_id, attention_mask=mask, return_dict=False
+        )
+
+        # sequence_output has the following shape: (batch_size, sequence_length, 768)
+        ## extract the 1st token's embeddings
+        lstm_output, (h, c) = self.lstm(sequence_output)
+        hidden = torch.cat((lstm_output[:, -1, :256], lstm_output[:, 0, 256:]), dim=-1)
+        ### assuming only using the output of the last LSTM cell to perform classification
+        linear1 = self.linear1(hidden.view(-1, 256 * 2))
+        linear2 = self.linear2(linear1)
+        dropout = self.dropout(linear2)
+        relu = self.relu(dropout)
+        predictions = self.softmax(relu)
+
+        return predictions
+
+
+class CustomResiBERTModel(nn.Module):
     def __init__(self, dropout=0.5):
         super(CustomBERTModel, self).__init__()
         self.bert = BertModel.from_pretrained("bert-base-cased")
@@ -123,8 +155,7 @@ class CustomBERTModel(nn.Module):
         # sequence_output has the following shape: (batch_size, sequence_length, 768)
         ## extract the 1st token's embeddings
         lstm_output, (h, c) = self.lstm(sequence_output)
-        hidden = torch.cat(
-            (lstm_output[:, -1, :256], lstm_output[:, 0, 256:]), dim=-1)
+        hidden = torch.cat((lstm_output[:, -1, :256], lstm_output[:, 0, 256:]), dim=-1)
         ### assuming only using the output of the last LSTM cell to perform classification
         linear1 = self.linear1(hidden.view(-1, 256 * 2))
         res = self.resblock(linear1)
@@ -137,6 +168,38 @@ class CustomBERTModel(nn.Module):
 
 
 class CustomHUBERTModel(nn.Module):
+    def __init__(self, dropout=0.5):
+        super(CustomHUBERTModel, self).__init__()
+        self.hubert = HubertModel.from_pretrained("facebook/hubert-base-ls960")
+        self.lstm = nn.LSTM(768, 256, batch_first=True, bidirectional=True)
+        self.linear1 = nn.Linear(256 * 2, 32)
+        self.linear2 = nn.Linear(32, 5)
+        self.dropout = nn.Dropout(dropout)
+        self.relu = nn.ReLU()
+        self.softmax = nn.Softmax(dim=1)
+
+    def forward(self, input_values):
+        output_tuple = self.hubert(input_values=input_values, return_dict=False)
+        (pooled_output,) = output_tuple
+
+        # sequence_output has the following shape: (batch_size, sequence_length, 768)
+        ## extract the 1st token's embeddings
+        lstm_output, (h, c) = self.lstm(pooled_output)
+        hidden = torch.cat((lstm_output[:, -1, :256], lstm_output[:, 0, 256:]), dim=-1)
+        # print("hidden size", hidden.size())
+        ### assuming only using the output of the last LSTM cell to perform classification
+        linear1 = self.linear1(hidden.view(-1, 256 * 2))
+        # print("linear output size", linear1.size())
+        linear2 = self.linear2(linear1)
+        # print("linear output 2 size", linear2.size())
+        dropout = self.dropout(linear2)
+        relu = self.relu(dropout)
+        predictions = self.softmax(relu)
+
+        return predictions
+
+
+class CustomResiHUBERTModel(nn.Module):
     def __init__(self, dropout=0.5):
         super(CustomHUBERTModel, self).__init__()
         self.hubert = HubertModel.from_pretrained("facebook/hubert-base-ls960")
@@ -169,6 +232,3 @@ class CustomHUBERTModel(nn.Module):
         predictions = self.softmax(relu)
 
         return predictions
-
-
-

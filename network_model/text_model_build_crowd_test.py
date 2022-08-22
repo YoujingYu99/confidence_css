@@ -39,7 +39,7 @@ df_train, df_val, df_test = np.split(
 print(len(df_train), len(df_val), len(df_test))
 
 # Decide on Epoch and model
-EPOCHS = 5
+epochs = 500
 LR = 1e-6
 batch_size = 3
 num_workers = 4
@@ -50,6 +50,6 @@ text_model = CustomBERTModel()
 
 # Train model
 train_text(
-    text_model, text_tokenizer, df_train, df_val, LR, EPOCHS, batch_size, num_workers
+    text_model, text_tokenizer, df_train, df_val, LR, epochs, batch_size, num_workers
 )
 evaluate_text(text_model, df_test, text_tokenizer, batch_size)

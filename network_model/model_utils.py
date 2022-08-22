@@ -1097,17 +1097,18 @@ def train_audio(
         )
 
 
-def evaluate_audio(model, test_data, batch_size, vectorise):
+def evaluate_audio(model, test_data, batch_size, feature_extractor, vectorise):
     """
     Evaluate accuracy for the model on vectorised audio data.
     :param model: Model to be used for deep learning.
     :param test_data: Dataframe to be tested.
     :param batch_size: Number of batches.
+    :param feature_extractor: Pre-trained transformer to extract audio features.
     :param vectorise: If vectorised, use transformers to tokenize audios.
     :return: Test Accuracies.
     """
     test = test_data.reset_index(drop=True)
-    test = AudioDataset(test, vectorise)
+    test = AudioDataset(test, feature_extractor, vectorise)
     test_dataloader = torch.utils.data.DataLoader(
         test, batch_size=batch_size, drop_last=True, pin_memory=True
     )

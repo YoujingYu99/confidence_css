@@ -13,8 +13,8 @@ import random
 import math
 
 home_dir = os.path.join("/home", "yyu")
-# folder_numbers = [0]
-folder_numbers = range(7)
+folder_numbers = [0]
+# folder_numbers = range(7)
 
 num_tasks_per_HIT = 10
 audio_column_name_list = []
@@ -28,8 +28,8 @@ for folder_number in folder_numbers:
     print(folder_number)
     prefix = str(folder_number) + "/"
 
-    ACCESS_KEY = "AKIA5JV4AUW3DNDSDB76"
-    SECRET_KEY = "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"
+    ACCESS_KEY = "AKIA5JV4AUW3NGHWKPMT"
+    SECRET_KEY = "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"
 
     s3_client = boto3.client(
         "s3", aws_access_key_id=ACCESS_KEY, aws_secret_access_key=SECRET_KEY
