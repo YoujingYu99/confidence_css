@@ -3,7 +3,6 @@ Extract the raw audio array and confidence score from the individual audio
 classes. Then use this data to train the network for classification.
 """
 from transformers import AutoFeatureExtractor
-from models import *
 from model_utils import *
 from audio_features import *
 
@@ -47,7 +46,7 @@ print(audio_df.head())
 
 # Training parameters
 epochs = 5
-LR = 1e-6
+LR = 5e-5
 batch_size = 3
 num_workers = 4
 

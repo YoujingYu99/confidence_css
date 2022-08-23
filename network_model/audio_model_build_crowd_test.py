@@ -42,7 +42,7 @@ print(audio_df.head())
 
 # Training parameters
 epochs = 500
-LR = 1e-5
+LR = 5e-5
 batch_size = 2
 num_workers = 4
 

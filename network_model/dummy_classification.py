@@ -2,7 +2,7 @@ from sklearn.dummy import DummyClassifier
 from model_utils import load_audio_and_score_from_crowdsourcing_results, categorise_score
 import os
 import numpy as np
-
+print("Hello")
 save_to_single_csv = False
 
 # home_dir is the location of script
