@@ -447,6 +447,7 @@ def load_audio_and_score_from_crowdsourcing_results_all(
         result_df.to_csv(save_path, index=False)
     return result_df
 
+
 def load_text_and_score_from_crowdsourcing_results(
     home_dir, crowdsourcing_results_df_path, save_to_single_csv
 ):
@@ -468,7 +469,7 @@ def load_text_and_score_from_crowdsourcing_results(
         # https://extractedaudio.s3.eu-west-2.amazonaws.com/5/C_show_5CnDmMUG0S5bSSw612fs8C_3fxFPVGSzFLKf5iyg5rWCa_1917.0.mp3
         folder_number = audio_url.split("/")[-2]
         segment_name = audio_url.split("/")[-1][:-4]
-        select_features_csv_path = os.path.join(
+        all_features_csv_path = os.path.join(
             home_dir,
             "data_sheets",
             "features",
@@ -476,10 +477,10 @@ def load_text_and_score_from_crowdsourcing_results(
             segment_name + ".csv",
         )
         # Only proceed if file exists
-        if os.path.isfile(select_features_csv_path):
+        if os.path.isfile(all_features_csv_path):
             try:
                 select_features_df = pd.read_csv(
-                    select_features_csv_path, encoding="utf-8", dtype="unicode"
+                    all_features_csv_path, encoding="utf-8", dtype="unicode"
                 )
                 # Conver to numpy integer type
                 score_list.append(row["average"] - 2.5)
@@ -489,7 +490,7 @@ def load_text_and_score_from_crowdsourcing_results(
                 # print(type(curr_text_data))
                 text_list.append([curr_text_data])
             except Exception as e:
-                print("Error in parsing! File name = " + select_features_csv_path)
+                print("Error in parsing! File name = " + all_features_csv_path)
                 print(e)
                 continue
 
