@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
-  <component name="PublishConfigData" autoUpload="Always" serverName="yyu@ribble.cs.ucl.ac.uk:22 (4)" remoteFilesAllowedToDisappearOnAutoupload="false">
+  <component name="PublishConfigData" autoUpload="Always" serverName="yyu@ribble.cs.ucl.ac.uk:22 password" remoteFilesAllowedToDisappearOnAutoupload="false">
     <serverData>
       <paths name="yyu@ribble.cs.ucl.ac.uk:22">
         <serverdata>
@@ -27,6 +27,13 @@
         <serverdata>
           <mappings>
             <mapping deploy="/home/yyu/confidence_css" local="$PROJECT_DIR$" />
+          </mappings>
+        </serverdata>
+      </paths>
+      <paths name="yyu@ribble.cs.ucl.ac.uk:22 password">
+        <serverdata>
+          <mappings>
+            <mapping local="$PROJECT_DIR$" web="/" />
           </mappings>
         </serverdata>
       </paths>

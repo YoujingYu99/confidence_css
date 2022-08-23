@@ -87,12 +87,9 @@ def test_accuracy(output, actual):
     """
     output_list = output.tolist()
     actual_list = actual.tolist()
-    # Normalise the class
-    output_cat_list = [categorise_score(score + 2.5) for score in output_list]
-    actual_cat_list = [categorise_score(score + 2.5) for score in actual_list]
     count = 0
     for i in range(len(output_list)):
-        if actual_cat_list[i] == output_cat_list[i]:
+        if actual_list[i] * 0.9 <= output_list[i] <= actual_list[i] * 1.1:
             count += 1
     return count
 
