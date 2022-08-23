@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
-  <component name="PublishConfigData" autoUpload="Always" serverName="yyu@ribble.cs.ucl.ac.uk:22 password" remoteFilesAllowedToDisappearOnAutoupload="false">
+  <component name="PublishConfigData" autoUpload="Always" promptOnRemoteOverwrite="CHECK_TIMESTAMP" serverName="yyu@ribble.cs.ucl.ac.uk:22 password" notifyRemoteChanges="true">
     <serverData>
       <paths name="yyu@ribble.cs.ucl.ac.uk:22">
         <serverdata>
@@ -33,7 +33,7 @@
       <paths name="yyu@ribble.cs.ucl.ac.uk:22 password">
         <serverdata>
           <mappings>
-            <mapping local="$PROJECT_DIR$" web="/" />
+            <mapping deploy="/confidence_css" local="$PROJECT_DIR$" web="/" />
           </mappings>
         </serverdata>
       </paths>
