@@ -350,12 +350,71 @@ def load_audio_and_score_from_crowdsourcing_results(
         # https://extractedaudio.s3.eu-west-2.amazonaws.com/5/C_show_5CnDmMUG0S5bSSw612fs8C_3fxFPVGSzFLKf5iyg5rWCa_1917.0.mp3
         folder_number = audio_url.split("/")[-2]
         segment_name = audio_url.split("/")[-1][:-4]
-        audio_only_csv_path = os.path.join(
+        total_df_path = os.path.join(
             home_dir,
             "data_sheets",
             "features_audio_array",
             str(folder_number),
             segment_name + "_audio_only.csv",
+        )
+        # Only proceed if file exists
+        if os.path.isfile(total_df_path):
+            total_df = pd.read_csv(total_df_path)
+            score_list.append(row["average"] - 2.5)
+            try:
+                # Convert to list
+                curr_audio_data = total_df["audio_array"].to_list()
+                # If list contains element of type string
+                if not all(isinstance(i, float) for i in curr_audio_data):
+                    print("Found wrong data type!")
+                    # Decode to float using json
+                    curr_audio_data = json.loads(curr_audio_data[0])
+                    curr_audio_data = [float(elem) for elem in curr_audio_data]
+                    print(type(curr_audio_data[0]))
+                audio_list.append(curr_audio_data)
+            except Exception as e:
+                print("Error in parsing! File name = " + total_df_path)
+                print(e)
+                continue
+
+    print(len(audio_list))
+    print(len(score_list))
+    result_df = pd.DataFrame(
+        np.column_stack([audio_list, score_list]), columns=["audio_array", "score"]
+    )
+    if save_to_single_csv:
+        ## Save all data into a single csv file.
+        save_path = os.path.join(home_dir, "data_sheets", "audio_only_crowd_all_model.csv")
+        result_df.to_csv(save_path, index=False)
+    return result_df
+
+def load_audio_and_score_from_crowdsourcing_results_all(
+    home_dir, crowdsourcing_results_df_path, save_to_single_csv
+):
+    """
+    Load the audio arrays and user scores from the csv files.
+    :param home_dir: Home directory.
+    :param crowdsourcing_results_df_path: Path to the results dataframe.
+    :param save_to_single_csv: Whether to save to a single csv file.
+    :return: Dataframe of audio arrays and average score.
+    """
+    # Load crowdsourcing results df
+    results_df = pd.read_csv(crowdsourcing_results_df_path)
+    # Initialise empty lists
+    audio_list = []
+    score_list = []
+    # Find the feature csv locally
+    for index, row in results_df.iterrows():
+        audio_url = row["audio_url"]
+        # https://extractedaudio.s3.eu-west-2.amazonaws.com/5/C_show_5CnDmMUG0S5bSSw612fs8C_3fxFPVGSzFLKf5iyg5rWCa_1917.0.mp3
+        folder_number = audio_url.split("/")[-2]
+        segment_name = audio_url.split("/")[-1][:-4]
+        audio_only_csv_path = os.path.join(
+            home_dir,
+            "data_sheets",
+            "features",
+            str(folder_number),
+            segment_name + ".csv",
         )
         # Only proceed if file exists
         if os.path.isfile(audio_only_csv_path):
@@ -384,10 +443,9 @@ def load_audio_and_score_from_crowdsourcing_results(
     )
     if save_to_single_csv:
         ## Save all data into a single csv file.
-        save_path = os.path.join(home_dir, "data_sheets", "audio_only_all_model.csv")
+        save_path = os.path.join(home_dir, "data_sheets", "audio_only_crowd_all_model.csv")
         result_df.to_csv(save_path, index=False)
     return result_df
-
 
 def load_text_and_score_from_crowdsourcing_results(
     home_dir, crowdsourcing_results_df_path, save_to_single_csv
@@ -443,7 +501,7 @@ def load_text_and_score_from_crowdsourcing_results(
     result_df["score"] = result_df["score"].astype(float)
     if save_to_single_csv:
         ## Save all data into a single csv file.
-        save_path = os.path.join(home_dir, "data_sheets", "text_only_all_model.csv")
+        save_path = os.path.join(home_dir, "data_sheets", "text_only_crowd_all_model.csv")
         result_df.to_csv(save_path, index=False)
     return result_df
 
