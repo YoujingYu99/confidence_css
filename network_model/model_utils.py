@@ -1292,7 +1292,8 @@ class AudioTextDataset(torch.utils.data.Dataset):
         batch_audios = self.get_batch_audios(idx)
         batch_texts = self.get_batch_texts(idx)
         # Put tensors to a list
-        batch_audio_text = [batch_audios, batch_texts]
+        batch_audio_text = {"audio":batch_audios, "text":batch_texts}
+        # batch_audio_text = [batch_audios, batch_texts]
         print("size of concatenated audio and text", batch_audio_text.size())
         batch_y = self.get_batch_labels(idx)
 
@@ -1394,11 +1395,11 @@ def train_audio_text(
             for val_input, val_label in val_dataloader:
                 val_label = val_label.to(device)
                 # Audio
-                input_values = train_input[0]["input_values"].squeeze(1).to(device)
+                input_values = train_input["audio"]["input_values"].squeeze(1).to(device)
                 print("input values size", input_values.size())
                 # Text
-                mask = train_input[1]["attention_mask"].to(device)
-                input_id = train_input[1]["input_ids"].squeeze(1).to(device)
+                mask = train_input["text"]["attention_mask"].to(device)
+                input_id = train_input["text"]["input_ids"].squeeze(1).to(device)
                 print("input id size", input_id.size())
                 print("mask size", mask.size())
 
