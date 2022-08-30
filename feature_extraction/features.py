@@ -14,7 +14,6 @@ import scipy
 import numpy as np
 import pandas as pd
 import librosa
-import librosa.display
 import timbral_models
 import sklearn
 
@@ -146,7 +145,7 @@ class SingleFileFeatureExtraction:
         """
         self.audio_folder_name = self.audio_path.split("/")[-2]
         confidence_dataframe_name = (
-            "confidence_dataframe_" + self.audio_folder_name + ".csv"
+            "confidence_dataframe_new_" + self.audio_folder_name + ".csv"
         )
         self.audio_name = self.audio_path.split("/")[-1]
         self.audio_name_without_extension = self.audio_name.split("_")[-2]
@@ -395,7 +394,7 @@ class SingleFileFeatureExtraction:
         return result
 
     def write_features_to_csv(self):
-        """Extract all features and write to a csv."""
+        """Extract only text and audio array features and write to a csv."""
         # Extract audio features
         frames = []
 
@@ -417,110 +416,6 @@ class SingleFileFeatureExtraction:
         self.get_transcription()
         text_df = pd.DataFrame([self.transcript], columns=["text"])
         frames.append(text_df)
-
-        # Interjecting frequency
-        self.get_interjecting_frequency()
-        frequency_df = pd.DataFrame(
-            [self.interjecting_frequency], columns=["interjecting_frequency"]
-        )
-        frames.append(frequency_df)
-
-        # Energy
-        self.get_energy()
-        energy_scaled = self.normalize(self.energy[0].tolist())
-        energy_df = pd.DataFrame(energy_scaled, columns=["energy"])
-        frames.append(energy_df)
-
-        # Energy Entropy
-        self.get_energy_entropy()
-        ee_df = pd.DataFrame([self.energy_entropy], columns=["energy_entropy"])
-        frames.append(ee_df)
-
-        # Spectral centroids/spectral spread
-        self.get_spectral_centroids()
-        sc_scaled = self.normalize(self.spectral_centroids[0].tolist())
-        sc_df = pd.DataFrame(sc_scaled, columns=["spectral_centroids"])
-        frames.append(sc_df)
-        ss_scaled = self.normalize(self.spectral_spread[0].tolist())
-        ss_df = pd.DataFrame(ss_scaled, columns=["spectral_spread"])
-        frames.append(ss_df)
-
-        # Spectral entropy
-        self.get_spectral_entropy()
-        se_df = pd.DataFrame([self.spectral_entropy], columns=["spectral_entropy"])
-        frames.append(se_df)
-
-        # Spectral rolloff
-        self.get_spectral_rolloff()
-        sr_scaled = self.normalize(self.spectral_rolloff[0].tolist())
-        sr_df = pd.DataFrame(sr_scaled, columns=["spectral_rolloff"])
-        frames.append(sr_df)
-
-        # Spectral contrast
-        self.get_spectral_contrast()
-        # Special care taken for the 13 scontrasts
-        scontrast_list = self.spectral_contrast.tolist()
-        for i in range(len(scontrast_list)):
-            data_column = self.normalize(scontrast_list[i])
-            column_name = "spectral_contrast" + str(i)
-            scontrast_indiv_df = pd.DataFrame(data_column, columns=[column_name])
-            frames.append(scontrast_indiv_df)
-
-        # Zero crossing rate
-        self.get_zero_crossings()
-        zcr_scaled = self.normalize(self.zero_crossing_rate[0].tolist())
-        zcr_df = pd.DataFrame(zcr_scaled, columns=["zero_crossing_rate"])
-        frames.append(zcr_df)
-
-        # mfccs
-        self.get_mfcc()
-        # Special care taken for the 12 mfccs
-        mfcc_list = self.mfcc.tolist()
-        for i in range(len(mfcc_list)):
-            data_column = self.normalize(mfcc_list[i])
-            column_name = "mfcc" + str(i)
-            mfcc_indiv_df = pd.DataFrame(data_column, columns=[column_name])
-            frames.append(mfcc_indiv_df)
-
-        # Autocorrelation
-        self.get_autocorrelation()
-        auto_scaled = self.normalize(self.autocorrelation.tolist())
-        autocorrelation_df = pd.DataFrame(auto_scaled, columns=["autocorrelation"])
-        frames.append(autocorrelation_df)
-
-        # Pitches
-        self.get_pitch()
-        pitches_scaled = self.normalize(self.pitches.tolist())
-        pitches_df = pd.DataFrame(pitches_scaled, columns=["pitches"])
-        frames.append(pitches_df)
-
-        # Tonnetz
-        self.get_tonnetz()
-        # Special care taken for the 6 tonnetz dimensions
-        tonnetz_list = self.tonnetz.tolist()
-        for i in range(len(tonnetz_list)):
-            data_column = self.normalize(tonnetz_list[i])
-            column_name = "tonnetz" + str(i)
-            tonnetz_indiv_df = pd.DataFrame(data_column, columns=[column_name])
-            frames.append(tonnetz_indiv_df)
-
-        # Pause ratio
-        self.get_pause_ratio()
-        pr_df = pd.DataFrame([self.pause_ratio], columns=["pause_ratio"])
-        frames.append(pr_df)
-
-        self.get_repetition_rate()
-        rr_df = pd.DataFrame([self.repetition_rate], columns=["repetition_rate"])
-        frames.append(rr_df)
-
-        # # Sharpness/ roughness
-        # self.get_sharp_rough()
-        # sharp_df = pd.DataFrame([self.sharpness],
-        #                      columns=["sharpness"])
-        # frames.append(sharp_df)
-        # rough_df = pd.DataFrame([self.roughness],
-        #                         columns=["roughness"])
-        # frames.append(rough_df)
 
         total_df = pd.concat(frames, axis=1)
         feature_csv_path = os.path.join(
@@ -554,6 +449,7 @@ class SingleFileFeatureExtraction:
             self.audio_array_csv_folder_path,
             str(self.audio_name[:-4] + "_audio_only.csv"),
         )
+        print(audio_df.head())
         print(audio_array_csv_path)
         audio_df.to_csv(audio_array_csv_path, encoding="utf-8")
         try:
@@ -581,91 +477,3 @@ def audio_path_in_dir(folder_path_list):
 def normalize(x, axis=0):
     return sklearn.preprocessing.minmax_scale(x, axis=axis)
 
-
-#
-# for audio_path in audio_path_list:
-#     # loading audio files
-#     x, sr = librosa.load(audio_path)
-# print(type(x), type(sr))#<class 'numpy.ndarray'> <class 'int'>
-# sr is 22050
-# print(x.shape, sr)
-# #plot the waveform
-# plt.figure(figsize=(14, 5))
-# librosa.display.waveplot(x, sr=sr)
-# plt.show()
-
-# # plot the spectrogram
-# X = librosa.stft(x)
-# Xdb = librosa.amplitude_to_db(abs(X))
-# plt.figure(figsize=(14, 5))
-# librosa.display.specshow(Xdb, sr=sr, x_axis='time', y_axis='hz')
-# # using log scale
-# #librosa.display.specshow(Xdb, sr=sr, x_axis='time', y_axis='log')
-# plt.colorbar()
-# plt.show()
-
-# #.spectral_centroids will return an array with columns equal to a number of frames present in your sample.
-# spectral_centroids = librosa.feature.spectral_centroid(x, sr=sr)[0]
-# # Computing the time variable for visualization
-# plt.figure(figsize=(12, 4))
-# frames = range(len(spectral_centroids))
-# t = librosa.frames_to_time(frames)
-# # Plotting the Spectral Centroid along the waveform
-# librosa.display.waveplot(x, sr=sr, alpha=0.4)
-# plt.plot(t, normalize(spectral_centroids), color='b')
-# plt.show()
-#
-#
-# # Spectral bandwidth
-# spectral_bandwidth_2 = librosa.feature.spectral_bandwidth(x + 0.01, sr=sr)[0]
-# spectral_bandwidth_3 = librosa.feature.spectral_bandwidth(x + 0.01, sr=sr, p=3)[0]
-# spectral_bandwidth_4 = librosa.feature.spectral_bandwidth(x + 0.01, sr=sr, p=4)[0]
-# plt.figure(figsize=(15, 9))
-# librosa.display.waveplot(x, sr=sr, alpha=0.4)
-# plt.plot(t, normalize(spectral_bandwidth_2), color='r')
-# plt.plot(t, normalize(spectral_bandwidth_3), color='g')
-# plt.plot(t, normalize(spectral_bandwidth_4), color='y')
-# plt.legend(('p = 2', 'p = 3', 'p = 4'))
-
-# # Zero-crossing rate
-# n0 = 9000
-# n1 = 9100
-# zero_crossings = librosa.zero_crossings(x[n0:n1], pad=False)
-# print(sum(zero_crossings))
-
-# # MFCCS
-# mfccs = librosa.feature.mfcc(x, sr=sr)
-# print(mfccs.shape)
-# # Displaying  the MFCCs:
-# plt.figure(figsize=(15, 7))
-# librosa.display.specshow(mfccs, sr=sr, x_axis='time')
-# plt.show()
-
-# # Chroma Features
-# hop_length = 512
-# chromagram = librosa.feature.chroma_stft(x, sr=sr, hop_length=hop_length)
-# plt.figure(figsize=(15, 5))
-# librosa.display.specshow(chromagram, x_axis='time', y_axis='chroma', hop_length=hop_length, cmap='coolwarm')
-
-# # Spectral Rolloff
-# # Compute the time variable for visualisation
-# spectral_centroids = librosa.feature.spectral_centroid(x, sr=sr)[0]
-# frames = range(len(spectral_centroids))
-# t = librosa.frames_to_time(frames)
-#
-# spectral_rolloff = librosa.feature.spectral_rolloff(x + 0.01, sr=sr)[0]
-# plt.figure(figsize=(12, 4))
-# librosa.display.waveplot(x, sr=sr, alpha=0.4)
-# plt.plot(t, normalize(spectral_rolloff), color='r')
-
-# # Spectral Contrast
-# spectral_contrast = librosa.feature.spectral_contrast(x, sr=sr)
-# # spectral_contrast.shape
-# plt.imshow(normalize(spectral_contrast, axis=1), aspect='auto', origin='lower', cmap='coolwarm')
-# plt.show()
-
-# # Tonnetz
-# tonnetz = np.mean(librosa.feature.tonnetz(y=x, sr=sr))
-# plt.figure(figsize=(15, 5))
-# librosa.display.specshow(tonnetz, y_axis="tonnetz")
-# plt.show()

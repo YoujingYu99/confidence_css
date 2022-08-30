@@ -65,6 +65,7 @@ class TextDataset(torch.utils.data.Dataset):
 
         return batch_texts, batch_y
 
+
 def categorise_score(score):
     """
     Categorise the confidnece scores into 5 categories.
@@ -77,6 +78,7 @@ def categorise_score(score):
         score_cat = math.floor(score)
 
     return score_cat
+
 
 def test_accuracy(output, actual):
     """
@@ -328,7 +330,6 @@ def load_audio_and_score_from_folder(folder_path_dir, file_type, save_to_single_
     return result_df
 
 
-
 def load_audio_and_score_from_crowdsourcing_results(
     home_dir, crowdsourcing_results_df_path, save_to_single_csv
 ):
@@ -350,12 +351,19 @@ def load_audio_and_score_from_crowdsourcing_results(
         # https://extractedaudio.s3.eu-west-2.amazonaws.com/5/C_show_5CnDmMUG0S5bSSw612fs8C_3fxFPVGSzFLKf5iyg5rWCa_1917.0.mp3
         folder_number = audio_url.split("/")[-2]
         segment_name = audio_url.split("/")[-1][:-4]
+        # total_df_path = os.path.join(
+        #     home_dir,
+        #     "data_sheets",
+        #     "features_audio_array",
+        #     str(folder_number),
+        #     segment_name + "_audio_only.csv",
+        # )
         total_df_path = os.path.join(
             home_dir,
             "data_sheets",
-            "features_audio_array",
+            "features",
             str(folder_number),
-            segment_name + "_audio_only.csv",
+            segment_name + ".csv",
         )
         # Only proceed if file exists
         if os.path.isfile(total_df_path):
@@ -384,66 +392,9 @@ def load_audio_and_score_from_crowdsourcing_results(
     )
     if save_to_single_csv:
         ## Save all data into a single csv file.
-        save_path = os.path.join(home_dir, "data_sheets", "audio_only_crowd_all_model.csv")
-        result_df.to_csv(save_path, index=False)
-    return result_df
-
-def load_audio_and_score_from_crowdsourcing_results_all(
-    home_dir, crowdsourcing_results_df_path, save_to_single_csv
-):
-    """
-    Load the audio arrays and user scores from the csv files.
-    :param home_dir: Home directory.
-    :param crowdsourcing_results_df_path: Path to the results dataframe.
-    :param save_to_single_csv: Whether to save to a single csv file.
-    :return: Dataframe of audio arrays and average score.
-    """
-    # Load crowdsourcing results df
-    results_df = pd.read_csv(crowdsourcing_results_df_path)
-    # Initialise empty lists
-    audio_list = []
-    score_list = []
-    # Find the feature csv locally
-    for index, row in results_df.iterrows():
-        audio_url = row["audio_url"]
-        # https://extractedaudio.s3.eu-west-2.amazonaws.com/5/C_show_5CnDmMUG0S5bSSw612fs8C_3fxFPVGSzFLKf5iyg5rWCa_1917.0.mp3
-        folder_number = audio_url.split("/")[-2]
-        segment_name = audio_url.split("/")[-1][:-4]
-        audio_only_csv_path = os.path.join(
-            home_dir,
-            "data_sheets",
-            "features",
-            str(folder_number),
-            segment_name + ".csv",
+        save_path = os.path.join(
+            home_dir, "data_sheets", "audio_only_crowd_all_model.csv"
         )
-        # Only proceed if file exists
-        if os.path.isfile(audio_only_csv_path):
-            audio_only_df = pd.read_csv(audio_only_csv_path)
-            score_list.append(row["average"] - 2.5)
-            try:
-                # Convert to list
-                curr_audio_data = audio_only_df["audio_array"].to_list()
-                # If list contains element of type string
-                if not all(isinstance(i, float) for i in curr_audio_data):
-                    print("Found wrong data type!")
-                    # Decode to float using json
-                    curr_audio_data = json.loads(curr_audio_data[0])
-                    curr_audio_data = [float(elem) for elem in curr_audio_data]
-                    print(type(curr_audio_data[0]))
-                audio_list.append(curr_audio_data)
-            except Exception as e:
-                print("Error in parsing! File name = " + audio_only_csv_path)
-                print(e)
-                continue
-
-    print(len(audio_list))
-    print(len(score_list))
-    result_df = pd.DataFrame(
-        np.column_stack([audio_list, score_list]), columns=["audio_array", "score"]
-    )
-    if save_to_single_csv:
-        ## Save all data into a single csv file.
-        save_path = os.path.join(home_dir, "data_sheets", "audio_only_crowd_all_model.csv")
         result_df.to_csv(save_path, index=False)
     return result_df
 
@@ -502,7 +453,80 @@ def load_text_and_score_from_crowdsourcing_results(
     result_df["score"] = result_df["score"].astype(float)
     if save_to_single_csv:
         ## Save all data into a single csv file.
-        save_path = os.path.join(home_dir, "data_sheets", "text_only_crowd_all_model.csv")
+        save_path = os.path.join(
+            home_dir, "data_sheets", "text_only_crowd_all_model.csv"
+        )
+        result_df.to_csv(save_path, index=False)
+    return result_df
+
+
+def load_audio_text_and_score_from_crowdsourcing_results(
+    home_dir, crowdsourcing_results_df_path, save_to_single_csv
+):
+    """
+    Load the audio arrays, text and user scores from the csv files.
+    :param home_dir: Home directory.
+    :param crowdsourcing_results_df_path: Path to the results dataframe.
+    :param save_to_single_csv: Whether to save to a single csv file.
+    :return: Dataframe of audio arrays, text and average score.
+    """
+    # Load crowdsourcing results df
+    results_df = pd.read_csv(crowdsourcing_results_df_path)
+    # Initialise empty lists
+    audio_list = []
+    text_list = []
+    score_list = []
+    # Find the feature csv locally
+    for index, row in results_df.iterrows():
+        audio_url = row["audio_url"]
+        # https://extractedaudio.s3.eu-west-2.amazonaws.com/5/C_show_5CnDmMUG0S5bSSw612fs8C_3fxFPVGSzFLKf5iyg5rWCa_1917.0.mp3
+        folder_number = audio_url.split("/")[-2]
+        segment_name = audio_url.split("/")[-1][:-4]
+        total_df_path = os.path.join(
+            home_dir,
+            "data_sheets",
+            "features",
+            str(folder_number),
+            segment_name + ".csv",
+        )
+        # Only proceed if file exists
+        if os.path.isfile(total_df_path):
+            total_df = pd.read_csv(total_df_path)
+            score_list.append(row["average"] - 2.5)
+            try:
+                # Convert audio to list
+                curr_audio_data = total_df["audio_array"].to_list()
+                # If list contains element of type string
+                if not all(isinstance(i, float) for i in curr_audio_data):
+                    print("Found wrong data type!")
+                    # Decode to float using json
+                    curr_audio_data = json.loads(curr_audio_data[0])
+                    curr_audio_data = [float(elem) for elem in curr_audio_data]
+                    print(type(curr_audio_data[0]))
+                audio_list.append(curr_audio_data)
+
+                # Convert text to list
+                curr_text_data = total_df["text"].to_list()[0]
+                # print("curr text data", curr_text_data)
+                # print(type(curr_text_data))
+                text_list.append([curr_text_data])
+            except Exception as e:
+                print("Error in parsing! File name = " + total_df_path)
+                print(e)
+                continue
+
+    print(len(audio_list))
+    print(len(text_list))
+    print(len(score_list))
+    result_df = pd.DataFrame(
+        np.column_stack([audio_list, text_list, score_list]),
+        columns=["audio_array", "sentence", "score"],
+    )
+    if save_to_single_csv:
+        ## Save all data into a single csv file.
+        save_path = os.path.join(
+            home_dir, "data_sheets", "audio_text_crowd_all_model.csv"
+        )
         result_df.to_csv(save_path, index=False)
     return result_df
 
@@ -1152,6 +1176,287 @@ def evaluate_audio(model, test_data, batch_size, feature_extractor, vectorise):
                 input_values = test_input["input_values"].squeeze(1).to(device)
             else:
                 input_values = torch.cat(test_input).to(device, dtype=torch.float)
+
+            output = model(input_values)
+            output = output.flatten()
+
+            # acc = (output.argmax(dim=1) == test_label).sum().item()
+            # Define accuracy as within 10% of the true label
+            acc = test_accuracy(output, test_label)
+            total_acc_test += acc
+
+    print(f"Test Accuracy: {total_acc_test / len(test_data): .3f}")
+
+
+class AudioTextDataset(torch.utils.data.Dataset):
+    """
+    Vectorise the audio arrays and text using the transformers and prepare
+    as dataset.
+    """
+
+    def __init__(self, df, audio_feature_extractor, text_tokenizer, vectorise):
+        self.df = df
+        self.labels = df["score"]
+
+        # Get audio
+        self.audio_series = df["audio_array"]
+        self.audios_list = self.audio_series.tolist()
+
+        self.audio_feature_extractor = audio_feature_extractor
+        self.max_length = 0
+        self.audios = None
+
+        if vectorise:
+            self.extract_audio_features()
+        else:
+            # Get padded audio
+            self.find_max_array_length()
+            self.pad_audio()
+
+        # Get tokenized text
+        self.texts = [
+            text_tokenizer(
+                text,
+                padding="max_length",
+                max_length=512,
+                truncation=True,
+                return_tensors="pt",
+            )
+            for text in df["sentence"]
+        ]
+
+    def extract_audio_features(self):
+        """
+        Extract audio features using preloaded feature extractor.
+        :return: Assign a list of tensors to self.audios.
+        """
+        audios = []
+        for audio in self.audio_series:
+            # Extract the features
+            extracted_tensor = self.feature_extractor(
+                audio,
+                sampling_rate=16000,
+                padding="max_length",
+                truncation=True,
+                max_length=200000,
+                return_tensors="pt",
+            )
+            audios.append(extracted_tensor)
+        # Reassign vectors as audios
+        self.audios = audios
+
+    def find_max_array_length(self):
+        """
+        Find maximum length of the inidividual audio arrays.
+        :return: Assign an integer of maximum length to self.max_length.
+        """
+        list_len = [len(i) for i in self.audios_list]
+        max_length = max(list_len)
+        self.max_length = max_length
+
+    def pad_audio(self):
+        """
+        Pad shorter audios with 0 to make all audio arrays equal lengths.
+        :return: Assign a list of assrays to self.audios.
+        """
+        new_list = []
+        for audio_array in self.audios_list:
+            padded_audio_array = np.pad(
+                audio_array, (0, self.max_length - len(audio_array)), "constant"
+            )
+            new_list.append(padded_audio_array)
+        # audios is a list of arrays.
+        self.audios = new_list
+
+    def classes(self):
+        """Get labels of each audio."""
+        return self.labels
+
+    def __len__(self):
+        """Get the total number of audios in the dataset."""
+        return len(self.labels)
+
+    def get_batch_labels(self, idx):
+        """Fetch a batch of labels."""
+        return np.array(self.labels[idx])
+
+    def get_batch_audios(self, idx):
+        """Fetch a batch of inputs."""
+        return self.audios[idx]
+
+    def get_batch_texts(self, idx):
+        """Fetch a batch of inputs."""
+        return self.texts[idx]
+
+    def __getitem__(self, idx):
+        batch_audios = self.get_batch_audios(idx)
+        batch_texts = self.get_batch_texts(idx)
+        # Put tensors to a list
+        batch_audio_text = [batch_audios, batch_texts]
+        print("size of concatenated audio and text", batch_audio_text.size())
+        batch_y = self.get_batch_labels(idx)
+
+        return batch_audio_text, batch_y
+
+
+def train_audio_text(
+    model,
+    audio_feature_extractor,
+    text_tokenizer,
+    train_data,
+    val_data,
+    learning_rate,
+    epochs,
+    batch_size,
+    num_workers,
+    vectorise,
+):
+    """
+    Train the model based on extracted audio vectors.
+    :param model: Deep learning model for the audio training.
+    :param audio_feature_extractor: Pre-trained transformer to extract audio features.
+    :param text_tokenizer: Tokenizer for text.
+    :param train_data: Dataframe to be trained.
+    :param val_data: Dataframe to be evaluated.
+    :param learning_rate: Parameter; rate of learning.
+    :param epochs: Number of epochs to be trained.
+    :param batch_size: Number of batches.
+    :param vectorise: Whether to vectorise audio.
+    :return: Training and evaluation accuracies.
+    """
+    # Prepare data into dataloader
+    train, val = train_data.reset_index(drop=True), val_data.reset_index(drop=True)
+    train, val = (
+        AudioTextDataset(train, audio_feature_extractor, text_tokenizer, vectorise),
+        AudioTextDataset(val, audio_feature_extractor, text_tokenizer, vectorise),
+    )
+
+    train_dataloader = torch.utils.data.DataLoader(
+        train,
+        batch_size=batch_size,
+        shuffle=True,
+        num_workers=num_workers,
+        drop_last=True,
+        pin_memory=True,
+    )
+    val_dataloader = torch.utils.data.DataLoader(
+        val,
+        batch_size=batch_size,
+        num_workers=num_workers,
+        drop_last=True,
+        pin_memory=True,
+    )
+
+    use_cuda = torch.cuda.is_available()
+    device = torch.device("cuda" if use_cuda else "cpu")
+
+    criterion = nn.MSELoss()
+    optimizer = Adam(model.parameters(), lr=learning_rate)
+    # initialize the early_stopping object
+    early_stopping = EarlyStopping(tolerance=5, min_delta=0.01)
+
+    if use_cuda:
+        print("Using cuda!")
+        model = model.to(device)
+        count_parameters(model)
+        model = nn.DataParallel(model, device_ids=list(range(num_gpus)))
+
+        criterion = criterion.cuda()
+
+    for epoch_num in range(epochs):
+        total_acc_train = 0
+        total_loss_train = 0
+
+        model.train()
+        for train_input, train_label in tqdm(train_dataloader):
+            train_label = train_label.to(device)
+            input_values = train_input["input_values"].squeeze(1).to(device)
+
+            optimizer.zero_grad()
+            output = model(input_values)
+            output = output.flatten()
+            batch_loss = criterion(output.float(), train_label.float())
+            total_loss_train += batch_loss.item()
+
+            # acc = (output.argmax(dim=1) == train_label).sum().item()
+            # Define accuracy as within 10% of the true label
+            acc = test_accuracy(output, train_label)
+            total_acc_train += acc
+
+            batch_loss.backward()
+            optimizer.step()
+
+        total_acc_val = 0
+        total_loss_val = 0
+
+        with torch.no_grad():
+            model.eval()
+            for val_input, val_label in val_dataloader:
+                val_label = val_label.to(device)
+                # Audio
+                input_values = train_input[0]["input_values"].squeeze(1).to(device)
+                print("input values size", input_values.size())
+                # Text
+                mask = train_input[1]["attention_mask"].to(device)
+                input_id = train_input[1]["input_ids"].squeeze(1).to(device)
+                print("input id size", input_id.size())
+                print("mask size", mask.size())
+
+                output = model(input_values, input_id, mask)
+                output = output.flatten()
+                batch_loss = criterion(output.float(), train_label.float())
+                total_loss_val += batch_loss.item()
+
+                # acc = (output.argmax(dim=1) == val_label).sum().item()
+                # Define accuracy as within 10% of the true label
+                acc = test_accuracy(output, val_label)
+                total_acc_val += acc
+
+        # early stopping
+        early_stopping(total_loss_train, total_loss_val)
+        if early_stopping.early_stop:
+            print("We are at epoch:", epoch_num)
+            break
+
+        print(
+            f"Epochs: {epoch_num + 1} | Train Loss: {total_loss_train / len(train_data): .3f} \
+                        | Train Accuracy: {total_acc_train / len(train_data): .3f} \
+                        | Val Loss: {total_loss_val / len(val_data): .3f} \
+                        | Val Accuracy: {total_acc_val / len(val_data): .3f}"
+        )
+
+
+def evaluate_audio_text(
+    model, audio_feature_extractor, text_tokenizer, test_data, batch_size, vectorise
+):
+    """
+    Evaluate accuracy for the model on vectorised audio data.
+    :param model: Model to be used for deep learning.
+    :param audio_feature_extractor: Pre-trained transformer to extract audio features.
+    :param text_tokenizer: Tokenizer for text.
+    :param test_data: Dataframe to be tested.
+    :param batch_size: Number of batches.
+    :return: Test Accuracies.
+    """
+    test = test_data.reset_index(drop=True)
+    test = AudioTextDataset(test, audio_feature_extractor, text_tokenizer, vectorise)
+    test_dataloader = torch.utils.data.DataLoader(
+        test, batch_size=batch_size, drop_last=True, pin_memory=True
+    )
+
+    use_cuda = torch.cuda.is_available()
+    device = torch.device("cuda" if use_cuda else "cpu")
+
+    if use_cuda:
+        model = model.to(device)
+        model = nn.DataParallel(model, device_ids=list(range(num_gpus)))
+
+    total_acc_test = 0
+    with torch.no_grad():
+        model.eval()
+        for test_input, test_label in test_dataloader:
+            test_label = test_label.to(device)
+            input_values = test_input["input_values"].squeeze(1).to(device)
 
             output = model(input_values)
             output = output.flatten()

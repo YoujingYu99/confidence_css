@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
-  <component name="PublishConfigData" autoUpload="Always" promptOnRemoteOverwrite="CHECK_TIMESTAMP" serverName="yyu@ribble.cs.ucl.ac.uk:22 password" notifyRemoteChanges="true">
+  <component name="PublishConfigData" autoUpload="Always" promptOnRemoteOverwrite="CHECK_TIMESTAMP" serverName="yyu@trent.cege.ucl.ac.uk:22" notifyRemoteChanges="true">
     <serverData>
       <paths name="yyu@ribble.cs.ucl.ac.uk:22">
         <serverdata>
@@ -34,6 +34,13 @@
         <serverdata>
           <mappings>
             <mapping deploy="/confidence_css" local="$PROJECT_DIR$" web="/" />
+          </mappings>
+        </serverdata>
+      </paths>
+      <paths name="yyu@trent.cege.ucl.ac.uk:22">
+        <serverdata>
+          <mappings>
+            <mapping deploy="/home/yyu/confidence_css" local="$PROJECT_DIR$" />
           </mappings>
         </serverdata>
       </paths>

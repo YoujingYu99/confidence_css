@@ -1,6 +1,6 @@
-"""Use pre-trained BERT model on the text for classification.
+"""Use pre-trained BERT model on the text for regression.
 Extract the text and confidence score to a csv. Then from the csv train the
-BERT model for confidence classification.
+BERT model for confidence regression.
 """
 from transformers import BertTokenizer
 from model_utils import *

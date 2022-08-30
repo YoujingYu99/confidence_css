@@ -13,7 +13,7 @@ folder_numbers = range(7)
 
 for folder_number in folder_numbers:
     excerpt_output_path = os.path.join(
-        home_dir, "extracted_audio", "extracted_audio_samples", str(folder_number)
+        home_dir, "extracted_audios", str(folder_number)
     )
 
     # get an access token, local (from) directory, and S3 (to) directory

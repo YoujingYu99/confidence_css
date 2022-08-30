@@ -134,38 +134,6 @@ class CustomBERTModel(nn.Module):
         return prediction
 
 
-class CustomResiBERTModel(nn.Module):
-    def __init__(self, dropout=0.5):
-        super(CustomBERTModel, self).__init__()
-        self.bert = BertModel.from_pretrained("bert-base-cased")
-        self.lstm = nn.LSTM(768, 256, batch_first=True, bidirectional=True)
-        self.linear1 = nn.Linear(256 * 2, 32)
-        self.resblock = ResidualBlock(32, 32)
-        self.dropout = nn.Dropout(dropout)
-        self.linear2 = nn.Linear(32, 1)
-        self.tanh = nn.Tanh()
-
-    def forward(self, input_id, mask):
-        sequence_output, pooled_output = self.bert(
-            input_ids=input_id, attention_mask=mask, return_dict=False
-        )
-
-        # sequence_output has the following shape: (batch_size, sequence_length, 768)
-        ## extract the 1st token's embeddings
-        lstm_output, (h, c) = self.lstm(sequence_output)
-        hidden = torch.cat((lstm_output[:, -1, :256], lstm_output[:, 0, 256:]), dim=-1)
-        ### assuming only using the output of the last LSTM cell to perform classification
-        linear1 = self.linear1(hidden.view(-1, 256 * 2))
-        res = self.resblock(linear1)
-        dropout = self.dropout(res)
-        linear2 = self.linear2(dropout)
-        tanh = self.tanh(linear2)
-        # Scale to match input
-        prediction = tanh * 2.5
-
-        return prediction
-
-
 class CustomHUBERTModel(nn.Module):
     def __init__(self, dropout=0.5):
         super(CustomHUBERTModel, self).__init__()
@@ -196,31 +164,51 @@ class CustomHUBERTModel(nn.Module):
         return prediction
 
 
-class CustomResiHUBERTModel(nn.Module):
+class CustomMultiModel(nn.Module):
     def __init__(self, dropout=0.5):
-        super(CustomHUBERTModel, self).__init__()
+        super(CustomMultiModel, self).__init__()
+        self.bert = BertModel.from_pretrained("bert-base-cased")
         self.hubert = HubertModel.from_pretrained("facebook/hubert-base-ls960")
         self.lstm = nn.LSTM(768, 256, batch_first=True, bidirectional=True)
         self.linear1 = nn.Linear(256 * 2, 32)
-        self.resblock = ResidualBlock(32, 32)
         self.dropout = nn.Dropout(dropout)
         self.linear2 = nn.Linear(32, 1)
         self.tanh = nn.Tanh()
 
-    def forward(self, input_values):
-        output_tuple = self.hubert(input_values=input_values, return_dict=False)
-        (pooled_output,) = output_tuple
+    def forward(self, input_values, input_id, mask):
+        ## Bert transform
+        sequence_output_bert, pooled_output = self.bert(
+            input_ids=input_id, attention_mask=mask, return_dict=False
+        )
+
+        # sequence_output has the following shape: (batch_size, sequence_length, 768)
+        # extract the 1st token's embeddings
+        lstm_output_bert, (h, c) = self.lstm(sequence_output_bert)
+        hidden_bert = torch.cat(
+            (lstm_output_bert[:, -1, :256], lstm_output_bert[:, 0, 256:]), dim=-1
+        )
+        ### assuming only using the output of the last LSTM cell to perform classification
+        linear1_bert = self.linear1(hidden_bert.view(-1, 256 * 2))
+        dropout1_bert = self.dropout(linear1_bert)
+        print("dropout 1 bert size:", dropout1_bert.size())
+
+        ## Hubert transform
+        output_tuple_hubert = self.hubert(input_values=input_values, return_dict=False)
+        (pooled_output_hubert,) = output_tuple_hubert
 
         # sequence_output has the following shape: (batch_size, sequence_length, 768)
         ## extract the 1st token's embeddings
-        lstm_output, (h, c) = self.lstm(pooled_output)
-        hidden = torch.cat((lstm_output[:, -1, :256], lstm_output[:, 0, 256:]), dim=-1)
+        lstm_output_hubert, (h, c) = self.lstm(pooled_output)
+        hidden_hubert = torch.cat(
+            (lstm_output_hubert[:, -1, :256], lstm_output_hubert[:, 0, 256:]), dim=-1
+        )
         # print("hidden size", hidden.size())
         ### assuming only using the output of the last LSTM cell to perform classification
-        linear1 = self.linear1(hidden.view(-1, 256 * 2))
-        res = self.resblock(linear1)
-        dropout = self.dropout(res)
-        linear2 = self.linear2(dropout)
+        linear1_hubert = self.linear1(hidden_hubert.view(-1, 256 * 2))
+        dropout1_hubert = self.dropout(linear1_hubert)
+        print("dropout 1 hubert size:", dropout1_hubert.size())
+
+        linear2 = self.linear2(torch.cat(dropout1_bert, dropout1_hubert))
         tanh = self.tanh(linear2)
         # Scale to match input
         prediction = tanh * 2.5
