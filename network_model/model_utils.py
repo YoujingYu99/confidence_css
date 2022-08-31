@@ -18,6 +18,7 @@ import numpy as np
 import random
 from torch.optim import Adam
 from tqdm import tqdm
+import matplotlib.pyplot as plt
 
 from models import *
 
@@ -90,7 +91,7 @@ def test_accuracy(output, actual):
     actual_list = actual.tolist()
     count = 0
     for i in range(len(output_list)):
-        if actual_list[i] * 0.9 <= output_list[i] <= actual_list[i] * 1.1:
+        if actual_list[i] * 0.8 <= output_list[i] <= actual_list[i] * 1.2:
             count += 1
     return count
 
@@ -1346,7 +1347,7 @@ def train_audio_text(
     criterion = nn.MSELoss()
     optimizer = Adam(model.parameters(), lr=learning_rate)
     # initialize the early_stopping object
-    early_stopping = EarlyStopping(tolerance=5, min_delta=0.01)
+    early_stopping = EarlyStopping(tolerance=5, min_delta=1)
 
     if use_cuda:
         print("Using cuda!")
@@ -1355,6 +1356,11 @@ def train_audio_text(
         model = nn.DataParallel(model, device_ids=list(range(num_gpus)))
 
         criterion = criterion.cuda()
+
+    train_loss_list = []
+    train_acc_list = []
+    val_loss_list = []
+    val_acc_list = []
 
     for epoch_num in range(epochs):
         total_acc_train = 0
@@ -1407,10 +1413,17 @@ def train_audio_text(
                 total_acc_val += acc
 
         # early stopping
-        early_stopping(total_loss_train, total_loss_val)
+        early_stopping(
+            total_loss_train / len(train_data), total_loss_val / len(val_data)
+        )
         if early_stopping.early_stop:
             print("We are at epoch:", epoch_num)
             break
+
+        train_loss_list.append(total_loss_train / len(train_data))
+        train_acc_list.append(total_acc_train / len(train_data))
+        val_loss_list.append(total_loss_val / len(val_data))
+        val_acc_list.append(total_acc_val / len(val_data))
 
         print(
             f"Epochs: {epoch_num + 1} | Train Loss: {total_loss_train / len(train_data): .3f} \
@@ -1418,6 +1431,70 @@ def train_audio_text(
                         | Val Loss: {total_loss_val / len(val_data): .3f} \
                         | Val Accuracy: {total_acc_val / len(val_data): .3f}"
         )
+
+    # Save plots and training results
+    gen_train_plots(train_loss_list, train_acc_list)
+    gen_eval_plots(val_loss_list, val_acc_list)
+    save_training_results(train_loss_list, train_acc_list, val_loss_list, val_acc_list)
+
+
+# Save data to csv
+def save_training_results(train_loss_list, train_acc_list, val_loss_list, val_acc_list):
+    """
+    Save the results from model training.
+    :param train_loss_list: List of training losses.
+    :param train_acc_list: List of training accuracies.
+    :param val_loss_list: List of evaluation losses.
+    :param val_acc_list: List of evaluation accuracies.
+    :return: Save results to a csv.
+    """
+    list_of_tuples = list(
+        zip(train_loss_list, train_acc_list, val_loss_list, val_acc_list)
+    )
+    training_results = pd.DataFrame(
+        list_of_tuples, columns=["Train Loss", "Train Acc", "Eval Loss", "Eval Acc"]
+    )
+    training_results.to_csv(
+        os.path.join("/home", "yyu", "plots", "training_results.csv")
+    )
+
+
+def gen_train_plots(train_loss_list, train_acc_list):
+    """
+    Generate plots for training loss and accuracies.
+    :param loss_lst: List of training losses.
+    :param acc_lst: List of training accuracies.
+    :return: Save plot to directory.
+    """
+    epoch_array = range(len(train_loss_list))
+    plt.plot(epoch_array, train_loss_list, color="r", label="Loss")
+    plt.plot(epoch_array, train_acc_list, color="b", label="Accuracy")
+    plt.xlabel("Epoch Numbers")
+    plt.ylabel("Training Loss and Training Accuracy")
+    plt.title("Training Loss and Accuracy")
+    plt.legend()
+    save_path = os.path.join("/home", "yyu", "plots", "train.png")
+    plt.savefig(save_path)
+    plt.show()
+
+
+def gen_eval_plots(val_loss_list, val_acc_list):
+    """
+    Generate plots for evaluation loss and accuracies.
+    :param loss_lst: List of evaluation losses.
+    :param acc_lst: List of evaluation accuracies.
+    :return: Save plot to directory.
+    """
+    epoch_array = range(len(val_loss_list))
+    plt.plot(epoch_array, val_loss_list, color="r", label="Loss")
+    plt.plot(epoch_array, val_acc_list, color="b", label="Accuracy")
+    plt.xlabel("Epoch Numbers")
+    plt.ylabel("Evaluation Loss and Training Accuracy")
+    plt.title("Evaluation Loss and Accuracy")
+    plt.legend()
+    save_path = os.path.join("/home", "yyu", "plots", "eval.png")
+    plt.savefig(save_path)
+    plt.show()
 
 
 def evaluate_audio_text(
@@ -1450,9 +1527,13 @@ def evaluate_audio_text(
         model.eval()
         for test_input, test_label in test_dataloader:
             test_label = test_label.to(device)
-            input_values = test_input["input_values"].squeeze(1).to(device)
+            # Audio
+            input_values = test_input["audio"]["input_values"].squeeze(1).to(device)
+            # Text
+            mask = test_input["text"]["attention_mask"].to(device)
+            input_id = test_input["text"]["input_ids"].squeeze(1).to(device)
 
-            output = model(input_values)
+            output = model(input_values, input_id, mask)
             output = output.flatten()
 
             # acc = (output.argmax(dim=1) == test_label).sum().item()

@@ -23,7 +23,7 @@ crowdsourcing_results_df_path = os.path.join(
     home_dir,
     "data_sheets",
     "crowdsourcing_results",
-    "Batch_4799159_batch_results_complete_reject_filtered_numbered_cleaned_renamed_soft.csv",
+    "test_crowd.csv",
 )
 
 
@@ -47,7 +47,7 @@ print(audio_text_df.head())
 # Training parameters
 epochs = 500
 LR = 5e-5
-batch_size = 8
+batch_size = 2
 num_workers = 4
 
 # Initialise audio model

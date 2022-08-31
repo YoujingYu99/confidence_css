@@ -177,9 +177,11 @@ class CustomMultiModel(nn.Module):
 
     def forward(self, input_values, input_id, mask):
         ## Bert transform
+        # print("bert input size", input_id.size())
         sequence_output_bert, pooled_output = self.bert(
             input_ids=input_id, attention_mask=mask, return_dict=False
         )
+        # print("sequence bert", sequence_output_bert.size())
 
         # sequence_output has the following shape: (batch_size, sequence_length, 768)
         # extract the 1st token's embeddings
@@ -187,31 +189,38 @@ class CustomMultiModel(nn.Module):
         hidden_bert = torch.cat(
             (lstm_output_bert[:, -1, :256], lstm_output_bert[:, 0, 256:]), dim=-1
         )
+        # print("lstm bert", hidden_bert.size())
         ### assuming only using the output of the last LSTM cell to perform classification
         linear1_bert = self.linear1(hidden_bert.view(-1, 256 * 2))
+        # print("linear 1 bert", linear1_bert.size())
         dropout1_bert = self.dropout(linear1_bert)
         # print("dropout 1 bert size:", dropout1_bert.size())
 
         ## Hubert transform
+        # print("hubert input size", input_values.size())
         output_tuple_hubert = self.hubert(input_values=input_values, return_dict=False)
         (pooled_output_hubert,) = output_tuple_hubert
+        # print("sequence hubert", pooled_output_hubert.size())
         # sequence_output has the following shape: (batch_size, sequence_length, 768)
         ## extract the 1st token's embeddings
         lstm_output_hubert, (h, c) = self.lstm(pooled_output_hubert)
         hidden_hubert = torch.cat(
             (lstm_output_hubert[:, -1, :256], lstm_output_hubert[:, 0, 256:]), dim=-1
         )
-        # print("hidden size", hidden.size())
+        # print("lstm hubert", hidden_hubert.size())
         ### assuming only using the output of the last LSTM cell to perform classification
         linear1_hubert = self.linear1(hidden_hubert.view(-1, 256 * 2))
-        dropout1_hubert = self.dropout(linear1_hubert)
+        # print("linear 1 hubert", linear1_hubert.size())
 
-        # print("dropout 1 bert size:", dropout1_bert.size())
+        dropout1_hubert = self.dropout(linear1_hubert)
         # print("dropout 1 hubert size:", dropout1_hubert.size())
         concat = torch.cat((dropout1_bert, dropout1_hubert), dim=1)
+        # print("concat size", concat.size())
         linear2 = self.linear2(concat)
+        # print("linear 2 size", linear2.size())
         tanh = self.tanh(linear2)
         # Scale to match input
         prediction = tanh * 2.5
+        # print("prediction size", prediction.size())
 
         return prediction
