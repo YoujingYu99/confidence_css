@@ -172,7 +172,7 @@ class CustomMultiModel(nn.Module):
         self.lstm = nn.LSTM(768, 256, batch_first=True, bidirectional=True)
         self.linear1 = nn.Linear(256 * 2, 32)
         self.dropout = nn.Dropout(dropout)
-        self.linear2 = nn.Linear(32, 1)
+        self.linear2 = nn.Linear(64, 1)
         self.tanh = nn.Tanh()
 
     def forward(self, input_values, input_id, mask):
@@ -190,15 +190,14 @@ class CustomMultiModel(nn.Module):
         ### assuming only using the output of the last LSTM cell to perform classification
         linear1_bert = self.linear1(hidden_bert.view(-1, 256 * 2))
         dropout1_bert = self.dropout(linear1_bert)
-        print("dropout 1 bert size:", dropout1_bert.size())
+        # print("dropout 1 bert size:", dropout1_bert.size())
 
         ## Hubert transform
         output_tuple_hubert = self.hubert(input_values=input_values, return_dict=False)
         (pooled_output_hubert,) = output_tuple_hubert
-
         # sequence_output has the following shape: (batch_size, sequence_length, 768)
         ## extract the 1st token's embeddings
-        lstm_output_hubert, (h, c) = self.lstm(pooled_output)
+        lstm_output_hubert, (h, c) = self.lstm(pooled_output_hubert)
         hidden_hubert = torch.cat(
             (lstm_output_hubert[:, -1, :256], lstm_output_hubert[:, 0, 256:]), dim=-1
         )
@@ -206,9 +205,11 @@ class CustomMultiModel(nn.Module):
         ### assuming only using the output of the last LSTM cell to perform classification
         linear1_hubert = self.linear1(hidden_hubert.view(-1, 256 * 2))
         dropout1_hubert = self.dropout(linear1_hubert)
-        print("dropout 1 hubert size:", dropout1_hubert.size())
 
-        linear2 = self.linear2(torch.cat(dropout1_bert, dropout1_hubert))
+        # print("dropout 1 bert size:", dropout1_bert.size())
+        # print("dropout 1 hubert size:", dropout1_hubert.size())
+        concat = torch.cat((dropout1_bert, dropout1_hubert), dim=1)
+        linear2 = self.linear2(concat)
         tanh = self.tanh(linear2)
         # Scale to match input
         prediction = tanh * 2.5

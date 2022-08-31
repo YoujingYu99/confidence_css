@@ -44,7 +44,7 @@ print(len(df_train), len(df_val), len(df_test))
 # Decide on Epoch and model
 epochs = 5
 LR = 5e-5
-batch_size = 3
+batch_size = 16
 num_workers = 4
 
 # Initialise model

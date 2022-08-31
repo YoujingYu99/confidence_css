@@ -11,7 +11,7 @@ from models import *
 # torch.cuda.memory_summary(device=None, abbreviated=False)
 
 # Decide whether to save the concatenated file to a single csv
-save_to_single_csv = True
+save_to_single_csv = False
 
 text_tokenizer = BertTokenizer.from_pretrained("bert-base-cased")
 
@@ -20,7 +20,7 @@ home_dir = os.path.join("/home", "yyu")
 
 # Path for crowdsourcing results
 crowdsourcing_results_df_path = os.path.join(
-    home_dir, "data_sheets", "crowdsourcing_results", "test_crowd2.csv",
+    home_dir, "data_sheets", "crowdsourcing_results", "test_crowd.csv",
 )
 
 

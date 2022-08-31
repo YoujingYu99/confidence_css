@@ -47,7 +47,7 @@ print(audio_text_df.head())
 # Training parameters
 epochs = 5
 LR = 5e-5
-batch_size = 3
+batch_size = 8
 num_workers = 4
 
 # Initialise audio model

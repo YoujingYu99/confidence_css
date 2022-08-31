@@ -21,7 +21,6 @@ from tqdm import tqdm
 
 from models import *
 
-
 num_gpus = torch.cuda.device_count()
 
 
@@ -491,24 +490,20 @@ def load_audio_text_and_score_from_crowdsourcing_results(
         )
         # Only proceed if file exists
         if os.path.isfile(total_df_path):
-            total_df = pd.read_csv(total_df_path)
+            total_df = pd.read_csv(total_df_path, encoding="utf-8", dtype="unicode")
             score_list.append(row["average"] - 2.5)
             try:
                 # Convert audio to list
                 curr_audio_data = total_df["audio_array"].to_list()
                 # If list contains element of type string
                 if not all(isinstance(i, float) for i in curr_audio_data):
-                    print("Found wrong data type!")
+                    # print("Found wrong data type!")
                     # Decode to float using json
-                    curr_audio_data = json.loads(curr_audio_data[0])
-                    curr_audio_data = [float(elem) for elem in curr_audio_data]
-                    print(type(curr_audio_data[0]))
+                    curr_audio_data = [json.loads(i) for i in curr_audio_data]
                 audio_list.append(curr_audio_data)
 
                 # Convert text to list
                 curr_text_data = total_df["text"].to_list()[0]
-                # print("curr text data", curr_text_data)
-                # print(type(curr_text_data))
                 text_list.append([curr_text_data])
             except Exception as e:
                 print("Error in parsing! File name = " + total_df_path)
@@ -1082,8 +1077,6 @@ def train_audio(
             if vectorise:
                 input_values = train_input["input_values"].squeeze(1).to(device)
             else:
-                # input_values = train_input.squeeze(1).to(device, dtype=torch.float)
-                # input_values = torch.cat(train_input).to(device, dtype=torch.float)
                 input_values = train_input.squeeze(1).to(device, dtype=torch.float)
                 print("input size", input_values.size())
 
@@ -1233,7 +1226,7 @@ class AudioTextDataset(torch.utils.data.Dataset):
         audios = []
         for audio in self.audio_series:
             # Extract the features
-            extracted_tensor = self.feature_extractor(
+            extracted_tensor = self.audio_feature_extractor(
                 audio,
                 sampling_rate=16000,
                 padding="max_length",
@@ -1292,9 +1285,8 @@ class AudioTextDataset(torch.utils.data.Dataset):
         batch_audios = self.get_batch_audios(idx)
         batch_texts = self.get_batch_texts(idx)
         # Put tensors to a list
-        batch_audio_text = {"audio":batch_audios, "text":batch_texts}
+        batch_audio_text = {"audio": batch_audios, "text": batch_texts}
         # batch_audio_text = [batch_audios, batch_texts]
-        print("size of concatenated audio and text", batch_audio_text.size())
         batch_y = self.get_batch_labels(idx)
 
         return batch_audio_text, batch_y
@@ -1359,7 +1351,7 @@ def train_audio_text(
     if use_cuda:
         print("Using cuda!")
         model = model.to(device)
-        count_parameters(model)
+        # count_parameters(model)
         model = nn.DataParallel(model, device_ids=list(range(num_gpus)))
 
         criterion = criterion.cuda()
@@ -1371,10 +1363,14 @@ def train_audio_text(
         model.train()
         for train_input, train_label in tqdm(train_dataloader):
             train_label = train_label.to(device)
-            input_values = train_input["input_values"].squeeze(1).to(device)
+            # Audio
+            input_values = train_input["audio"]["input_values"].squeeze(1).to(device)
+            # Text
+            mask = train_input["text"]["attention_mask"].to(device)
+            input_id = train_input["text"]["input_ids"].squeeze(1).to(device)
 
             optimizer.zero_grad()
-            output = model(input_values)
+            output = model(input_values, input_id, mask)
             output = output.flatten()
             batch_loss = criterion(output.float(), train_label.float())
             total_loss_train += batch_loss.item()
@@ -1395,13 +1391,10 @@ def train_audio_text(
             for val_input, val_label in val_dataloader:
                 val_label = val_label.to(device)
                 # Audio
-                input_values = train_input["audio"]["input_values"].squeeze(1).to(device)
-                print("input values size", input_values.size())
+                input_values = val_input["audio"]["input_values"].squeeze(1).to(device)
                 # Text
-                mask = train_input["text"]["attention_mask"].to(device)
-                input_id = train_input["text"]["input_ids"].squeeze(1).to(device)
-                print("input id size", input_id.size())
-                print("mask size", mask.size())
+                mask = val_input["text"]["attention_mask"].to(device)
+                input_id = val_input["text"]["input_ids"].squeeze(1).to(device)
 
                 output = model(input_values, input_id, mask)
                 output = output.flatten()
