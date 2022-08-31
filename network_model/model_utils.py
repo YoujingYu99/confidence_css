@@ -1466,16 +1466,16 @@ def gen_train_plots(train_loss_list, train_acc_list):
     :param acc_lst: List of training accuracies.
     :return: Save plot to directory.
     """
-    epoch_array = range(len(train_loss_list))
-    plt.plot(epoch_array, train_loss_list, color="r", label="Loss")
-    plt.plot(epoch_array, train_acc_list, color="b", label="Accuracy")
+    epoch_list = list(range(len(train_loss_list)))
+    plt.plot(epoch_list, train_loss_list, color="r", label="Loss")
+    plt.plot(epoch_list, train_acc_list, color="b", label="Accuracy")
     plt.xlabel("Epoch Numbers")
     plt.ylabel("Training Loss and Training Accuracy")
     plt.title("Training Loss and Accuracy")
     plt.legend()
     save_path = os.path.join("/home", "yyu", "plots", "train.png")
     plt.savefig(save_path)
-    plt.show()
+    # plt.show()
 
 
 def gen_eval_plots(val_loss_list, val_acc_list):
@@ -1485,16 +1485,17 @@ def gen_eval_plots(val_loss_list, val_acc_list):
     :param acc_lst: List of evaluation accuracies.
     :return: Save plot to directory.
     """
-    epoch_array = range(len(val_loss_list))
-    plt.plot(epoch_array, val_loss_list, color="r", label="Loss")
-    plt.plot(epoch_array, val_acc_list, color="b", label="Accuracy")
+    epoch_list = list(range(len(val_loss_list)))
+    plt.figure()
+    plt.plot(epoch_list, val_loss_list, color="r", label="Loss")
+    plt.plot(epoch_list, val_acc_list, color="b", label="Accuracy")
     plt.xlabel("Epoch Numbers")
     plt.ylabel("Evaluation Loss and Training Accuracy")
     plt.title("Evaluation Loss and Accuracy")
     plt.legend()
     save_path = os.path.join("/home", "yyu", "plots", "eval.png")
     plt.savefig(save_path)
-    plt.show()
+    # plt.show()
 
 
 def evaluate_audio_text(
