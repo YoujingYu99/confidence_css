@@ -17,6 +17,7 @@ import json
 import numpy as np
 import random
 from torch.optim import Adam
+from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 
@@ -1354,7 +1355,8 @@ def train_audio_text(
     criterion = nn.MSELoss()
     optimizer = Adam(model.parameters(), lr=learning_rate)
     # initialize the early_stopping object
-    early_stopping = EarlyStopping(tolerance=5, min_delta=0.1)
+    early_stopping = EarlyStopping(tolerance=5, min_delta=1)
+    writer = SummaryWriter()
 
     if use_cuda:
         print("Using cuda!")
@@ -1427,10 +1429,29 @@ def train_audio_text(
             print("We are at epoch:", epoch_num)
             break
 
+        # Add to tensorboard
+        writer.add_scalar(
+            "Training Loss", total_loss_train / len(train_data), epoch_num
+        )
+        writer.add_scalar(
+            "Training Accuracy", total_acc_train / len(train_data), epoch_num
+        )
+        writer.add_scalar("Validation Loss", total_loss_val / len(val_data), epoch_num)
+        writer.add_scalar(
+            "Validation Accuracy", total_acc_val / len(val_data), epoch_num
+        )
+        writer.flush()
+        # Append to list
         train_loss_list.append(total_loss_train / len(train_data))
         train_acc_list.append(total_acc_train / len(train_data))
         val_loss_list.append(total_loss_val / len(val_data))
         val_acc_list.append(total_acc_val / len(val_data))
+        # Generate plots
+        gen_train_plots(train_loss_list, train_acc_list)
+        gen_eval_plots(val_loss_list, val_acc_list)
+        save_training_results(
+            train_loss_list, train_acc_list, val_loss_list, val_acc_list
+        )
 
         print(
             f"Epochs: {epoch_num + 1} | Train Loss: {total_loss_train / len(train_data): .3f} \
@@ -1439,10 +1460,10 @@ def train_audio_text(
                         | Val Accuracy: {total_acc_val / len(val_data): .3f}"
         )
 
-    # Save plots and training results
-    gen_train_plots(train_loss_list, train_acc_list)
-    gen_eval_plots(val_loss_list, val_acc_list)
-    save_training_results(train_loss_list, train_acc_list, val_loss_list, val_acc_list)
+    # # Save plots and training results
+    # gen_train_plots(train_loss_list, train_acc_list)
+    # gen_eval_plots(val_loss_list, val_acc_list)
+    # save_training_results(train_loss_list, train_acc_list, val_loss_list, val_acc_list)
 
 
 # Save data to csv

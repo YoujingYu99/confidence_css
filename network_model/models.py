@@ -164,7 +164,6 @@ class CustomHUBERTModel(nn.Module):
         return prediction
 
 
-
 class CustomMultiModel(nn.Module):
     def __init__(self, dropout=0.5):
         super(CustomMultiModel, self).__init__()
@@ -225,5 +224,46 @@ class CustomMultiModel(nn.Module):
         # Scale to match input
         prediction = tanh * 2.5
         print("prediction size", prediction.size())
+
+        return prediction
+
+
+class CustomMultiModelSimple(nn.Module):
+    def __init__(self, dropout=0.5):
+        super(CustomMultiModelSimple, self).__init__()
+        self.bert = BertModel.from_pretrained("bert-base-cased")
+        self.hubert = HubertModel.from_pretrained("facebook/hubert-base-ls960")
+        self.dropout = nn.Dropout(dropout)
+        self.linear1 = nn.Linear(768, 32)
+        self.linear2 = nn.Linear(32, 1)
+        self.tanh = nn.Tanh()
+
+    def forward(self, input_values, input_id, mask):
+        ## Bert transform
+        # print("bert input size", input_id.size())
+        sequence_output_bert, pooled_output = self.bert(
+            input_ids=input_id, attention_mask=mask, return_dict=False
+        )
+        # print("sequence bert", sequence_output_bert.size())
+
+        ## Hubert transform
+        # print("hubert input size", input_values.size())
+        output_tuple_hubert = self.hubert(input_values=input_values, return_dict=False)
+        (pooled_output_hubert,) = output_tuple_hubert
+        # print("sequence hubert", pooled_output_hubert.size())
+
+        # Concat the two models
+        concat = torch.cat((sequence_output_bert, pooled_output_hubert), dim=1)
+        dropout2 = self.dropout(concat)
+        # print("concat size", dropout2.size())
+        output_reduced = torch.mean(dropout2, dim=1)
+        # print("reduced size", output_reduced.size())
+        linear1 = self.linear1(output_reduced)
+        linear2 = self.linear2(linear1)
+        # print("linear 2 size", linear2.size())
+        tanh = self.tanh(linear2)
+        # Scale to match input
+        prediction = tanh * 2.5
+        # print("prediction size", prediction.size())
 
         return prediction
