@@ -1494,6 +1494,7 @@ def gen_train_plots(train_loss_list, train_acc_list):
     :param acc_lst: List of training accuracies.
     :return: Save plot to directory.
     """
+    plt.figure()
     epoch_list = list(range(len(train_loss_list)))
     plt.plot(epoch_list, train_loss_list, color="r", label="Loss")
     plt.plot(epoch_list, train_acc_list, color="b", label="Accuracy")
