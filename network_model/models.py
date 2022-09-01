@@ -165,9 +165,9 @@ class CustomHUBERTModel(nn.Module):
 
 
 
-class CustomMultiModelDrop(nn.Module):
+class CustomMultiModel(nn.Module):
     def __init__(self, dropout=0.5):
-        super(CustomMultiModelDrop, self).__init__()
+        super(CustomMultiModel, self).__init__()
         self.bert = BertModel.from_pretrained("bert-base-cased")
         self.hubert = HubertModel.from_pretrained("facebook/hubert-base-ls960")
         self.lstm = nn.LSTM(768, 256, batch_first=True, bidirectional=True)
@@ -178,11 +178,11 @@ class CustomMultiModelDrop(nn.Module):
 
     def forward(self, input_values, input_id, mask):
         ## Bert transform
-        # print("bert input size", input_id.size())
+        print("bert input size", input_id.size())
         sequence_output_bert, pooled_output = self.bert(
             input_ids=input_id, attention_mask=mask, return_dict=False
         )
-        # print("sequence bert", sequence_output_bert.size())
+        print("sequence bert", sequence_output_bert.size())
 
         # sequence_output has the following shape: (batch_size, sequence_length, 768)
         # extract the 1st token's embeddings
@@ -190,40 +190,40 @@ class CustomMultiModelDrop(nn.Module):
         hidden_bert = torch.cat(
             (lstm_output_bert[:, -1, :256], lstm_output_bert[:, 0, 256:]), dim=-1
         )
-        # print("lstm bert", hidden_bert.size())
+        print("lstm bert", hidden_bert.size())
         ### assuming only using the output of the last LSTM cell to perform classification
         linear1_bert = self.linear1(hidden_bert.view(-1, 256 * 2))
-        # print("linear 1 bert", linear1_bert.size())
+        print("linear 1 bert", linear1_bert.size())
         dropout1_bert = self.dropout(linear1_bert)
-        # print("dropout 1 bert size:", dropout1_bert.size())
+        print("dropout 1 bert size:", dropout1_bert.size())
 
         ## Hubert transform
-        # print("hubert input size", input_values.size())
+        print("hubert input size", input_values.size())
         output_tuple_hubert = self.hubert(input_values=input_values, return_dict=False)
         (pooled_output_hubert,) = output_tuple_hubert
-        # print("sequence hubert", pooled_output_hubert.size())
+        print("sequence hubert", pooled_output_hubert.size())
         # sequence_output has the following shape: (batch_size, sequence_length, 768)
         ## extract the 1st token's embeddings
         lstm_output_hubert, (h, c) = self.lstm(pooled_output_hubert)
         hidden_hubert = torch.cat(
             (lstm_output_hubert[:, -1, :256], lstm_output_hubert[:, 0, 256:]), dim=-1
         )
-        # print("lstm hubert", hidden_hubert.size())
+        print("lstm hubert", hidden_hubert.size())
         ### assuming only using the output of the last LSTM cell to perform classification
         linear1_hubert = self.linear1(hidden_hubert.view(-1, 256 * 2))
-        # print("linear 1 hubert", linear1_hubert.size())
+        print("linear 1 hubert", linear1_hubert.size())
         dropout1_hubert = self.dropout(linear1_hubert)
-        # print("dropout 1 hubert size:", dropout1_hubert.size())
+        print("dropout 1 hubert size:", dropout1_hubert.size())
 
-        # Condat the two models
+        # Concat the two models
         concat = torch.cat((dropout1_bert, dropout1_hubert), dim=1)
         dropout2 = self.dropout(concat)
-        # print("concat size", concat.size())
+        print("concat size", concat.size())
         linear2 = self.linear2(dropout2)
-        # print("linear 2 size", linear2.size())
+        print("linear 2 size", linear2.size())
         tanh = self.tanh(linear2)
         # Scale to match input
         prediction = tanh * 2.5
-        # print("prediction size", prediction.size())
+        print("prediction size", prediction.size())
 
         return prediction
