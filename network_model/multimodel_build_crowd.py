@@ -33,6 +33,9 @@ print("start of application!")
 audio_text_df = load_audio_text_and_score_from_crowdsourcing_results(
     home_dir, crowdsourcing_results_df_path, save_to_single_csv
 )
+
+# Shuffling data again
+audio_text_df = audio_text_df.sample(frac=1).reset_index(drop=True)
 # Split to train, eval and test datasets.
 df_train, df_val, df_test = np.split(
     audio_text_df.sample(frac=1, random_state=42),
@@ -52,7 +55,7 @@ num_workers = 4
 
 # Initialise audio model
 # audio_model = HubertClassifier()
-multimodel = CustomMultiModel()
+multimodel = CustomMultiModelDrop()
 
 # Train model
 

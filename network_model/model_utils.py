@@ -1344,10 +1344,17 @@ def train_audio_text(
     use_cuda = torch.cuda.is_available()
     device = torch.device("cuda" if use_cuda else "cpu")
 
+    # Freeze Bert/HuBert
+    for param in model.bert.parameters():
+        param.requires_grad = False
+
+    for param in model.hubert.parameters():
+        param.requires_grad = False
+
     criterion = nn.MSELoss()
     optimizer = Adam(model.parameters(), lr=learning_rate)
     # initialize the early_stopping object
-    early_stopping = EarlyStopping(tolerance=5, min_delta=1)
+    early_stopping = EarlyStopping(tolerance=5, min_delta=0.1)
 
     if use_cuda:
         print("Using cuda!")

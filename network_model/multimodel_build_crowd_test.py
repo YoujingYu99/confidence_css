@@ -20,10 +20,7 @@ featuers_folder_path_dir = os.path.join(home_dir, "data_sheets", "features")
 
 # Path for crowdsourcing results
 crowdsourcing_results_df_path = os.path.join(
-    home_dir,
-    "data_sheets",
-    "crowdsourcing_results",
-    "test_crowd.csv",
+    home_dir, "data_sheets", "crowdsourcing_results", "test_crowd.csv",
 )
 
 
@@ -33,6 +30,8 @@ print("start of application!")
 audio_text_df = load_audio_text_and_score_from_crowdsourcing_results(
     home_dir, crowdsourcing_results_df_path, save_to_single_csv
 )
+# Shuffling data again
+audio_text_df = audio_text_df.sample(frac=1).reset_index(drop=True)
 # Split to train, eval and test datasets.
 df_train, df_val, df_test = np.split(
     audio_text_df.sample(frac=1, random_state=42),
@@ -47,12 +46,12 @@ print(audio_text_df.head())
 # Training parameters
 epochs = 3
 LR = 5e-5
-batch_size = 2
+batch_size = 1
 num_workers = 4
 
 # Initialise audio model
 # audio_model = HubertClassifier()
-multimodel = CustomMultiModel()
+multimodel = CustomMultiModelDrop()
 
 # Train model
 

@@ -164,9 +164,10 @@ class CustomHUBERTModel(nn.Module):
         return prediction
 
 
-class CustomMultiModel(nn.Module):
+
+class CustomMultiModelDrop(nn.Module):
     def __init__(self, dropout=0.5):
-        super(CustomMultiModel, self).__init__()
+        super(CustomMultiModelDrop, self).__init__()
         self.bert = BertModel.from_pretrained("bert-base-cased")
         self.hubert = HubertModel.from_pretrained("facebook/hubert-base-ls960")
         self.lstm = nn.LSTM(768, 256, batch_first=True, bidirectional=True)
@@ -211,12 +212,14 @@ class CustomMultiModel(nn.Module):
         ### assuming only using the output of the last LSTM cell to perform classification
         linear1_hubert = self.linear1(hidden_hubert.view(-1, 256 * 2))
         # print("linear 1 hubert", linear1_hubert.size())
-
         dropout1_hubert = self.dropout(linear1_hubert)
         # print("dropout 1 hubert size:", dropout1_hubert.size())
+
+        # Condat the two models
         concat = torch.cat((dropout1_bert, dropout1_hubert), dim=1)
+        dropout2 = self.dropout(concat)
         # print("concat size", concat.size())
-        linear2 = self.linear2(concat)
+        linear2 = self.linear2(dropout2)
         # print("linear 2 size", linear2.size())
         tanh = self.tanh(linear2)
         # Scale to match input
