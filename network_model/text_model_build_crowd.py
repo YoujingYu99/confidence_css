@@ -11,7 +11,7 @@ from models import *
 # torch.cuda.memory_summary(device=None, abbreviated=False)
 
 # Decide whether to save the concatenated file to a single csv
-save_to_single_csv = True
+save_to_single_csv = False
 
 text_tokenizer = BertTokenizer.from_pretrained("bert-base-cased")
 
@@ -42,14 +42,14 @@ df_train, df_val, df_test = np.split(
 print(len(df_train), len(df_val), len(df_test))
 
 # Decide on Epoch and model
-epochs = 5
+epochs = 500
 LR = 5e-5
-batch_size = 16
+batch_size = 8
 num_workers = 4
 
 # Initialise model
 # text_model = BertClassifier()
-text_model = CustomBERTModel()
+text_model = CustomBERTSimpleModel()
 
 # Train model
 train_text(

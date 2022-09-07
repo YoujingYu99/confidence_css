@@ -30,10 +30,45 @@ crowdsourcing_results_df_path = os.path.join(
 print("start of application!")
 
 # Choose features to focus on
-features_to_use = ["interjecting_frequency", "energy", "energy_entropy", "spectral_centroids", "spectral_spread", "spectral_entropy", "spectral_rolloff", "spectral_contrast0", "spectral_contrast1", "spectral_contrast2", "spectral_contrast3", "spectral_contrast4", "spectral_contrast5", "spectral_contrast6", "zero_crossing_rate", "mfcc0",
-"mfcc1", "mfcc2", "mfcc3", "mfcc4", "mfcc5", "mfcc6", "mfcc7", "mfcc8", "mfcc9", "mfcc10", "mfcc11",
-"autocorrelation", "pitches", "tonnetz0", "tonnetz1", "tonnetz2", "tonnetz3", "tonnetz4", "tonnetz5",
-"pause_ratio", "repetition_rate"]
+features_to_use = [
+    "interjecting_frequency",
+    "energy",
+    "energy_entropy",
+    "spectral_centroids",
+    "spectral_spread",
+    "spectral_entropy",
+    "spectral_rolloff",
+    "spectral_contrast0",
+    "spectral_contrast1",
+    "spectral_contrast2",
+    "spectral_contrast3",
+    "spectral_contrast4",
+    "spectral_contrast5",
+    "spectral_contrast6",
+    "zero_crossing_rate",
+    "mfcc0",
+    "mfcc1",
+    "mfcc2",
+    "mfcc3",
+    "mfcc4",
+    "mfcc5",
+    "mfcc6",
+    "mfcc7",
+    "mfcc8",
+    "mfcc9",
+    "mfcc10",
+    "mfcc11",
+    "autocorrelation",
+    "pitches",
+    "tonnetz0",
+    "tonnetz1",
+    "tonnetz2",
+    "tonnetz3",
+    "tonnetz4",
+    "tonnetz5",
+    "pause_ratio",
+    "repetition_rate",
+]
 
 # Read in individual csvs and load into a final dataframe
 all_dict = load_select_features_and_score_from_crowdsourcing_results_selective(
@@ -64,6 +99,13 @@ num_workers = 4
 
 # Train model
 train_select_features(
-    dict_train, dict_val, LR, EPOCHS, batch_size, num_workers, num_of_rows, num_of_columns
+    dict_train,
+    dict_val,
+    LR,
+    EPOCHS,
+    batch_size,
+    num_workers,
+    num_of_rows,
+    num_of_columns,
 )
 evaluate_select_features(dict_test, batch_size, num_of_rows, num_of_columns)

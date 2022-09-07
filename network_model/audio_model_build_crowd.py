@@ -7,7 +7,7 @@ from model_utils import *
 
 
 # Decide whether to save the concatenated file to a single csv
-save_to_single_csv = True
+save_to_single_csv = False
 # Decide on whether to tokenize audios before training or use raw audio arrays.
 vectorise = True
 # Load feature extractor
@@ -44,14 +44,14 @@ print(audio_df.head())
 
 
 # Training parameters
-epochs = 5
+epochs = 500
 LR = 5e-5
-batch_size = 3
+batch_size = 8
 num_workers = 4
 
 # Initialise audio model
 # audio_model = HubertClassifier()
-audio_model = CustomHUBERTModel()
+audio_model = CustomHUBERTSimpleModel()
 
 # Train model
 

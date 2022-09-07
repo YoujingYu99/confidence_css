@@ -159,7 +159,7 @@ def train_text(
     criterion = nn.MSELoss()
     optimizer = Adam(model.parameters(), lr=learning_rate)
     # initialize the early_stopping object
-    early_stopping = EarlyStopping(tolerance=5, min_delta=0.2)
+    early_stopping = EarlyStopping(tolerance=5, min_delta=1)
 
     if use_cuda:
         print("Using cuda!")
@@ -168,6 +168,11 @@ def train_text(
         model = nn.DataParallel(model, device_ids=list(range(num_gpus)))
 
         criterion = criterion.cuda()
+
+    train_loss_list = []
+    train_acc_list = []
+    val_loss_list = []
+    val_acc_list = []
 
     for epoch_num in range(epochs):
         total_acc_train = 0
@@ -178,7 +183,6 @@ def train_text(
             train_label = train_label.to(device)
             mask = train_input["attention_mask"].to(device)
             input_id = train_input["input_ids"].squeeze(1).to(device)
-
             output = model(input_id, mask)
             output = output.flatten()
             batch_loss = criterion(output.float(), train_label.float())
@@ -201,7 +205,6 @@ def train_text(
                 val_label = val_label.to(device)
                 mask = val_input["attention_mask"].to(device)
                 input_id = val_input["input_ids"].squeeze(1).to(device)
-
                 output = model(input_id, mask)
                 output = output.flatten()
                 batch_loss = criterion(output.float(), val_label.float())
@@ -212,7 +215,24 @@ def train_text(
                 acc = test_accuracy(output, val_label)
                 total_acc_val += acc
             # early stopping
-            early_stopping(total_loss_train, total_loss_val)
+            early_stopping(
+                total_loss_train / len(train_data), total_loss_val / len(val_data)
+            )
+
+            # Append to list
+            train_loss_list.append(total_loss_train / len(train_data))
+            train_acc_list.append(total_acc_train / len(train_data))
+            val_loss_list.append(total_loss_val / len(val_data))
+            val_acc_list.append(total_acc_val / len(val_data))
+
+            # Generate plots
+            plot_name = "text_"
+            gen_train_plots(train_loss_list, train_acc_list, plot_name)
+            gen_eval_plots(val_loss_list, val_acc_list, plot_name)
+            save_training_results(
+                train_loss_list, train_acc_list, val_loss_list, val_acc_list, plot_name
+            )
+
             if early_stopping.early_stop:
                 print("We are at epoch:", epoch_num)
                 break
@@ -1058,15 +1078,20 @@ def train_audio(
     criterion = nn.MSELoss()
     optimizer = Adam(model.parameters(), lr=learning_rate)
     # initialize the early_stopping object
-    early_stopping = EarlyStopping(tolerance=5, min_delta=0.01)
+    early_stopping = EarlyStopping(tolerance=5, min_delta=1)
 
     if use_cuda:
         print("Using cuda!")
         model = model.to(device)
-        count_parameters(model)
+        # count_parameters(model)
         model = nn.DataParallel(model, device_ids=list(range(num_gpus)))
 
         criterion = criterion.cuda()
+
+    train_loss_list = []
+    train_acc_list = []
+    val_loss_list = []
+    val_acc_list = []
 
     for epoch_num in range(epochs):
         total_acc_train = 0
@@ -1125,7 +1150,23 @@ def train_audio(
                 total_acc_val += acc
 
         # early stopping
-        early_stopping(total_loss_train, total_loss_val)
+        early_stopping(
+            total_loss_train / len(train_data), total_loss_val / len(val_data)
+        )
+
+        # Append to list
+        train_loss_list.append(total_loss_train / len(train_data))
+        train_acc_list.append(total_acc_train / len(train_data))
+        val_loss_list.append(total_loss_val / len(val_data))
+        val_acc_list.append(total_acc_val / len(val_data))
+        # Generate plots
+        plot_name = "audio"
+        gen_train_plots(train_loss_list, train_acc_list, plot_name)
+        gen_eval_plots(val_loss_list, val_acc_list, plot_name)
+        save_training_results(
+            train_loss_list, train_acc_list, val_loss_list, val_acc_list, plot_name
+        )
+
         if early_stopping.early_stop:
             print("We are at epoch:", epoch_num)
             break
@@ -1447,10 +1488,11 @@ def train_audio_text(
         val_loss_list.append(total_loss_val / len(val_data))
         val_acc_list.append(total_acc_val / len(val_data))
         # Generate plots
-        gen_train_plots(train_loss_list, train_acc_list)
-        gen_eval_plots(val_loss_list, val_acc_list)
+        plot_name = "audio_text"
+        gen_train_plots(train_loss_list, train_acc_list, plot_name)
+        gen_eval_plots(val_loss_list, val_acc_list, plot_name)
         save_training_results(
-            train_loss_list, train_acc_list, val_loss_list, val_acc_list
+            train_loss_list, train_acc_list, val_loss_list, val_acc_list, plot_name
         )
 
         print(
@@ -1467,13 +1509,16 @@ def train_audio_text(
 
 
 # Save data to csv
-def save_training_results(train_loss_list, train_acc_list, val_loss_list, val_acc_list):
+def save_training_results(
+    train_loss_list, train_acc_list, val_loss_list, val_acc_list, plot_name
+):
     """
     Save the results from model training.
     :param train_loss_list: List of training losses.
     :param train_acc_list: List of training accuracies.
     :param val_loss_list: List of evaluation losses.
     :param val_acc_list: List of evaluation accuracies.
+    :param plot_name: Name of the plot depending on model.
     :return: Save results to a csv.
     """
     list_of_tuples = list(
@@ -1483,15 +1528,16 @@ def save_training_results(train_loss_list, train_acc_list, val_loss_list, val_ac
         list_of_tuples, columns=["Train Loss", "Train Acc", "Eval Loss", "Eval Acc"]
     )
     training_results.to_csv(
-        os.path.join("/home", "yyu", "plots", "training_results.csv")
+        os.path.join("/home", "yyu", "plots", plot_name + "training_results.csv")
     )
 
 
-def gen_train_plots(train_loss_list, train_acc_list):
+def gen_train_plots(train_loss_list, train_acc_list, plot_name):
     """
     Generate plots for training loss and accuracies.
     :param loss_lst: List of training losses.
     :param acc_lst: List of training accuracies.
+    :param plot_name: Name of the plot depending on model.
     :return: Save plot to directory.
     """
     plt.figure()
@@ -1502,16 +1548,17 @@ def gen_train_plots(train_loss_list, train_acc_list):
     plt.ylabel("Training Loss and Training Accuracy")
     plt.title("Training Loss and Accuracy")
     plt.legend()
-    save_path = os.path.join("/home", "yyu", "plots", "train.png")
+    save_path = os.path.join("/home", "yyu", "plots", plot_name + "train.png")
     plt.savefig(save_path)
     # plt.show()
 
 
-def gen_eval_plots(val_loss_list, val_acc_list):
+def gen_eval_plots(val_loss_list, val_acc_list, plot_name):
     """
     Generate plots for evaluation loss and accuracies.
     :param loss_lst: List of evaluation losses.
     :param acc_lst: List of evaluation accuracies.
+    :param plot_name: Name of the plot depending on model.
     :return: Save plot to directory.
     """
     epoch_list = list(range(len(val_loss_list)))
@@ -1522,7 +1569,7 @@ def gen_eval_plots(val_loss_list, val_acc_list):
     plt.ylabel("Evaluation Loss and Training Accuracy")
     plt.title("Evaluation Loss and Accuracy")
     plt.legend()
-    save_path = os.path.join("/home", "yyu", "plots", "eval.png")
+    save_path = os.path.join("/home", "yyu", "plots", plot_name + "eval.png")
     plt.savefig(save_path)
     # plt.show()
 

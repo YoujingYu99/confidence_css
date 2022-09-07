@@ -46,7 +46,7 @@ num_workers = 4
 
 # Initialise model
 # text_model = BertClassifier()
-text_model = CustomBERTModel()
+text_model = CustomBERTSimpleModel()
 
 # Train model
 train_text(

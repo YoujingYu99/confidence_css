@@ -4,11 +4,10 @@ classes. Then use this data to train the network for classification.
 """
 from transformers import AutoFeatureExtractor
 from model_utils import *
-from audio_features import *
 
 
 # Decide whether to save the concatenated file to a single csv
-save_to_single_csv = True
+save_to_single_csv = False
 # Decide on whether to tokenize audios before training or use raw audio arrays.
 vectorise = True
 # Load feature extractor
@@ -48,7 +47,7 @@ num_workers = 4
 
 # Initialise audio model
 # audio_model = HubertClassifier()
-audio_model = CustomHUBERTModel()
+audio_model = CustomHUBERTSimpleModel()
 
 # Train model
 
