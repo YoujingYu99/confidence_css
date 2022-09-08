@@ -43,13 +43,13 @@ print(len(df_train), len(df_val), len(df_test))
 
 # Decide on Epoch and model
 epochs = 500
-LR = 5e-5
+LR = 5e-4
 batch_size = 8
 num_workers = 4
 
 # Initialise model
 # text_model = BertClassifier()
-text_model = CustomBERTSimpleModel()
+text_model = CustomBERTModel()
 
 # Train model
 train_text(

@@ -1,12 +1,16 @@
 """Models for training features, text and audio for confidence classification.
 
 ----------------------------------
-Class BertClassifier: Model for text with Bert tokenized tensors.
-Class HubertClassifier: Model for audio with HuBert tokenized tensors.
+Class BertClassifier: Model for text with Bert tokenized tensors classifier.
+Class HubertClassifier: Model for audio with HuBert tokenized tensors classifier.
 Class SelectFeaturesClassifier: Model for features as input tensors.
 Class ResidualBlock: Residual block for ResNet.
-Class CustomBERTModel: Model for text with Bert, Bi-LSTM and ResNet.
-Class CustomHUBERTModel: Model for audio with Hubert, Bi-LSTM and ResNet.
+Class CustomBERTModel: Model for text with Bert and Bi-LSTM.
+Class CustomBERTSimpleModel: Model for text with Bert.
+Class CustomHUBERTModel: Model for audio with Hubert and Bi-LSTM.
+Class CustomHUBERTSimpleModel: Model for audio with Hubert.
+Class CustomMultiModel: Model for text and audio with Bi-LSTM.
+Class CustomMultiModel: Model for text and audio.
 """
 
 import torch
@@ -115,6 +119,7 @@ class CustomBERTModel(nn.Module):
         self.tanh = nn.Tanh()
 
     def forward(self, input_id, mask):
+        self.lstm.flatten_parameters()
         sequence_output, pooled_output = self.bert(
             input_ids=input_id, attention_mask=mask, return_dict=False
         )
@@ -159,35 +164,6 @@ class CustomBERTSimpleModel(nn.Module):
         return prediction
 
 
-class CustomHUBERTSimpleModel(nn.Module):
-    def __init__(self, dropout=0.5):
-        super(CustomHUBERTSimpleModel, self).__init__()
-        self.hubert = HubertModel.from_pretrained("facebook/hubert-base-ls960")
-        self.linear1 = nn.Linear(768, 32)
-        self.dropout = nn.Dropout(dropout)
-        self.linear2 = nn.Linear(32, 1)
-        self.tanh = nn.Tanh()
-
-    def forward(self, input_values):
-        output_tuple = self.hubert(input_values=input_values, return_dict=False)
-        (pooled_output,) = output_tuple
-
-        dropout = self.dropout(pooled_output)
-        print("pooled size", pooled_output.size())
-        linear1 = self.linear1(dropout)
-        print("linear 1", linear1.size())
-        dropout2 = self.dropout(linear1)
-        linear2 = self.linear2(dropout2)
-        print("linear 2", linear2.size())
-        output_reduced = torch.mean(linear2, dim=1)
-        print("reduced", output_reduced.size())
-        tanh = self.tanh(output_reduced)
-        # Scale to match input
-        prediction = tanh * 2.5
-
-        return prediction
-
-
 class CustomHUBERTModel(nn.Module):
     def __init__(self, dropout=0.5):
         super(CustomHUBERTModel, self).__init__()
@@ -212,6 +188,35 @@ class CustomHUBERTModel(nn.Module):
         dropout = self.dropout(linear1)
         linear2 = self.linear2(dropout)
         tanh = self.tanh(linear2)
+        # Scale to match input
+        prediction = tanh * 2.5
+
+        return prediction
+
+
+class CustomHUBERTSimpleModel(nn.Module):
+    def __init__(self, dropout=0.5):
+        super(CustomHUBERTSimpleModel, self).__init__()
+        self.hubert = HubertModel.from_pretrained("facebook/hubert-base-ls960")
+        self.linear1 = nn.Linear(768, 32)
+        self.dropout = nn.Dropout(dropout)
+        self.linear2 = nn.Linear(32, 1)
+        self.tanh = nn.Tanh()
+
+    def forward(self, input_values):
+        output_tuple = self.hubert(input_values=input_values, return_dict=False)
+        (pooled_output,) = output_tuple
+
+        dropout = self.dropout(pooled_output)
+        # print("pooled size", pooled_output.size())
+        linear1 = self.linear1(dropout)
+        # print("linear 1", linear1.size())
+        dropout2 = self.dropout(linear1)
+        linear2 = self.linear2(dropout2)
+        # print("linear 2", linear2.size())
+        output_reduced = torch.mean(linear2, dim=1)
+        # print("reduced", output_reduced.size())
+        tanh = self.tanh(output_reduced)
         # Scale to match input
         prediction = tanh * 2.5
 

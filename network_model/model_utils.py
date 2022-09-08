@@ -226,7 +226,7 @@ def train_text(
             val_acc_list.append(total_acc_val / len(val_data))
 
             # Generate plots
-            plot_name = "text_"
+            plot_name = "text_lstm_"
             gen_train_plots(train_loss_list, train_acc_list, plot_name)
             gen_eval_plots(val_loss_list, val_acc_list, plot_name)
             save_training_results(
@@ -372,13 +372,6 @@ def load_audio_and_score_from_crowdsourcing_results(
         # https://extractedaudio.s3.eu-west-2.amazonaws.com/5/C_show_5CnDmMUG0S5bSSw612fs8C_3fxFPVGSzFLKf5iyg5rWCa_1917.0.mp3
         folder_number = audio_url.split("/")[-2]
         segment_name = audio_url.split("/")[-1][:-4]
-        # total_df_path = os.path.join(
-        #     home_dir,
-        #     "data_sheets",
-        #     "features_audio_array",
-        #     str(folder_number),
-        #     segment_name + "_audio_only.csv",
-        # )
         total_df_path = os.path.join(
             home_dir,
             "data_sheets",
@@ -388,19 +381,28 @@ def load_audio_and_score_from_crowdsourcing_results(
         )
         # Only proceed if file exists
         if os.path.isfile(total_df_path):
-            total_df = pd.read_csv(total_df_path)
+            total_df = pd.read_csv(total_df_path, encoding="utf-8", dtype="unicode")
             score_list.append(row["average"] - 2.5)
             try:
-                # Convert to list
+                # Convert audio to list
                 curr_audio_data = total_df["audio_array"].to_list()
                 # If list contains element of type string
                 if not all(isinstance(i, float) for i in curr_audio_data):
-                    print("Found wrong data type!")
+                    # print("Found wrong data type!")
                     # Decode to float using json
-                    curr_audio_data = json.loads(curr_audio_data[0])
-                    curr_audio_data = [float(elem) for elem in curr_audio_data]
-                    print(type(curr_audio_data[0]))
+                    curr_audio_data = [json.loads(i) for i in curr_audio_data]
                 audio_list.append(curr_audio_data)
+
+                # # Convert to list
+                # curr_audio_data = total_df["audio_array"].to_list()
+                # # If list contains element of type string
+                # if not all(isinstance(i, float) for i in curr_audio_data):
+                #     print("Found wrong data type!")
+                #     # Decode to float using json
+                #     curr_audio_data = json.loads(curr_audio_data[0])
+                #     curr_audio_data = [float(elem) for elem in curr_audio_data]
+                #     print(type(curr_audio_data[0]))
+                # audio_list.append(curr_audio_data)
             except Exception as e:
                 print("Error in parsing! File name = " + total_df_path)
                 print(e)
@@ -1160,7 +1162,7 @@ def train_audio(
         val_loss_list.append(total_loss_val / len(val_data))
         val_acc_list.append(total_acc_val / len(val_data))
         # Generate plots
-        plot_name = "audio"
+        plot_name = "audio_lstm_"
         gen_train_plots(train_loss_list, train_acc_list, plot_name)
         gen_eval_plots(val_loss_list, val_acc_list, plot_name)
         save_training_results(
