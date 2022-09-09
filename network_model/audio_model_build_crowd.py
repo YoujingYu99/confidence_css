@@ -46,6 +46,7 @@ print(audio_df.head())
 # Training parameters
 epochs = 500
 LR = 5e-4
+weight_decay = 5e-5
 batch_size = 8
 num_workers = 4
 
@@ -61,6 +62,7 @@ train_audio(
     df_train,
     df_val,
     LR,
+    weight_decay,
     epochs,
     batch_size,
     vectorise,

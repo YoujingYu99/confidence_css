@@ -175,6 +175,7 @@ class CustomHUBERTModel(nn.Module):
         self.tanh = nn.Tanh()
 
     def forward(self, input_values):
+        self.lstm.flatten_parameters()
         output_tuple = self.hubert(input_values=input_values, return_dict=False)
         (pooled_output,) = output_tuple
 
@@ -235,6 +236,7 @@ class CustomMultiModel(nn.Module):
         self.tanh = nn.Tanh()
 
     def forward(self, input_values, input_id, mask):
+        self.lstm.flatten_parameters()
         ## Bert transform
         # print("bert input size", input_id.size())
         sequence_output_bert, pooled_output = self.bert(

@@ -44,6 +44,7 @@ print(len(df_train), len(df_val), len(df_test))
 # Decide on Epoch and model
 epochs = 500
 LR = 5e-4
+weight_decay = 5e-5
 batch_size = 8
 num_workers = 4
 
@@ -53,6 +54,6 @@ text_model = CustomBERTModel()
 
 # Train model
 train_text(
-    text_model, text_tokenizer, df_train, df_val, LR, epochs, batch_size, num_workers
+    text_model, text_tokenizer, df_train, df_val, LR, weight_decay, epochs, batch_size, num_workers
 )
 evaluate_text(text_model, df_test, text_tokenizer, batch_size)

@@ -119,6 +119,7 @@ def train_text(
     train_data,
     val_data,
     learning_rate,
+    weight_decay,
     epochs,
     batch_size,
     num_workers,
@@ -130,6 +131,7 @@ def train_text(
     :param train_data: Dataframe to be trained.
     :param val_data: Dataframe to be evaluated.
     :param learning_rate: Parameter; rate of learning.
+    :param weight_decay: Rate of decay (l2).
     :param epochs: Number of epochs to be trained.
     :param batch_size: Number of batches.
     :return: Training and evaluation accuracies.
@@ -157,7 +159,7 @@ def train_text(
     device = torch.device("cuda" if use_cuda else "cpu")
 
     criterion = nn.MSELoss()
-    optimizer = Adam(model.parameters(), lr=learning_rate)
+    optimizer = Adam(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
     # initialize the early_stopping object
     early_stopping = EarlyStopping(tolerance=5, min_delta=1)
 
@@ -227,8 +229,8 @@ def train_text(
 
             # Generate plots
             plot_name = "text_lstm_"
-            gen_train_plots(train_loss_list, train_acc_list, plot_name)
-            gen_eval_plots(val_loss_list, val_acc_list, plot_name)
+            gen_acc_plots(train_acc_list, val_acc_list, plot_name)
+            gen_loss_plots(train_loss_list, val_loss_list, plot_name)
             save_training_results(
                 train_loss_list, train_acc_list, val_loss_list, val_acc_list, plot_name
             )
@@ -1034,6 +1036,7 @@ def train_audio(
     train_data,
     val_data,
     learning_rate,
+    weight_decay,
     epochs,
     batch_size,
     vectorise,
@@ -1046,6 +1049,7 @@ def train_audio(
     :param train_data: Dataframe to be trained.
     :param val_data: Dataframe to be evaluated.
     :param learning_rate: Parameter; rate of learning.
+    :param weight_decay: Weight of decay; l2 regularisation.
     :param epochs: Number of epochs to be trained.
     :param batch_size: Number of batches.
     :param vectorise: If vectorised, use transformers to tokenize audios.
@@ -1078,7 +1082,7 @@ def train_audio(
     device = torch.device("cuda" if use_cuda else "cpu")
 
     criterion = nn.MSELoss()
-    optimizer = Adam(model.parameters(), lr=learning_rate)
+    optimizer = Adam(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
     # initialize the early_stopping object
     early_stopping = EarlyStopping(tolerance=5, min_delta=1)
 
@@ -1163,8 +1167,8 @@ def train_audio(
         val_acc_list.append(total_acc_val / len(val_data))
         # Generate plots
         plot_name = "audio_lstm_"
-        gen_train_plots(train_loss_list, train_acc_list, plot_name)
-        gen_eval_plots(val_loss_list, val_acc_list, plot_name)
+        gen_acc_plots(train_acc_list, val_acc_list, plot_name)
+        gen_loss_plots(train_loss_list, val_loss_list, plot_name)
         save_training_results(
             train_loss_list, train_acc_list, val_loss_list, val_acc_list, plot_name
         )
@@ -1344,6 +1348,7 @@ def train_audio_text(
     train_data,
     val_data,
     learning_rate,
+    weight_decay,
     epochs,
     batch_size,
     num_workers,
@@ -1357,6 +1362,7 @@ def train_audio_text(
     :param train_data: Dataframe to be trained.
     :param val_data: Dataframe to be evaluated.
     :param learning_rate: Parameter; rate of learning.
+    :param weight_decay: Rate of decay; l2 regularisation.
     :param epochs: Number of epochs to be trained.
     :param batch_size: Number of batches.
     :param vectorise: Whether to vectorise audio.
@@ -1396,7 +1402,7 @@ def train_audio_text(
         param.requires_grad = False
 
     criterion = nn.MSELoss()
-    optimizer = Adam(model.parameters(), lr=learning_rate)
+    optimizer = Adam(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
     # initialize the early_stopping object
     early_stopping = EarlyStopping(tolerance=5, min_delta=1)
     writer = SummaryWriter()
@@ -1491,8 +1497,8 @@ def train_audio_text(
         val_acc_list.append(total_acc_val / len(val_data))
         # Generate plots
         plot_name = "audio_text"
-        gen_train_plots(train_loss_list, train_acc_list, plot_name)
-        gen_eval_plots(val_loss_list, val_acc_list, plot_name)
+        gen_acc_plots(train_acc_list, val_acc_list, plot_name)
+        gen_loss_plots(train_loss_list, val_loss_list, plot_name)
         save_training_results(
             train_loss_list, train_acc_list, val_loss_list, val_acc_list, plot_name
         )
@@ -1534,46 +1540,45 @@ def save_training_results(
     )
 
 
-def gen_train_plots(train_loss_list, train_acc_list, plot_name):
+def gen_acc_plots(train_acc_list, val_acc_list, plot_name):
     """
-    Generate plots for training loss and accuracies.
-    :param loss_lst: List of training losses.
-    :param acc_lst: List of training accuracies.
+    Generate plots for training and evaluation accuracies.
+    :param train_acc_list: List of training accuracies.
+    :param val_acc_list: List of eval accuracies.
+    :param plot_name: Name of the plot depending on model.
+    :return: Save plot to directory.
+    """
+    plt.figure()
+    epoch_list = list(range(len(train_acc_list)))
+    plt.plot(epoch_list, train_acc_list, color="r", label="train")
+    plt.plot(epoch_list, val_acc_list, color="b", label="val")
+    plt.xlabel("Epoch Numbers")
+    plt.ylabel("Accuracies")
+    plt.title("Training and Evaluation Accuracies")
+    plt.legend()
+    save_path = os.path.join("/home", "yyu", "plots", plot_name + "acc.png")
+    plt.savefig(save_path)
+    # plt.show()
+
+def gen_loss_plots(train_loss_list, val_loss_list, plot_name):
+    """
+    Generate plots for training and evaluation losses.
+    :param train_loss_list: List of training losses.
+    :param val_loss_list: List of eval losses.
     :param plot_name: Name of the plot depending on model.
     :return: Save plot to directory.
     """
     plt.figure()
     epoch_list = list(range(len(train_loss_list)))
-    plt.plot(epoch_list, train_loss_list, color="r", label="Loss")
-    plt.plot(epoch_list, train_acc_list, color="b", label="Accuracy")
+    plt.plot(epoch_list, train_loss_list, color="r", label="train")
+    plt.plot(epoch_list, val_loss_list, color="b", label="val")
     plt.xlabel("Epoch Numbers")
-    plt.ylabel("Training Loss and Training Accuracy")
-    plt.title("Training Loss and Accuracy")
+    plt.ylabel("losses")
+    plt.title("Training and Evaluation losses")
     plt.legend()
-    save_path = os.path.join("/home", "yyu", "plots", plot_name + "train.png")
+    save_path = os.path.join("/home", "yyu", "plots", plot_name + "loss.png")
     plt.savefig(save_path)
-    # plt.show()
 
-
-def gen_eval_plots(val_loss_list, val_acc_list, plot_name):
-    """
-    Generate plots for evaluation loss and accuracies.
-    :param loss_lst: List of evaluation losses.
-    :param acc_lst: List of evaluation accuracies.
-    :param plot_name: Name of the plot depending on model.
-    :return: Save plot to directory.
-    """
-    epoch_list = list(range(len(val_loss_list)))
-    plt.figure()
-    plt.plot(epoch_list, val_loss_list, color="r", label="Loss")
-    plt.plot(epoch_list, val_acc_list, color="b", label="Accuracy")
-    plt.xlabel("Epoch Numbers")
-    plt.ylabel("Evaluation Loss and Training Accuracy")
-    plt.title("Evaluation Loss and Accuracy")
-    plt.legend()
-    save_path = os.path.join("/home", "yyu", "plots", plot_name + "eval.png")
-    plt.savefig(save_path)
-    # plt.show()
 
 
 def evaluate_audio_text(

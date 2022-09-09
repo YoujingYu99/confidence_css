@@ -51,7 +51,7 @@ num_workers = 4
 
 # Initialise audio model
 # audio_model = HubertClassifier()
-multimodel = CustomMultiModelSimple()
+multimodel = CustomMultiModel()
 
 # Train model
 
