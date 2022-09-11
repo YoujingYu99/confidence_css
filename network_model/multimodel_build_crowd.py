@@ -49,14 +49,14 @@ print(audio_text_df.head())
 
 # Training parameters
 epochs = 500
-LR = 5e-5
-weight_decay = 5e-5
+LR = 5e-6
+weight_decay = 1e-6
 batch_size = 8
 num_workers = 4
 
 # Initialise audio model
 # audio_model = HubertClassifier()
-multimodel = CustomMultiModel()
+multimodel = CustomMultiModelSimple()
 
 # Train model
 

@@ -1,13 +1,11 @@
-"""Use pre-trained Bert and HuBERT models on the audio and text for regression.
-Extract the raw audio array, transcription and confidence score from the individual audio
-classes. Then use this data to train the network for regression.
+"""Analysis of the data for training, validation and test
 """
 from transformers import AutoFeatureExtractor, BertTokenizer
 from model_utils import *
 
 
 # Decide whether to save the concatenated file to a single csv
-save_to_single_csv = True
+save_to_single_csv = False
 # Decide on whether to tokenize audios before training or use raw audio arrays.
 vectorise = True
 # Load feature extractor
@@ -20,7 +18,10 @@ featuers_folder_path_dir = os.path.join(home_dir, "data_sheets", "features")
 
 # Path for crowdsourcing results
 crowdsourcing_results_df_path = os.path.join(
-    home_dir, "data_sheets", "crowdsourcing_results", "test_crowd.csv",
+    home_dir,
+    "data_sheets",
+    "crowdsourcing_results",
+    "Batch_4799159_batch_results_complete_reject_filtered_numbered_cleaned_renamed_soft.csv",
 )
 
 
@@ -30,6 +31,7 @@ print("start of application!")
 audio_text_df = load_audio_text_and_score_from_crowdsourcing_results(
     home_dir, crowdsourcing_results_df_path, save_to_single_csv
 )
+
 # Shuffling data again
 audio_text_df = audio_text_df.sample(frac=1).reset_index(drop=True)
 # Split to train, eval and test datasets.
@@ -38,38 +40,21 @@ df_train, df_val, df_test = np.split(
     [int(0.8 * len(audio_text_df)), int(0.9 * len(audio_text_df))],
 )
 
+train_scores_list = df_train["score"].tolist()
+val_scores_list = df_val["score"].tolist()
+test_scores_list = df_test["score"].tolist()
 
-print(len(df_train), len(df_val), len(df_test))
-print(audio_text_df.head())
+
+def plot_histogram_of_scores(scores_list, num_bins, plot_name):
+    plt.figure()
+    plt.hist(scores_list, bins=num_bins)
+    plt.xlabel("Scores")
+    plt.ylabel("Frequencies")
+    plt.title("Histogram of " + plot_name + " Scores")
+    plt.savefig(os.path.join(home_dir, "plots", plot_name))
+    plt.show()
 
 
-# Training parameters
-epochs = 300
-LR = 5e-5
-weight_decay = 5e-5
-batch_size = 2
-num_workers = 4
-
-# Initialise audio model
-# audio_model = HubertClassifier()
-multimodel = CustomMultiModelSimple()
-
-# Train model
-
-train_audio_text(
-    multimodel,
-    audio_feature_extractor,
-    text_tokenizer,
-    df_train,
-    df_val,
-    LR,
-    weight_decay,
-    epochs,
-    batch_size,
-    num_workers,
-    vectorise,
-)
-
-evaluate_audio_text(
-    multimodel, audio_feature_extractor, text_tokenizer, df_test, batch_size, vectorise
-)
+plot_histogram_of_scores(train_scores_list, num_bins=10, plot_name="training_dataset3")
+plot_histogram_of_scores(val_scores_list, num_bins=10, plot_name="validation_dataset3")
+plot_histogram_of_scores(test_scores_list, num_bins=10, plot_name="test_dataset3")

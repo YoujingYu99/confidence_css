@@ -1394,12 +1394,12 @@ def train_audio_text(
     use_cuda = torch.cuda.is_available()
     device = torch.device("cuda" if use_cuda else "cpu")
 
-    # Freeze Bert/HuBert
-    for param in model.bert.parameters():
-        param.requires_grad = False
-
-    for param in model.hubert.parameters():
-        param.requires_grad = False
+    # # Freeze Bert/HuBert
+    # for param in model.bert.parameters():
+    #     param.requires_grad = False
+    #
+    # for param in model.hubert.parameters():
+    #     param.requires_grad = False
 
     criterion = nn.MSELoss()
     optimizer = Adam(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
@@ -1496,7 +1496,7 @@ def train_audio_text(
         val_loss_list.append(total_loss_val / len(val_data))
         val_acc_list.append(total_acc_val / len(val_data))
         # Generate plots
-        plot_name = "audio_text"
+        plot_name = "audio_text_"
         gen_acc_plots(train_acc_list, val_acc_list, plot_name)
         gen_loss_plots(train_loss_list, val_loss_list, plot_name)
         save_training_results(
@@ -1560,6 +1560,7 @@ def gen_acc_plots(train_acc_list, val_acc_list, plot_name):
     plt.savefig(save_path)
     # plt.show()
 
+
 def gen_loss_plots(train_loss_list, val_loss_list, plot_name):
     """
     Generate plots for training and evaluation losses.
@@ -1578,7 +1579,6 @@ def gen_loss_plots(train_loss_list, val_loss_list, plot_name):
     plt.legend()
     save_path = os.path.join("/home", "yyu", "plots", plot_name + "loss.png")
     plt.savefig(save_path)
-
 
 
 def evaluate_audio_text(

@@ -294,8 +294,10 @@ class CustomMultiModelSimple(nn.Module):
         super(CustomMultiModelSimple, self).__init__()
         self.bert = BertModel.from_pretrained("bert-base-cased")
         self.hubert = HubertModel.from_pretrained("facebook/hubert-base-ls960")
+        self.layernorm1 = nn.LayerNorm([4, 1136, 768])
         self.dropout = nn.Dropout(dropout)
         self.linear1 = nn.Linear(768, 32)
+        self.layernorm2 = nn.LayerNorm([4, 32])
         self.linear2 = nn.Linear(32, 1)
         self.tanh = nn.Tanh()
 
@@ -315,12 +317,17 @@ class CustomMultiModelSimple(nn.Module):
 
         # Concat the two models
         concat = torch.cat((sequence_output_bert, pooled_output_hubert), dim=1)
-        dropout2 = self.dropout(concat)
+        # print("concat size", concat.size())
+        concat_norm = self.layernorm1(concat)
+        dropout1 = self.dropout(concat_norm)
         # print("concat size", dropout2.size())
-        output_reduced = torch.mean(dropout2, dim=1)
+        output_reduced = torch.mean(dropout1, dim=1)
         # print("reduced size", output_reduced.size())
         linear1 = self.linear1(output_reduced)
-        linear2 = self.linear2(linear1)
+        dropout2 = self.dropout(linear1)
+        dropout2_norm = self.layernorm2(dropout2)
+        # print("dropout2 norm", dropout2_norm.size())
+        linear2 = self.linear2(dropout2_norm)
         # print("linear 2 size", linear2.size())
         tanh = self.tanh(linear2)
         # Scale to match input

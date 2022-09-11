@@ -54,6 +54,14 @@ text_model = CustomBERTModel()
 
 # Train model
 train_text(
-    text_model, text_tokenizer, df_train, df_val, LR, weight_decay, epochs, batch_size, num_workers
+    text_model,
+    text_tokenizer,
+    df_train,
+    df_val,
+    LR,
+    weight_decay,
+    epochs,
+    batch_size,
+    num_workers,
 )
 evaluate_text(text_model, df_test, text_tokenizer, batch_size)
