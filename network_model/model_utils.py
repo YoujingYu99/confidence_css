@@ -1442,15 +1442,13 @@ def train_audio_text(
     use_cuda = torch.cuda.is_available()
     device = torch.device("cuda" if use_cuda else "cpu")
 
+    # Freezing selected model parameters
     print("length of bert", len(list(model.bert.parameters())))
     print("length of hubert", len(list(model.hubert.parameters())))
-
     for name, param in list(model.bert.named_parameters())[:80]:
         param.requires_grad = False
-
     for name, param in list(model.hubert.named_parameters())[:80]:
         param.requires_grad = False
-
 
     # # Freeze Bert/HuBert
     # for param in model.bert.parameters():
@@ -1512,13 +1510,12 @@ def train_audio_text(
 
             # weights update only when all batches iterated
             if ((batch_idx + 1) % accum_iter == 0) or (
-                    batch_idx + 1 == len(train_dataloader)):
+                batch_idx + 1 == len(train_dataloader)
+            ):
                 optimizer.step()
-
 
         total_acc_val = 0
         total_loss_val = 0
-
 
         with torch.no_grad():
             model.eval()
@@ -1585,6 +1582,7 @@ def train_audio_text(
                         | Val Accuracy: {total_acc_val / len(val_data): .3f}"
         )
 
+
 def append_to_val(output, val_label, val_output_list, val_label_list):
     """
     Append output score and label scores into the lists.
@@ -1598,6 +1596,7 @@ def append_to_val(output, val_label, val_output_list, val_label_list):
         val_output_list.append(i)
     for l in val_label.tolist():
         val_label_list.append(l)
+
 
 # Save data to csv
 def save_training_results(
@@ -1670,8 +1669,7 @@ def gen_val_scatter_plot(val_output_list, val_label_list, plot_name):
     plt.xlabel("Ground Truth Scores")
     plt.ylabel("Model Output Scores")
     plt.title("Model output and ground truth for validation")
-    save_path = os.path.join("/home", "yyu", "plots",
-                             plot_name + "val_scatter.png")
+    save_path = os.path.join("/home", "yyu", "plots", plot_name + "val_scatter.png")
     plt.savefig(save_path)
 
 
