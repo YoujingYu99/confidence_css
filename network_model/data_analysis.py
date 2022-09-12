@@ -50,7 +50,7 @@ def plot_histogram_of_scores(scores_list, num_bins, plot_name):
     plt.hist(scores_list, bins=num_bins)
     plt.xlabel("Scores")
     plt.ylabel("Frequencies")
-    plt.title("Histogram of " + plot_name + " Scores")
+    plt.title("Histogram of " + plot_name)
     plt.savefig(os.path.join(home_dir, "plots", plot_name))
     plt.show()
 

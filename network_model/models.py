@@ -230,7 +230,9 @@ class CustomMultiModel(nn.Module):
         self.bert = BertModel.from_pretrained("bert-base-cased")
         self.hubert = HubertModel.from_pretrained("facebook/hubert-base-ls960")
         self.lstm = nn.LSTM(768, 256, batch_first=True, bidirectional=True)
+        self.layernorm1 = nn.LayerNorm([1, 32])
         self.linear1 = nn.Linear(256 * 2, 32)
+        self.layernorm2 = nn.LayerNorm([1, 64])
         self.dropout = nn.Dropout(dropout)
         self.linear2 = nn.Linear(64, 1)
         self.tanh = nn.Tanh()
@@ -254,7 +256,8 @@ class CustomMultiModel(nn.Module):
         ### assuming only using the output of the last LSTM cell to perform classification
         linear1_bert = self.linear1(hidden_bert.view(-1, 256 * 2))
         # print("linear 1 bert", linear1_bert.size())
-        dropout1_bert = self.dropout(linear1_bert)
+        linear1_bert_norm = self.layernorm1(linear1_bert)
+        dropout1_bert = self.dropout(linear1_bert_norm)
         # print("dropout 1 bert size:", dropout1_bert.size())
 
         ## Hubert transform
@@ -272,12 +275,15 @@ class CustomMultiModel(nn.Module):
         ### assuming only using the output of the last LSTM cell to perform classification
         linear1_hubert = self.linear1(hidden_hubert.view(-1, 256 * 2))
         # print("linear 1 hubert", linear1_hubert.size())
-        dropout1_hubert = self.dropout(linear1_hubert)
+        linear1_hubert_norm = self.layernorm1(linear1_hubert)
+        dropout1_hubert = self.dropout(linear1_hubert_norm)
         # print("dropout 1 hubert size:", dropout1_hubert.size())
 
         # Concat the two models
         concat = torch.cat((dropout1_bert, dropout1_hubert), dim=1)
-        dropout2 = self.dropout(concat)
+        # print("concat size", concat.size())
+        concat_norm = self.layernorm2(concat)
+        dropout2 = self.dropout(concat_norm)
         # print("concat size", concat.size())
         linear2 = self.linear2(dropout2)
         # print("linear 2 size", linear2.size())
@@ -321,6 +327,8 @@ class CustomMultiModelSimple(nn.Module):
         concat_norm = self.layernorm1(concat)
         dropout1 = self.dropout(concat_norm)
         # print("concat size", dropout2.size())
+
+        # Reduce dimension
         output_reduced = torch.mean(dropout1, dim=1)
         # print("reduced size", output_reduced.size())
         linear1 = self.linear1(output_reduced)

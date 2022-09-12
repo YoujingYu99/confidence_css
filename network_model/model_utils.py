@@ -4,6 +4,8 @@ confidence classification.
 ----------------------------------
 Class TextDataset: Class that handles the preparation of text for training.
 Class AudioDataset: Class that handles the preparation of audio for training.
+Class AudioTextDataset: Class that handles the preparation of both text and
+                audio for training.
 """
 import warnings
 
