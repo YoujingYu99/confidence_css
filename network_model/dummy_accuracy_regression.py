@@ -1,4 +1,4 @@
-
+"""Dummy accuracy test for minimum required accuracy."""
 from model_utils import load_audio_and_score_from_crowdsourcing_results
 import os
 import random

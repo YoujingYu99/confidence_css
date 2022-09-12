@@ -1465,6 +1465,8 @@ def train_audio_text(
     train_acc_list = []
     val_loss_list = []
     val_acc_list = []
+    val_output_list = []
+    val_label_list = []
 
     for epoch_num in range(epochs):
         total_acc_train = 0
@@ -1496,6 +1498,7 @@ def train_audio_text(
         total_acc_val = 0
         total_loss_val = 0
 
+
         with torch.no_grad():
             model.eval()
             for val_input, val_label in val_dataloader:
@@ -1508,6 +1511,8 @@ def train_audio_text(
 
                 output = model(input_values, input_id, mask)
                 output = output.flatten()
+                # Append results to the val lists
+                append_to_val(output, val_label, val_output_list, val_label_list)
                 batch_loss = criterion(output.float(), train_label.float())
                 total_loss_val += batch_loss.item()
 
@@ -1536,15 +1541,18 @@ def train_audio_text(
             "Validation Accuracy", total_acc_val / len(val_data), epoch_num
         )
         writer.flush()
+
         # Append to list
         train_loss_list.append(total_loss_train / len(train_data))
         train_acc_list.append(total_acc_train / len(train_data))
         val_loss_list.append(total_loss_val / len(val_data))
         val_acc_list.append(total_acc_val / len(val_data))
+
         # Generate plots
         plot_name = "audio_text_"
         gen_acc_plots(train_acc_list, val_acc_list, plot_name)
         gen_loss_plots(train_loss_list, val_loss_list, plot_name)
+        gen_val_scatter_plot(val_output_list, val_label_list, plot_name)
         save_training_results(
             train_loss_list, train_acc_list, val_loss_list, val_acc_list, plot_name
         )
@@ -1556,11 +1564,19 @@ def train_audio_text(
                         | Val Accuracy: {total_acc_val / len(val_data): .3f}"
         )
 
-    # # Save plots and training results
-    # gen_train_plots(train_loss_list, train_acc_list)
-    # gen_eval_plots(val_loss_list, val_acc_list)
-    # save_training_results(train_loss_list, train_acc_list, val_loss_list, val_acc_list)
-
+def append_to_val(output, val_label, val_output_list, val_label_list):
+    """
+    Append output score and label scores into the lists.
+    :param output: Output tensor from the model.
+    :param val_label: Label tensor.
+    :param val_output_list: List of outputs for validation.
+    :param val_label_list: List of true label for validation.
+    :return:
+    """
+    for i in output.tolist():
+        val_output_list.append(i)
+    for l in val_label.tolist():
+        val_label_list.append(l)
 
 # Save data to csv
 def save_training_results(
@@ -1624,6 +1640,17 @@ def gen_loss_plots(train_loss_list, val_loss_list, plot_name):
     plt.title("Training and Evaluation losses")
     plt.legend()
     save_path = os.path.join("/home", "yyu", "plots", plot_name + "loss.png")
+    plt.savefig(save_path)
+
+
+def gen_val_scatter_plot(val_output_list, val_label_list, plot_name):
+    plt.figure()
+    plt.scatter(val_label_list, val_output_list)
+    plt.xlabel("Ground Truth Scores")
+    plt.ylabel("Model Output Scores")
+    plt.title("Model output and ground truth for validation")
+    save_path = os.path.join("/home", "yyu", "plots",
+                             plot_name + "val_scatter.png")
     plt.savefig(save_path)
 
 
