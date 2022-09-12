@@ -28,6 +28,50 @@ from models import *
 num_gpus = torch.cuda.device_count()
 
 
+def split_to_train_val_test(home_dir):
+    """
+    Split the total crowdsourcing results to train, val and test
+    :param home_dir:
+    :return:
+    """
+    # Path for crowdsourcing results
+    crowdsourcing_results_df_path = os.path.join(
+        home_dir,
+        "data_sheets",
+        "crowdsourcing_results",
+        "Batch_4799159_batch_results_complete_reject_filtered_numbered_cleaned_renamed_soft.csv",
+    )
+
+    crowdsourcing_results_train_df_path = os.path.join(
+        home_dir,
+        "data_sheets",
+        "crowdsourcing_results",
+        "Batch_4799159_batch_results_complete_reject_filtered_numbered_cleaned_renamed_soft_train.csv",
+    )
+
+    crowdsourcing_results_val_df_path = os.path.join(
+        home_dir,
+        "data_sheets",
+        "crowdsourcing_results",
+        "Batch_4799159_batch_results_complete_reject_filtered_numbered_cleaned_renamed_soft_val.csv",
+    )
+
+    crowdsourcing_results_test_df_path = os.path.join(
+        home_dir,
+        "data_sheets",
+        "crowdsourcing_results",
+        "Batch_4799159_batch_results_complete_reject_filtered_numbered_cleaned_renamed_soft_test.csv",
+    )
+
+    total_df = pd.read_csv(crowdsourcing_results_df_path)
+    train_df = total_df[:2760]
+    train_df.to_csv(crowdsourcing_results_train_df_path)
+    val_df = total_df[2761:3100]
+    val_df.to_csv(crowdsourcing_results_val_df_path)
+    test_df = total_df[3101:]
+    test_df.to_csv(crowdsourcing_results_test_df_path)
+
+
 class TextDataset(torch.utils.data.Dataset):
     """
     Prepare the dataset according to its attributes.
@@ -85,7 +129,7 @@ def categorise_score(score):
 
 def test_accuracy(output, actual):
     """
-    Testfy whether the output is accurate.
+    Testify whether the output is accurate.
     :param output: Score tensor output by model.
     :param actual: Actual score tensor.
     :return: Number of accurate predicitons

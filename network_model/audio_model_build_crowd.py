@@ -15,32 +15,42 @@ feature_extractor = AutoFeatureExtractor.from_pretrained("facebook/wav2vec2-base
 
 # home_dir is the location of script
 home_dir = os.path.join("/home", "yyu")
-featuers_folder_path_dir = os.path.join(home_dir, "data_sheets", "features")
 
 # Path for crowdsourcing results
-crowdsourcing_results_df_path = os.path.join(
+crowdsourcing_results_train_df_path = os.path.join(
     home_dir,
     "data_sheets",
     "crowdsourcing_results",
-    "Batch_4799159_batch_results_complete_reject_filtered_numbered_cleaned_renamed_soft.csv",
+    "Batch_4799159_batch_results_complete_reject_filtered_numbered_cleaned_renamed_soft_train.csv",
+)
+crowdsourcing_results_val_df_path = os.path.join(
+    home_dir,
+    "data_sheets",
+    "crowdsourcing_results",
+    "Batch_4799159_batch_results_complete_reject_filtered_numbered_cleaned_renamed_soft_train.csv",
+)
+crowdsourcing_results_test_df_path = os.path.join(
+    home_dir,
+    "data_sheets",
+    "crowdsourcing_results",
+    "Batch_4799159_batch_results_complete_reject_filtered_numbered_cleaned_renamed_soft_train.csv",
 )
 
 
 print("start of application!")
 
 # Read in individual csvs and load into a final dataframe
-audio_df = load_audio_and_score_from_crowdsourcing_results(
-    home_dir, crowdsourcing_results_df_path, save_to_single_csv
-)
-# Split to train, eval and test datasets.
-df_train, df_val, df_test = np.split(
-    audio_df.sample(frac=1, random_state=42),
-    [int(0.8 * len(audio_df)), int(0.9 * len(audio_df))],
+audio_train_df = load_audio_and_score_from_crowdsourcing_results(
+    home_dir, crowdsourcing_results_train_df_path, save_to_single_csv
 )
 
+audio_val_df = load_audio_and_score_from_crowdsourcing_results(
+    home_dir, crowdsourcing_results_train_df_path, save_to_single_csv
+)
 
-print(len(df_train), len(df_val), len(df_test))
-print(audio_df.head())
+audio_test_df = load_audio_and_score_from_crowdsourcing_results(
+    home_dir, crowdsourcing_results_train_df_path, save_to_single_csv
+)
 
 
 # Training parameters
@@ -55,12 +65,11 @@ num_workers = 4
 audio_model = CustomHUBERTModel()
 
 # Train model
-
 train_audio(
     audio_model,
     feature_extractor,
-    df_train,
-    df_val,
+    audio_train_df,
+    audio_val_df,
     LR,
     weight_decay,
     epochs,
@@ -69,4 +78,4 @@ train_audio(
     num_workers,
 )
 
-evaluate_audio(audio_model, df_test, batch_size, feature_extractor, vectorise)
+evaluate_audio(audio_model, audio_test_df, batch_size, feature_extractor, vectorise)

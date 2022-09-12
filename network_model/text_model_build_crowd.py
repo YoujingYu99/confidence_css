@@ -15,31 +15,44 @@ save_to_single_csv = False
 
 text_tokenizer = BertTokenizer.from_pretrained("bert-base-cased")
 
-# Load dataset
+# home_dir is the location of script
 home_dir = os.path.join("/home", "yyu")
 
 # Path for crowdsourcing results
-crowdsourcing_results_df_path = os.path.join(
+crowdsourcing_results_train_df_path = os.path.join(
     home_dir,
     "data_sheets",
     "crowdsourcing_results",
-    "Batch_4799159_batch_results_complete_reject_filtered_numbered_cleaned_renamed_soft.csv",
+    "Batch_4799159_batch_results_complete_reject_filtered_numbered_cleaned_renamed_soft_train.csv",
+)
+crowdsourcing_results_val_df_path = os.path.join(
+    home_dir,
+    "data_sheets",
+    "crowdsourcing_results",
+    "Batch_4799159_batch_results_complete_reject_filtered_numbered_cleaned_renamed_soft_train.csv",
+)
+crowdsourcing_results_test_df_path = os.path.join(
+    home_dir,
+    "data_sheets",
+    "crowdsourcing_results",
+    "Batch_4799159_batch_results_complete_reject_filtered_numbered_cleaned_renamed_soft_train.csv",
 )
 
 
 print("start of application!")
 
 # Read in individual csvs and load into a final dataframe
-text_df = load_text_and_score_from_crowdsourcing_results(
-    home_dir, crowdsourcing_results_df_path, save_to_single_csv
+text_train_df = load_text_and_score_from_crowdsourcing_results(
+    home_dir, crowdsourcing_results_train_df_path, save_to_single_csv
 )
 
-print(text_df.head())
-df_train, df_val, df_test = np.split(
-    text_df.sample(frac=1, random_state=42),
-    [int(0.8 * len(text_df)), int(0.9 * len(text_df))],
+text_val_df = load_text_and_score_from_crowdsourcing_results(
+    home_dir, crowdsourcing_results_train_df_path, save_to_single_csv
 )
-print(len(df_train), len(df_val), len(df_test))
+
+text_test_df = load_text_and_score_from_crowdsourcing_results(
+    home_dir, crowdsourcing_results_train_df_path, save_to_single_csv
+)
 
 # Decide on Epoch and model
 epochs = 500
@@ -56,12 +69,12 @@ text_model = CustomBERTModel()
 train_text(
     text_model,
     text_tokenizer,
-    df_train,
-    df_val,
+    text_train_df,
+    text_val_df,
     LR,
     weight_decay,
     epochs,
     batch_size,
     num_workers,
 )
-evaluate_text(text_model, df_test, text_tokenizer, batch_size)
+evaluate_text(text_model, text_test_df, text_tokenizer, batch_size)
