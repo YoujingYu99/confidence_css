@@ -1398,6 +1398,7 @@ def train_audio_text(
     epochs,
     batch_size,
     num_workers,
+    accum_iter,
     vectorise,
 ):
     """
@@ -1411,6 +1412,7 @@ def train_audio_text(
     :param weight_decay: Rate of decay; l2 regularisation.
     :param epochs: Number of epochs to be trained.
     :param batch_size: Number of batches.
+    :param accum_iter: Number of batches to be iterated before optimizer step.
     :param vectorise: Whether to vectorise audio.
     :return: Training and evaluation accuracies.
     """
@@ -1439,6 +1441,16 @@ def train_audio_text(
 
     use_cuda = torch.cuda.is_available()
     device = torch.device("cuda" if use_cuda else "cpu")
+
+    print("length of bert", len(list(model.bert.parameters())))
+    print("length of hubert", len(list(model.hubert.parameters())))
+
+    for name, param in list(model.bert.named_parameters())[:80]:
+        param.requires_grad = False
+
+    for name, param in list(model.hubert.named_parameters())[:80]:
+        param.requires_grad = False
+
 
     # # Freeze Bert/HuBert
     # for param in model.bert.parameters():
@@ -1472,8 +1484,11 @@ def train_audio_text(
         total_acc_train = 0
         total_loss_train = 0
 
+        # batch accumulation parameter
+        accum_iter = accum_iter
+
         model.train()
-        for train_input, train_label in tqdm(train_dataloader):
+        for batch_idx, (train_input, train_label) in enumerate(train_dataloader):
             train_label = train_label.to(device)
             # Audio
             input_values = train_input["audio"]["input_values"].squeeze(1).to(device)
@@ -1485,15 +1500,21 @@ def train_audio_text(
             output = model(input_values, input_id, mask)
             output = output.flatten()
             batch_loss = criterion(output.float(), train_label.float())
+            # normalize loss to account for batch accumulation
+            batch_loss = batch_loss / accum_iter
             total_loss_train += batch_loss.item()
 
             # acc = (output.argmax(dim=1) == train_label).sum().item()
             # Define accuracy as within 10% of the true label
             acc = test_accuracy(output, train_label)
             total_acc_train += acc
-
             batch_loss.backward()
-            optimizer.step()
+
+            # weights update only when all batches iterated
+            if ((batch_idx + 1) % accum_iter == 0) or (
+                    batch_idx + 1 == len(train_dataloader)):
+                optimizer.step()
+
 
         total_acc_val = 0
         total_loss_val = 0

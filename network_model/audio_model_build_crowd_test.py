@@ -17,6 +17,7 @@ feature_extractor = AutoFeatureExtractor.from_pretrained("facebook/wav2vec2-base
 home_dir = os.path.join("/home", "yyu")
 
 # Path for crowdsourcing results
+# Path for crowdsourcing results
 crowdsourcing_results_train_df_path = os.path.join(
     home_dir,
     "data_sheets",
@@ -27,13 +28,13 @@ crowdsourcing_results_val_df_path = os.path.join(
     home_dir,
     "data_sheets",
     "crowdsourcing_results",
-    "Batch_4799159_batch_results_complete_reject_filtered_numbered_cleaned_renamed_soft_train.csv",
+    "Batch_4799159_batch_results_complete_reject_filtered_numbered_cleaned_renamed_soft_val.csv",
 )
 crowdsourcing_results_test_df_path = os.path.join(
     home_dir,
     "data_sheets",
     "crowdsourcing_results",
-    "Batch_4799159_batch_results_complete_reject_filtered_numbered_cleaned_renamed_soft_train.csv",
+    "Batch_4799159_batch_results_complete_reject_filtered_numbered_cleaned_renamed_soft_test.csv",
 )
 
 

@@ -22,19 +22,19 @@ crowdsourcing_results_train_df_path = os.path.join(
     home_dir,
     "data_sheets",
     "crowdsourcing_results",
-    "Batch_4799159_batch_results_complete_reject_filtered_numbered_cleaned_renamed_soft_train.csv",
+    "test_crowd.csv",
 )
 crowdsourcing_results_val_df_path = os.path.join(
     home_dir,
     "data_sheets",
     "crowdsourcing_results",
-    "Batch_4799159_batch_results_complete_reject_filtered_numbered_cleaned_renamed_soft_train.csv",
+    "test_crowd.csv",
 )
 crowdsourcing_results_test_df_path = os.path.join(
     home_dir,
     "data_sheets",
     "crowdsourcing_results",
-    "Batch_4799159_batch_results_complete_reject_filtered_numbered_cleaned_renamed_soft_train.csv",
+    "test_crowd.csv",
 )
 
 
@@ -60,6 +60,7 @@ LR = 5e-5
 weight_decay = 1e-6
 batch_size = 2
 num_workers = 4
+accum_iter = 4
 
 # Initialise audio model
 # audio_model = HubertClassifier()
@@ -78,6 +79,7 @@ train_audio_text(
     epochs,
     batch_size,
     num_workers,
+    accum_iter,
     vectorise,
 )
 
