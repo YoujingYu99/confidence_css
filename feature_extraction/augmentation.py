@@ -1,7 +1,9 @@
-from transformers import AutoFeatureExtractor, BertTokenizer
+"""Augment audios for training. NOT IN USE."""
 import nlpaug.augmenter.audio as naa
 import os
+import numpy as np
 import pandas as pd
+import ast
 
 
 # home_dir is the location of script
@@ -48,7 +50,8 @@ def augment_audio(audio_array):
 # Augment audio
 for index, row in audio_text_aug_df.iterrows():
     original_audio = row["audio_array"]
-    new_audio = augment_audio(original_audio.to_numpy())
+    original_audio = ast.literal_eval(original_audio)
+    new_audio = augment_audio(np.array(original_audio))
     row["audio_array"] = new_audio
 
 save_path = os.path.join(

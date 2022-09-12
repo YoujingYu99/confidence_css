@@ -7,7 +7,7 @@ from model_utils import *
 
 
 # Decide whether to save the concatenated file to a single csv
-save_to_single_csv = True
+save_to_single_csv = False
 # Decide on whether to tokenize audios before training or use raw audio arrays.
 vectorise = True
 # Load feature extractor
@@ -19,22 +19,13 @@ home_dir = os.path.join("/home", "yyu")
 
 # Path for crowdsourcing results
 crowdsourcing_results_train_df_path = os.path.join(
-    home_dir,
-    "data_sheets",
-    "crowdsourcing_results",
-    "test_crowd.csv",
+    home_dir, "data_sheets", "crowdsourcing_results", "test_crowd.csv",
 )
 crowdsourcing_results_val_df_path = os.path.join(
-    home_dir,
-    "data_sheets",
-    "crowdsourcing_results",
-    "test_crowd.csv",
+    home_dir, "data_sheets", "crowdsourcing_results", "test_crowd.csv",
 )
 crowdsourcing_results_test_df_path = os.path.join(
-    home_dir,
-    "data_sheets",
-    "crowdsourcing_results",
-    "test_crowd.csv",
+    home_dir, "data_sheets", "crowdsourcing_results", "test_crowd.csv",
 )
 
 
@@ -42,15 +33,25 @@ print("start of application!")
 
 # Read in individual csvs and load into a final dataframe
 audio_text_train_df = load_audio_text_and_score_from_crowdsourcing_results(
-    home_dir, crowdsourcing_results_train_df_path, save_to_single_csv
+    home_dir,
+    crowdsourcing_results_train_df_path,
+    save_to_single_csv,
+    augment_audio=True,
 )
 
+
 audio_text_val_df = load_audio_text_and_score_from_crowdsourcing_results(
-    home_dir, crowdsourcing_results_train_df_path, save_to_single_csv
+    home_dir,
+    crowdsourcing_results_train_df_path,
+    save_to_single_csv,
+    augment_audio=True,
 )
 
 audio_text_test_df = load_audio_text_and_score_from_crowdsourcing_results(
-    home_dir, crowdsourcing_results_train_df_path, save_to_single_csv
+    home_dir,
+    crowdsourcing_results_train_df_path,
+    save_to_single_csv,
+    augment_audio=True,
 )
 
 
@@ -67,7 +68,6 @@ accum_iter = 4
 multimodel = CustomMultiModel()
 
 # Train model
-
 train_audio_text(
     multimodel,
     audio_feature_extractor,

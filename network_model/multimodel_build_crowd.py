@@ -5,9 +5,6 @@ classes. Then use this data to train the network for regression.
 from transformers import AutoFeatureExtractor, BertTokenizer
 from model_utils import *
 
-
-# Decide whether to save the concatenated file to a single csv
-save_to_single_csv = True
 # Decide on whether to tokenize audios before training or use raw audio arrays.
 vectorise = True
 # Load feature extractor
@@ -42,15 +39,24 @@ print("start of application!")
 
 # Read in individual csvs and load into a final dataframe
 audio_text_train_df = load_audio_text_and_score_from_crowdsourcing_results(
-    home_dir, crowdsourcing_results_train_df_path, save_to_single_csv
+    home_dir,
+    crowdsourcing_results_train_df_path,
+    save_to_single_csv=True,
+    augment_audio=True,
 )
 
 audio_text_val_df = load_audio_text_and_score_from_crowdsourcing_results(
-    home_dir, crowdsourcing_results_train_df_path, save_to_single_csv
+    home_dir,
+    crowdsourcing_results_train_df_path,
+    save_to_single_csv=False,
+    augment_audio=False,
 )
 
 audio_text_test_df = load_audio_text_and_score_from_crowdsourcing_results(
-    home_dir, crowdsourcing_results_train_df_path, save_to_single_csv
+    home_dir,
+    crowdsourcing_results_train_df_path,
+    save_to_single_csv=False,
+    augment_audio=False,
 )
 
 
@@ -67,7 +73,6 @@ accum_iter = 4
 multimodel = CustomMultiModelSimple()
 
 # Train model
-
 train_audio_text(
     multimodel,
     audio_feature_extractor,

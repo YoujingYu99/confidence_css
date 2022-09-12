@@ -11,6 +11,7 @@ import warnings
 
 warnings.simplefilter(action="ignore", category=FutureWarning)
 
+import nlpaug.augmenter.audio as naa
 import os
 import pandas as pd
 import math
@@ -336,6 +337,24 @@ def evaluate_text(model, test_data, tokenizer, batch_size):
     print(f"Test Accuracy: {total_acc_test / len(test_data): .3f}")
 
 
+def augment_audio_random(audio_array):
+    """
+    Augment audio into new arrays.
+    :param audio_array: Original audio array.
+    :return: augmented audio array.
+    """
+    # Loudness
+    aug = naa.LoudnessAug()
+    augmented_data = aug.augment(audio_array)
+    # Noise
+    aug = naa.NoiseAug()
+    augmented_data = aug.augment(augmented_data)
+    # Pitch
+    aug = naa.PitchAug(sampling_rate=16000, factor=(2, 3))
+    augmented_data = aug.augment(augmented_data)
+    return augmented_data
+
+
 def load_audio_and_score_from_folder(folder_path_dir, file_type, save_to_single_csv):
     """
     Load the confidence score and audio array from the csv files.
@@ -525,20 +544,21 @@ def load_text_and_score_from_crowdsourcing_results(
     if save_to_single_csv:
         ## Save all data into a single csv file.
         save_path = os.path.join(
-            home_dir, "data_sheets", "text_only_crowd_all_model.csv"
+            home_dir, "data_sheets", "text_only_crowd_all_model_train.csv"
         )
         result_df.to_csv(save_path, index=False)
     return result_df
 
 
 def load_audio_text_and_score_from_crowdsourcing_results(
-    home_dir, crowdsourcing_results_df_path, save_to_single_csv
+    home_dir, crowdsourcing_results_df_path, save_to_single_csv, augment_audio
 ):
     """
     Load the audio arrays, text and user scores from the csv files.
     :param home_dir: Home directory.
     :param crowdsourcing_results_df_path: Path to the results dataframe.
     :param save_to_single_csv: Whether to save to a single csv file.
+    :param augment_audio: Whether to augment audio.
     :return: Dataframe of audio arrays, text and average score.
     """
     # Load crowdsourcing results df
@@ -563,7 +583,6 @@ def load_audio_text_and_score_from_crowdsourcing_results(
         # Only proceed if file exists
         if os.path.isfile(total_df_path):
             total_df = pd.read_csv(total_df_path, encoding="utf-8", dtype="unicode")
-            score_list.append(row["average"] - 2.5)
             try:
                 # Convert audio to list
                 curr_audio_data = total_df["audio_array"].to_list()
@@ -577,6 +596,16 @@ def load_audio_text_and_score_from_crowdsourcing_results(
                 # Convert text to list
                 curr_text_data = total_df["text"].to_list()[0]
                 text_list.append([curr_text_data])
+
+                score_list.append(row["average"] - 2.5)
+                if augment_audio:
+                    # Append augmented audio
+                    augmented_audio_data = augment_audio_random(
+                        np.array(curr_audio_data)
+                    )
+                    audio_list.append(augmented_audio_data)
+                    text_list.append([curr_text_data])
+                    score_list.append(row["average"] - 2.5)
             except Exception as e:
                 print("Error in parsing! File name = " + total_df_path)
                 print(e)
