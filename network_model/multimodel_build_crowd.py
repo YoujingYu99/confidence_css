@@ -47,14 +47,14 @@ audio_text_train_df = load_audio_text_and_score_from_crowdsourcing_results(
 
 audio_text_val_df = load_audio_text_and_score_from_crowdsourcing_results(
     home_dir,
-    crowdsourcing_results_train_df_path,
+    crowdsourcing_results_val_df_path,
     save_to_single_csv=False,
     augment_audio=False,
 )
 
 audio_text_test_df = load_audio_text_and_score_from_crowdsourcing_results(
     home_dir,
-    crowdsourcing_results_train_df_path,
+    crowdsourcing_results_test_df_path,
     save_to_single_csv=False,
     augment_audio=False,
 )

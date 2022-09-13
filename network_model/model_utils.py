@@ -619,10 +619,16 @@ def load_audio_text_and_score_from_crowdsourcing_results(
         columns=["audio_array", "sentence", "score"],
     )
     if save_to_single_csv:
-        ## Save all data into a single csv file.
-        save_path = os.path.join(
-            home_dir, "data_sheets", "audio_text_crowd_all_model.csv"
-        )
+        if augment_audio:
+            ## Save all data into a single csv file.
+            save_path = os.path.join(
+                home_dir, "data_sheets", "audio_text_crowd_all_model_aug.csv"
+            )
+        else:
+            ## Save all data into a single csv file.
+            save_path = os.path.join(
+                home_dir, "data_sheets", "audio_text_crowd_all_model.csv"
+            )
         result_df.to_csv(save_path, index=False)
     return result_df
 
