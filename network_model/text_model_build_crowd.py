@@ -48,11 +48,11 @@ text_train_df = load_text_and_score_from_crowdsourcing_results(
 )
 
 text_val_df = load_text_and_score_from_crowdsourcing_results(
-    home_dir, crowdsourcing_results_train_df_path, save_to_single_csv
+    home_dir, crowdsourcing_results_val_df_path, save_to_single_csv
 )
 
 text_test_df = load_text_and_score_from_crowdsourcing_results(
-    home_dir, crowdsourcing_results_train_df_path, save_to_single_csv
+    home_dir, crowdsourcing_results_test_df_path, save_to_single_csv
 )
 
 # Decide on Epoch and model
