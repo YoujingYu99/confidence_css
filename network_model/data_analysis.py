@@ -3,7 +3,6 @@
 from transformers import AutoFeatureExtractor, BertTokenizer
 from model_utils import *
 
-
 # Decide whether to save the concatenated file to a single csv
 save_to_single_csv = False
 # Decide on whether to tokenize audios before training or use raw audio arrays.
@@ -21,28 +20,44 @@ crowdsourcing_results_df_path = os.path.join(
     home_dir,
     "data_sheets",
     "crowdsourcing_results",
-    "Batch_4799159_batch_results_complete_reject_filtered_numbered_cleaned_renamed_soft.csv",
+    "Batch_4799159_batch_results_complete_reject_filtered_numbered_cleaned_renamed_soft_train.csv",
 )
-
 
 print("start of application!")
 
 # Read in individual csvs and load into a final dataframe
-audio_text_df = load_audio_text_and_score_from_crowdsourcing_results(
-    home_dir, crowdsourcing_results_df_path, save_to_single_csv
+audio_text_df_train = load_audio_text_and_score_from_crowdsourcing_results(
+    home_dir, crowdsourcing_results_df_path, save_to_single_csv, augment_audio=False
 )
 
-# Shuffling data again
-audio_text_df = audio_text_df.sample(frac=1).reset_index(drop=True)
-# Split to train, eval and test datasets.
-df_train, df_val, df_test = np.split(
-    audio_text_df.sample(frac=1, random_state=42),
-    [int(0.8 * len(audio_text_df)), int(0.9 * len(audio_text_df))],
-)
+train_scores_list = audio_text_df_train["score"].tolist()
 
-train_scores_list = df_train["score"].tolist()
-val_scores_list = df_val["score"].tolist()
-test_scores_list = df_test["score"].tolist()
+
+def count_scores_in_bins(train_scores_list):
+    trains_scores_centered = [i - 2.5 for i in train_scores_list]
+    first_bucket_count = 0
+    second_bucket_count = 0
+    third_bucket_count = 0
+    fourth_bucket_count = 0
+    fifth_bucket_count = 0
+    for score in trains_scores_centered:
+        if -2.5 <= score < -1.5:
+            first_bucket_count += 1
+        elif -1.5 <= score < -0.5:
+            second_bucket_count += 1
+        elif -0.5 <= score < 0.5:
+            third_bucket_count += 1
+        elif 0.5 <= score < 1.5:
+            fourth_bucket_count += 1
+        else:
+            fifth_bucket_count += 1
+    return (
+        first_bucket_count,
+        second_bucket_count,
+        third_bucket_count,
+        fourth_bucket_count,
+        fifth_bucket_count,
+    )
 
 
 def plot_histogram_of_scores(scores_list, num_bins, plot_name):
@@ -55,6 +70,7 @@ def plot_histogram_of_scores(scores_list, num_bins, plot_name):
     plt.show()
 
 
-plot_histogram_of_scores(train_scores_list, num_bins=10, plot_name="training_dataset3")
-plot_histogram_of_scores(val_scores_list, num_bins=10, plot_name="validation_dataset3")
-plot_histogram_of_scores(test_scores_list, num_bins=10, plot_name="test_dataset3")
+# plot_histogram_of_scores(train_scores_list, num_bins=10,
+#                          plot_name="training_dataset3")
+
+print(count_scores_in_bins(train_scores_list))

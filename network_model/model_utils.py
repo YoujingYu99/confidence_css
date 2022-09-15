@@ -337,13 +337,14 @@ def evaluate_text(model, test_data, tokenizer, batch_size):
     print(f"Test Accuracy: {total_acc_test / len(test_data): .3f}")
 
 
-def augment_audio_random(audio_array):
+def augment_audio_random(audio):
     """
     Augment audio into new arrays.
-    :param audio_array: Original audio array.
+    :param audio_array: Original audio in dataframe entries (list).
     :return: augmented audio array.
     """
     # Loudness
+    audio_array = np.array(audio)
     aug = naa.LoudnessAug()
     augmented_data = aug.augment(audio_array)
     # Noise
@@ -550,6 +551,75 @@ def load_text_and_score_from_crowdsourcing_results(
     return result_df
 
 
+def upsample_and_augment(result_df):
+    """
+    Upsample the dataframes in smaller buckets and augment audio data.
+    :param result_df: Original unbalanced dataset.
+    :return: Balanced dataset
+    """
+    first_bucket_df = result_df.loc[result_df["score"] < -1.5]
+    second_bucket_df = result_df.loc[
+        (result_df["score"] >= -1.5) & (result_df["score"] < -0.5)
+    ]
+    third_bucket_df = result_df.loc[
+        (result_df["score"] >= -0.5) & (result_df["score"] < 0.5)
+    ]
+    fourth_bucket_df = result_df.loc[
+        (result_df["score"] >= 0.5) & (result_df["score"] < 1.5)
+    ]
+    fifth_bucket_df = result_df.loc[result_df["score"] >= 1.5]
+
+    # Upsample the dfs
+    num_rows_per_bucket = fourth_bucket_df.shape[0]
+    if first_bucket_df.shape[0] == 0:
+        pass
+    else:
+        num_repeat_first = num_rows_per_bucket / first_bucket_df.shape[0]
+        first_bucket_df = first_bucket_df.sample(
+            frac=num_repeat_first, replace=True, random_state=1
+        )
+        first_bucket_df["audio_array"] = first_bucket_df["audio_array"].apply(
+            augment_audio_random
+        )
+
+    num_repeat_second = num_rows_per_bucket / second_bucket_df.shape[0]
+    second_bucket_df = second_bucket_df.sample(
+        frac=num_repeat_second, replace=True, random_state=1
+    )
+    second_bucket_df["audio_array"] = second_bucket_df["audio_array"].apply(
+        augment_audio_random
+    )
+    num_repeat_third = num_rows_per_bucket / third_bucket_df.shape[0]
+    third_bucket_df = third_bucket_df.sample(
+        frac=num_repeat_third, replace=True, random_state=1
+    )
+    third_bucket_df["audio_array"] = third_bucket_df["audio_array"].apply(
+        augment_audio_random
+    )
+    fourth_bucket_df["audio_array"] = fourth_bucket_df["audio_array"].apply(
+        augment_audio_random
+    )
+    if first_bucket_df.shape[0] == 0:
+        pass
+    else:
+        num_repeat_fifth = num_rows_per_bucket / fifth_bucket_df.shape[0]
+        fifth_bucket_df = fifth_bucket_df.sample(
+            frac=num_repeat_fifth, replace=True, random_state=1
+        )
+        fifth_bucket_df["audio_array"] = fifth_bucket_df["audio_array"].apply(
+            augment_audio_random
+        )
+    all_dfs = [
+        first_bucket_df,
+        second_bucket_df,
+        third_bucket_df,
+        fourth_bucket_df,
+        fifth_bucket_df,
+    ]
+    result_df = pd.concat(all_dfs)
+    return result_df
+
+
 def load_audio_text_and_score_from_crowdsourcing_results(
     home_dir, crowdsourcing_results_df_path, save_to_single_csv, augment_audio
 ):
@@ -598,31 +668,26 @@ def load_audio_text_and_score_from_crowdsourcing_results(
                 text_list.append([curr_text_data])
 
                 score_list.append(row["average"] - 2.5)
-                if augment_audio:
-                    # Append augmented audio
-                    augmented_audio_data = augment_audio_random(
-                        np.array(curr_audio_data)
-                    )
-                    audio_list.append(augmented_audio_data)
-                    text_list.append([curr_text_data])
-                    score_list.append(row["average"] - 2.5)
+
             except Exception as e:
                 print("Error in parsing! File name = " + total_df_path)
                 print(e)
                 continue
 
-    print(len(audio_list))
-    print(len(text_list))
-    print(len(score_list))
+
     result_df = pd.DataFrame(
         np.column_stack([audio_list, text_list, score_list]),
         columns=["audio_array", "sentence", "score"],
     )
+
+    if augment_audio:
+        result_df = upsample_and_augment(result_df)
+        print("size of final training dataset", result_df.shape[0])
     if save_to_single_csv:
         if augment_audio:
             ## Save all data into a single csv file.
             save_path = os.path.join(
-                home_dir, "data_sheets", "audio_text_crowd_all_model_aug.csv"
+                home_dir, "data_sheets", "audio_text_crowd_all_model_upsample.csv"
             )
         else:
             ## Save all data into a single csv file.
@@ -1480,9 +1545,9 @@ def train_audio_text(
     # Freezing selected model parameters
     print("length of bert", len(list(model.bert.parameters())))
     print("length of hubert", len(list(model.hubert.parameters())))
-    for name, param in list(model.bert.named_parameters())[:80]:
+    for name, param in list(model.bert.named_parameters())[:100]:
         param.requires_grad = False
-    for name, param in list(model.hubert.named_parameters())[:80]:
+    for name, param in list(model.hubert.named_parameters())[:100]:
         param.requires_grad = False
 
     # # Freeze Bert/HuBert
@@ -1501,7 +1566,7 @@ def train_audio_text(
     if use_cuda:
         print("Using cuda!")
         model = model.to(device)
-        # count_parameters(model)
+        count_parameters(model)
         model = nn.DataParallel(model, device_ids=list(range(num_gpus)))
 
         criterion = criterion.cuda()
@@ -1557,22 +1622,24 @@ def train_audio_text(
             for val_input, val_label in val_dataloader:
                 val_label = val_label.to(device)
                 # Audio
-                input_values = val_input["audio"]["input_values"].squeeze(1).to(device)
+                val_input_values = (
+                    val_input["audio"]["input_values"].squeeze(1).to(device)
+                )
                 # Text
-                mask = val_input["text"]["attention_mask"].to(device)
-                input_id = val_input["text"]["input_ids"].squeeze(1).to(device)
+                val_mask = val_input["text"]["attention_mask"].to(device)
+                val_input_id = val_input["text"]["input_ids"].squeeze(1).to(device)
 
-                output = model(input_values, input_id, mask)
-                output = output.flatten()
+                val_output = model(val_input_values, val_input_id, val_mask)
+                val_output = val_output.flatten()
                 # Append results to the val lists
-                append_to_val(output, val_label, val_output_list, val_label_list)
-                batch_loss = criterion(output.float(), train_label.float())
-                total_loss_val += batch_loss.item()
+                append_to_val(val_output, val_label, val_output_list, val_label_list)
+                val_batch_loss = criterion(val_output.float(), val_label.float())
+                total_loss_val += val_batch_loss.item()
 
                 # acc = (output.argmax(dim=1) == val_label).sum().item()
                 # Define accuracy as within 10% of the true label
-                acc = test_accuracy(output, val_label)
-                total_acc_val += acc
+                val_acc = test_accuracy(val_output, val_label)
+                total_acc_val += val_acc
 
         # early stopping
         early_stopping(
@@ -1582,19 +1649,6 @@ def train_audio_text(
             print("We are at epoch:", epoch_num)
             break
 
-        # Add to tensorboard
-        writer.add_scalar(
-            "Training Loss", total_loss_train / len(train_data), epoch_num
-        )
-        writer.add_scalar(
-            "Training Accuracy", total_acc_train / len(train_data), epoch_num
-        )
-        writer.add_scalar("Validation Loss", total_loss_val / len(val_data), epoch_num)
-        writer.add_scalar(
-            "Validation Accuracy", total_acc_val / len(val_data), epoch_num
-        )
-        writer.flush()
-
         # Append to list
         train_loss_list.append(total_loss_train / len(train_data))
         train_acc_list.append(total_acc_train / len(train_data))
@@ -1602,7 +1656,7 @@ def train_audio_text(
         val_acc_list.append(total_acc_val / len(val_data))
 
         # Generate plots
-        plot_name = "audio_text_"
+        plot_name = "audio_text_upsample"
         gen_acc_plots(train_acc_list, val_acc_list, plot_name)
         gen_loss_plots(train_loss_list, val_loss_list, plot_name)
         gen_val_scatter_plot(val_output_list, val_label_list, plot_name)
@@ -1618,16 +1672,16 @@ def train_audio_text(
         )
 
 
-def append_to_val(output, val_label, val_output_list, val_label_list):
+def append_to_val(val_output, val_label, val_output_list, val_label_list):
     """
     Append output score and label scores into the lists.
-    :param output: Output tensor from the model.
+    :param val_output: Output tensor from the model.
     :param val_label: Label tensor.
     :param val_output_list: List of outputs for validation.
     :param val_label_list: List of true label for validation.
     :return:
     """
-    for i in output.tolist():
+    for i in val_output.tolist():
         val_output_list.append(i)
     for l in val_label.tolist():
         val_label_list.append(l)
