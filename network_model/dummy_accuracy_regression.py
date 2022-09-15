@@ -10,7 +10,10 @@ home_dir = os.path.join("/home", "yyu")
 
 # Path for crowdsourcing results
 crowdsourcing_results_df_path = os.path.join(
-    home_dir, "data_sheets", "crowdsourcing_results", "Batch_4799159_batch_results_complete_reject_filtered_numbered_cleaned_renamed_soft.csv",
+    home_dir,
+    "data_sheets",
+    "crowdsourcing_results",
+    "Batch_4799159_batch_results_complete_reject_filtered_numbered_cleaned_renamed_soft.csv",
 )
 
 
@@ -23,11 +26,11 @@ audio_df = load_audio_and_score_from_crowdsourcing_results(
 
 
 true_scores = audio_df["score"].tolist()
-
+true_scores_shift = [i + 2.5 for i in true_scores]
 # Generate random scores
 random_list = []
 for i in range(len(true_scores)):
-    random_list.append(random.uniform(-2.5, 2.5))
+    random_list.append(random.uniform(0, 2.5))
 
 
 def test_accuracy(output_list, actual_list):
@@ -44,6 +47,6 @@ def test_accuracy(output_list, actual_list):
     return count
 
 
-accuracy = test_accuracy(random_list, true_scores)/ len(random_list)
+accuracy = test_accuracy(random_list, true_scores_shift) / len(random_list)
 
 print("Random classifier accuracy is", accuracy)

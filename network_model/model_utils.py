@@ -8,9 +8,6 @@ Class AudioTextDataset: Class that handles the preparation of both text and
                 audio for training.
 """
 import warnings
-
-warnings.simplefilter(action="ignore", category=FutureWarning)
-
 import nlpaug.augmenter.audio as naa
 import os
 import pandas as pd
@@ -26,6 +23,8 @@ import matplotlib.pyplot as plt
 
 from models import *
 
+warnings.filterwarnings("ignore", category=np.VisibleDeprecationWarning)
+warnings.simplefilter(action="ignore", category=FutureWarning)
 num_gpus = torch.cuda.device_count()
 
 
@@ -589,6 +588,7 @@ def upsample_and_augment(result_df):
     second_bucket_df["audio_array"] = second_bucket_df["audio_array"].apply(
         augment_audio_random
     )
+
     num_repeat_third = num_rows_per_bucket / third_bucket_df.shape[0]
     third_bucket_df = third_bucket_df.sample(
         frac=num_repeat_third, replace=True, random_state=1
@@ -596,9 +596,12 @@ def upsample_and_augment(result_df):
     third_bucket_df["audio_array"] = third_bucket_df["audio_array"].apply(
         augment_audio_random
     )
+
+    fourth_bucket_df = fourth_bucket_df.sample(frac=1, replace=True, random_state=1)
     fourth_bucket_df["audio_array"] = fourth_bucket_df["audio_array"].apply(
         augment_audio_random
     )
+
     if first_bucket_df.shape[0] == 0:
         pass
     else:
@@ -620,8 +623,33 @@ def upsample_and_augment(result_df):
     return result_df
 
 
+def take_two_from_row(row):
+    """
+    Select the two most similar scores from the row and take average, then shift by 2.5.
+    :param row: Pandas dataframe row
+    :return: An average score.
+    """
+    # Take two scores that agree better with each other
+    diff_one_two = abs(row["score1"] - row["score2"])
+    diff_two_three = abs(row["score2"] - row["score3"])
+    diff_one_three = abs(row["score1"] - row["score3"])
+    diff_list = [diff_one_two, diff_two_three, diff_one_three]
+    val, idx = min((val, idx) for (idx, val) in enumerate(diff_list))
+    if idx == 0:
+        score = (row["score1"] + row["score2"]) / 2 - 2.5
+    elif idx == 1:
+        score = (row["score2"] + row["score3"]) / 2 - 2.5
+    else:
+        score = (row["score1"] + row["score3"]) / 2 - 2.5
+    return score
+
+
 def load_audio_text_and_score_from_crowdsourcing_results(
-    home_dir, crowdsourcing_results_df_path, save_to_single_csv, augment_audio
+    home_dir,
+    crowdsourcing_results_df_path,
+    save_to_single_csv,
+    augment_audio,
+    two_scores,
 ):
     """
     Load the audio arrays, text and user scores from the csv files.
@@ -629,6 +657,7 @@ def load_audio_text_and_score_from_crowdsourcing_results(
     :param crowdsourcing_results_df_path: Path to the results dataframe.
     :param save_to_single_csv: Whether to save to a single csv file.
     :param augment_audio: Whether to augment audio.
+    :param two_scores: Whether to only use two scores.
     :return: Dataframe of audio arrays, text and average score.
     """
     # Load crowdsourcing results df
@@ -666,14 +695,17 @@ def load_audio_text_and_score_from_crowdsourcing_results(
                 # Convert text to list
                 curr_text_data = total_df["text"].to_list()[0]
                 text_list.append([curr_text_data])
-
-                score_list.append(row["average"] - 2.5)
+                if two_scores:
+                    # Only take the most similar two answers
+                    score = take_two_from_row(row)
+                else:
+                    score = row["average"] - 2.5
+                score_list.append(score)
 
             except Exception as e:
                 print("Error in parsing! File name = " + total_df_path)
                 print(e)
                 continue
-
 
     result_df = pd.DataFrame(
         np.column_stack([audio_list, text_list, score_list]),
@@ -1566,7 +1598,7 @@ def train_audio_text(
     if use_cuda:
         print("Using cuda!")
         model = model.to(device)
-        count_parameters(model)
+        # count_parameters(model)
         model = nn.DataParallel(model, device_ids=list(range(num_gpus)))
 
         criterion = criterion.cuda()
@@ -1656,7 +1688,7 @@ def train_audio_text(
         val_acc_list.append(total_acc_val / len(val_data))
 
         # Generate plots
-        plot_name = "audio_text_upsample"
+        plot_name = "audio_text_upsample_two"
         gen_acc_plots(train_acc_list, val_acc_list, plot_name)
         gen_loss_plots(train_loss_list, val_loss_list, plot_name)
         gen_val_scatter_plot(val_output_list, val_label_list, plot_name)

@@ -11,6 +11,7 @@ os.environ["TOKENIZERS_PARALLELISM"] = "false"
 save_to_single_csv = False
 # Decide on whether to tokenize audios before training or use raw audio arrays.
 vectorise = True
+two_scores = True
 # Load feature extractor
 audio_feature_extractor = AutoFeatureExtractor.from_pretrained("facebook/wav2vec2-base")
 text_tokenizer = BertTokenizer.from_pretrained("bert-base-cased")
@@ -38,6 +39,7 @@ audio_text_train_df = load_audio_text_and_score_from_crowdsourcing_results(
     crowdsourcing_results_train_df_path,
     save_to_single_csv,
     augment_audio=True,
+    two_scores=two_scores,
 )
 
 
@@ -46,6 +48,7 @@ audio_text_val_df = load_audio_text_and_score_from_crowdsourcing_results(
     crowdsourcing_results_val_df_path,
     save_to_single_csv,
     augment_audio=False,
+    two_scores=two_scores,
 )
 
 audio_text_test_df = load_audio_text_and_score_from_crowdsourcing_results(
@@ -53,9 +56,9 @@ audio_text_test_df = load_audio_text_and_score_from_crowdsourcing_results(
     crowdsourcing_results_test_df_path,
     save_to_single_csv,
     augment_audio=False,
+    two_scores=two_scores,
 )
 
-print("length of training audio", audio_text_train_df.shape[0])
 
 # Training parameters
 epochs = 300
