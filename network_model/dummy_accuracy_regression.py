@@ -26,27 +26,34 @@ audio_df = load_audio_and_score_from_crowdsourcing_results(
 
 
 true_scores = audio_df["score"].tolist()
-true_scores_shift = [i + 2.5 for i in true_scores]
 # Generate random scores
 random_list = []
 for i in range(len(true_scores)):
-    random_list.append(random.uniform(0, 2.5))
+    random_list.append(random.uniform(-2.5, 2.5))
+
+print(random_list)
 
 
-def test_accuracy(output_list, actual_list):
+def test_accuracy(output_list, actual_list, absolute):
     """
     Testify whether the output is accurate.
-    :param output: Score list output by model.
-    :param actual: Actual score list.
+    :param output_list: Score list output by model.
+    :param actual_list: Actual score list.
+    :param absolute: Whether to test with absolute value
     :return: Number of accurate predicitons
     """
     count = 0
     for i in range(len(output_list)):
-        if actual_list[i] * 0.8 <= output_list[i] <= actual_list[i] * 1.2:
-            count += 1
+        # If test by absolute value
+        if absolute:
+            if actual_list[i] - 0.2 <= output_list[i] <= actual_list[i] + 0.2:
+                count += 1
+        else:
+            if actual_list[i] * 0.8 <= output_list[i] <= actual_list[i] * 1.2:
+                count += 1
     return count
 
 
-accuracy = test_accuracy(random_list, true_scores_shift) / len(random_list)
+accuracy = test_accuracy(random_list, true_scores, absolute=True) / len(random_list)
 
 print("Random classifier accuracy is", accuracy)

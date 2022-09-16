@@ -127,19 +127,25 @@ def categorise_score(score):
     return score_cat
 
 
-def test_accuracy(output, actual):
+def test_accuracy(output, actual, absolute):
     """
     Testify whether the output is accurate.
     :param output: Score tensor output by model.
     :param actual: Actual score tensor.
+    :param absolute: Whether to test with absolute value
     :return: Number of accurate predicitons
     """
     output_list = output.tolist()
     actual_list = actual.tolist()
     count = 0
     for i in range(len(output_list)):
-        if actual_list[i] * 0.8 <= output_list[i] <= actual_list[i] * 1.2:
-            count += 1
+        # If test by absolute value
+        if absolute:
+            if actual_list[i] - 0.2 <= output_list[i] <= actual_list[i] + 0.2:
+                count += 1
+        else:
+            if actual_list[i] * 0.8 <= output_list[i] <= actual_list[i] * 1.2:
+                count += 1
     return count
 
 
@@ -169,6 +175,7 @@ def train_text(
     epochs,
     batch_size,
     num_workers,
+    test_absolute,
 ):
     """
     Train the model based on extracted text.
@@ -180,6 +187,8 @@ def train_text(
     :param weight_decay: Rate of decay (l2).
     :param epochs: Number of epochs to be trained.
     :param batch_size: Number of batches.
+    :param num_workers: Number of workers.
+    :param test_absolute: Whether to use absolute test.
     :return: Training and evaluation accuracies.
     """
     train, val = train_data.reset_index(drop=True), val_data.reset_index(drop=True)
@@ -238,7 +247,7 @@ def train_text(
 
             # acc = (output.argmax(dim=1) == train_label).sum().item()
             # Define accuracy as within 10% of the true label
-            acc = test_accuracy(output, train_label)
+            acc = test_accuracy(output, train_label, test_absolute)
             total_acc_train += acc
 
             batch_loss.backward()
@@ -260,7 +269,7 @@ def train_text(
 
                 # acc = (output.argmax(dim=1) == val_label).sum().item()
                 # Define accuracy as within 10% of the true label
-                acc = test_accuracy(output, val_label)
+                acc = test_accuracy(output, val_label, test_absolute)
                 total_acc_val += acc
             # early stopping
             early_stopping(
@@ -293,13 +302,14 @@ def train_text(
         )
 
 
-def evaluate_text(model, test_data, tokenizer, batch_size):
+def evaluate_text(model, test_data, tokenizer, batch_size, test_absolute):
     """
     Evaluate accuracy for the model on text data.
     :param model: Model to be used for deep learning.
     :param test_data: Dataframe to be tested.
     :param tokenizer: Pre-trained transformer to tokenize the text.
     :param batch_size: Number of batches.
+    :param test_absolute: Whether to use absolute test.
     :return: Test Accuracies.
     """
     test = test_data.reset_index(drop=True)
@@ -330,7 +340,7 @@ def evaluate_text(model, test_data, tokenizer, batch_size):
 
             # acc = (output.argmax(dim=1) == test_label).sum().item()
             # Define accuracy as within 10% of the true label
-            acc = test_accuracy(output, test_label)
+            acc = test_accuracy(output, test_label, test_absolute)
             total_acc_test += acc
 
     print(f"Test Accuracy: {total_acc_test / len(test_data): .3f}")
@@ -946,6 +956,7 @@ def train_select_features(
     num_workers,
     num_of_rows,
     num_of_columns,
+    test_absolute,
 ):
     """
     Train the model based on extracted text.
@@ -956,6 +967,7 @@ def train_select_features(
     :param batch_size: Number of batches.
     :param num_of_rows: Maximum row number in the whole dataset.
     :param num_of_columns: Number of columns in final df.
+    :param test_absolute: Whether to use absolute test.
     :return: Training and evaluation accuracies.
     """
     train, val = train_data, val_data
@@ -1014,7 +1026,7 @@ def train_select_features(
 
             # acc = (output.argmax(dim=1) == train_label).sum().item()
             # Define accuracy as within 10% of the true label
-            acc = test_accuracy(output, train_label)
+            acc = test_accuracy(output, train_label, test_absolute)
             total_acc_train += acc
 
             batch_loss.backward()
@@ -1035,7 +1047,7 @@ def train_select_features(
 
                 # acc = (output.argmax(dim=1) == val_label).sum().item()
                 # Define accuracy as within 10% of the true label
-                acc = test_accuracy(output, val_label)
+                acc = test_accuracy(output, val_label, test_absolute)
                 total_acc_val += acc
 
             # early stopping
@@ -1052,13 +1064,16 @@ def train_select_features(
         )
 
 
-def evaluate_select_features(test_data, batch_size, num_of_rows, num_of_columns):
+def evaluate_select_features(
+    test_data, batch_size, num_of_rows, num_of_columns, test_absolute
+):
     """
     Evaluate accuracy for the model on text data.
     :param test_data: Dataframe to be tested.
     :param batch_size: Number of batches.
     :param num_of_rows: Maximum row number in the whole dataset.
     :param num_of_columns: Number of columns in final df.
+    :param test_absolute: Whether to use absolute test.
     :return: Test Accuracies.
     """
     test = test_data
@@ -1091,7 +1106,7 @@ def evaluate_select_features(test_data, batch_size, num_of_rows, num_of_columns)
 
             # acc = (output.argmax(dim=1) == test_label).sum().item()
             # Define accuracy as within 10% of the true label
-            acc = test_accuracy(output, test_label)
+            acc = test_accuracy(output, test_label, test_absolute)
             total_acc_test += acc
 
     print(f"Test Accuracy: {total_acc_test / len(test_data): .3f}")
@@ -1219,6 +1234,7 @@ def train_audio(
     batch_size,
     vectorise,
     num_workers,
+    test_absolute,
 ):
     """
     Train the model based on extracted audio vectors.
@@ -1231,6 +1247,7 @@ def train_audio(
     :param epochs: Number of epochs to be trained.
     :param batch_size: Number of batches.
     :param vectorise: If vectorised, use transformers to tokenize audios.
+    :param test_absolute: Whether to use absolute test.
     :return: Training and evaluation accuracies.
     """
     # Prepare data into dataloader
@@ -1299,7 +1316,7 @@ def train_audio(
 
             # acc = (output.argmax(dim=1) == train_label).sum().item()
             # Define accuracy as within 10% of the true label
-            acc = test_accuracy(output, train_label)
+            acc = test_accuracy(output, train_label, test_absolute)
             total_acc_train += acc
 
             batch_loss.backward()
@@ -1330,7 +1347,7 @@ def train_audio(
 
                 # acc = (output.argmax(dim=1) == val_label).sum().item()
                 # Define accuracy as within 10% of the true label
-                acc = test_accuracy(output, val_label)
+                acc = test_accuracy(output, val_label, test_absolute)
                 total_acc_val += acc
 
         # early stopping
@@ -1363,7 +1380,9 @@ def train_audio(
         )
 
 
-def evaluate_audio(model, test_data, batch_size, feature_extractor, vectorise):
+def evaluate_audio(
+    model, test_data, batch_size, feature_extractor, vectorise, test_absolute
+):
     """
     Evaluate accuracy for the model on vectorised audio data.
     :param model: Model to be used for deep learning.
@@ -1371,6 +1390,7 @@ def evaluate_audio(model, test_data, batch_size, feature_extractor, vectorise):
     :param batch_size: Number of batches.
     :param feature_extractor: Pre-trained transformer to extract audio features.
     :param vectorise: If vectorised, use transformers to tokenize audios.
+    :param test_absolute: Whether to use absolute test.
     :return: Test Accuracies.
     """
     test = test_data.reset_index(drop=True)
@@ -1402,7 +1422,7 @@ def evaluate_audio(model, test_data, batch_size, feature_extractor, vectorise):
 
             # acc = (output.argmax(dim=1) == test_label).sum().item()
             # Define accuracy as within 10% of the true label
-            acc = test_accuracy(output, test_label)
+            acc = test_accuracy(output, test_label, test_absolute)
             total_acc_test += acc
 
     print(f"Test Accuracy: {total_acc_test / len(test_data): .3f}")
@@ -1532,6 +1552,7 @@ def train_audio_text(
     num_workers,
     accum_iter,
     vectorise,
+    test_absolute,
 ):
     """
     Train the model based on extracted audio vectors.
@@ -1546,6 +1567,7 @@ def train_audio_text(
     :param batch_size: Number of batches.
     :param accum_iter: Number of batches to be iterated before optimizer step.
     :param vectorise: Whether to vectorise audio.
+    :param test_absolute: Whether to use absolute test.
     :return: Training and evaluation accuracies.
     """
     # Prepare data into dataloader
@@ -1636,7 +1658,7 @@ def train_audio_text(
 
             # acc = (output.argmax(dim=1) == train_label).sum().item()
             # Define accuracy as within 10% of the true label
-            acc = test_accuracy(output, train_label)
+            acc = test_accuracy(output, train_label, test_absolute)
             total_acc_train += acc
             batch_loss.backward()
 
@@ -1670,7 +1692,7 @@ def train_audio_text(
 
                 # acc = (output.argmax(dim=1) == val_label).sum().item()
                 # Define accuracy as within 10% of the true label
-                val_acc = test_accuracy(val_output, val_label)
+                val_acc = test_accuracy(val_output, val_label, test_absolute)
                 total_acc_val += val_acc
 
         # early stopping
@@ -1795,7 +1817,13 @@ def gen_val_scatter_plot(val_output_list, val_label_list, plot_name):
 
 
 def evaluate_audio_text(
-    model, audio_feature_extractor, text_tokenizer, test_data, batch_size, vectorise
+    model,
+    audio_feature_extractor,
+    text_tokenizer,
+    test_data,
+    batch_size,
+    vectorise,
+    test_absolute,
 ):
     """
     Evaluate accuracy for the model on vectorised audio data.
@@ -1804,6 +1832,7 @@ def evaluate_audio_text(
     :param text_tokenizer: Tokenizer for text.
     :param test_data: Dataframe to be tested.
     :param batch_size: Number of batches.
+    :param test_absolute: Whether to use absolute test.
     :return: Test Accuracies.
     """
     test = test_data.reset_index(drop=True)
@@ -1835,7 +1864,7 @@ def evaluate_audio_text(
 
             # acc = (output.argmax(dim=1) == test_label).sum().item()
             # Define accuracy as within 10% of the true label
-            acc = test_accuracy(output, test_label)
+            acc = test_accuracy(output, test_label, test_absolute)
             total_acc_test += acc
 
     print(f"Test Accuracy: {total_acc_test / len(test_data): .3f}")

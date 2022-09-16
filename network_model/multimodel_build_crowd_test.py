@@ -12,6 +12,7 @@ save_to_single_csv = False
 # Decide on whether to tokenize audios before training or use raw audio arrays.
 vectorise = True
 two_scores = True
+test_absolute = True
 # Load feature extractor
 audio_feature_extractor = AutoFeatureExtractor.from_pretrained("facebook/wav2vec2-base")
 text_tokenizer = BertTokenizer.from_pretrained("bert-base-cased")
@@ -86,6 +87,7 @@ train_audio_text(
     num_workers,
     accum_iter,
     vectorise,
+    test_absolute,
 )
 
 evaluate_audio_text(
@@ -95,4 +97,5 @@ evaluate_audio_text(
     audio_text_test_df,
     batch_size,
     vectorise,
+    test_absolute,
 )

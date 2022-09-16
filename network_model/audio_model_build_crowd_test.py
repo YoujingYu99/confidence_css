@@ -10,6 +10,7 @@ from model_utils import *
 save_to_single_csv = False
 # Decide on whether to tokenize audios before training or use raw audio arrays.
 vectorise = True
+test_absolute = True
 # Load feature extractor
 feature_extractor = AutoFeatureExtractor.from_pretrained("facebook/wav2vec2-base")
 
@@ -76,6 +77,9 @@ train_audio(
     batch_size,
     vectorise,
     num_workers,
+    test_absolute,
 )
 
-evaluate_audio(audio_model, audio_test_df, batch_size, feature_extractor, vectorise)
+evaluate_audio(
+    audio_model, audio_test_df, batch_size, feature_extractor, vectorise, test_absolute
+)

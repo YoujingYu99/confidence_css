@@ -12,6 +12,7 @@ from models import *
 
 # Decide whether to save the concatenated file to a single csv
 save_to_single_csv = True
+test_absolute = True
 
 text_tokenizer = BertTokenizer.from_pretrained("bert-base-cased")
 
@@ -107,5 +108,6 @@ train_select_features(
     num_workers,
     num_of_rows,
     num_of_columns,
+    test_absolute,
 )
 evaluate_select_features(dict_test, batch_size, num_of_rows, num_of_columns)

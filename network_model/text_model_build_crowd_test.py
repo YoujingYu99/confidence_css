@@ -12,7 +12,7 @@ from models import *
 
 # Decide whether to save the concatenated file to a single csv
 save_to_single_csv = False
-
+test_absolute = True
 text_tokenizer = BertTokenizer.from_pretrained("bert-base-cased")
 
 # home_dir is the location of script
@@ -77,5 +77,6 @@ train_text(
     epochs,
     batch_size,
     num_workers,
+    test_absolute,
 )
-evaluate_text(text_model, text_test_df, text_tokenizer, batch_size)
+evaluate_text(text_model, text_test_df, text_tokenizer, batch_size, test_absolute)
