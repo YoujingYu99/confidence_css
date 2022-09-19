@@ -27,11 +27,18 @@ print("start of application!")
 
 # Read in individual csvs and load into a final dataframe
 audio_text_df_train = load_audio_text_and_score_from_crowdsourcing_results(
-    home_dir, crowdsourcing_results_df_path, save_to_single_csv, augment_audio=False, two_scores=False
+    home_dir,
+    crowdsourcing_results_df_path,
+    save_to_single_csv,
+    augment_audio=False,
+    two_scores=False,
 )
 
 train_scores_list = audio_text_df_train["score"].tolist()
-text_length_list = [len(sentence.split()) for sentence in audio_text_df_train["sentence"].tolist()]
+text_length_list = [
+    len(sentence.split()) for sentence in audio_text_df_train["sentence"].tolist()
+]
+
 
 def count_scores_in_bins(train_scores_list):
     """
@@ -88,5 +95,4 @@ def plot_histogram_of_scores(input_list, num_bins, plot_name):
 # print(count_scores_in_bins(train_scores_list))
 
 # Analysis of text data
-plot_histogram_of_scores(text_length_list, num_bins=10,
-                         plot_name="text token length")
+plot_histogram_of_scores(text_length_list, num_bins=10, plot_name="text token length")
