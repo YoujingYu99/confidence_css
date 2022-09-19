@@ -27,13 +27,18 @@ print("start of application!")
 
 # Read in individual csvs and load into a final dataframe
 audio_text_df_train = load_audio_text_and_score_from_crowdsourcing_results(
-    home_dir, crowdsourcing_results_df_path, save_to_single_csv, augment_audio=False
+    home_dir, crowdsourcing_results_df_path, save_to_single_csv, augment_audio=False, two_scores=False
 )
 
 train_scores_list = audio_text_df_train["score"].tolist()
-
+text_length_list = [len(sentence.split()) for sentence in audio_text_df_train["sentence"].tolist()]
 
 def count_scores_in_bins(train_scores_list):
+    """
+    Count the scores in five bins.
+    :param train_scores_list: List of all scores.
+    :return: Five numbers of scores in each bin.
+    """
     trains_scores_centered = [i - 2.5 for i in train_scores_list]
     first_bucket_count = 0
     second_bucket_count = 0
@@ -60,10 +65,17 @@ def count_scores_in_bins(train_scores_list):
     )
 
 
-def plot_histogram_of_scores(scores_list, num_bins, plot_name):
+def plot_histogram_of_scores(input_list, num_bins, plot_name):
+    """
+    Plot the histogram of scores.
+    :param input_list: List of scores.
+    :param num_bins: Number of bins.
+    :param plot_name: Name of plot
+    :return: Save histogram plot.
+    """
     plt.figure()
-    plt.hist(scores_list, bins=num_bins)
-    plt.xlabel("Scores")
+    plt.hist(input_list, bins=num_bins)
+    plt.xlabel("Text length")
     plt.ylabel("Frequencies")
     plt.title("Histogram of " + plot_name)
     plt.savefig(os.path.join(home_dir, "plots", plot_name))
@@ -73,4 +85,8 @@ def plot_histogram_of_scores(scores_list, num_bins, plot_name):
 # plot_histogram_of_scores(train_scores_list, num_bins=10,
 #                          plot_name="training_dataset3")
 
-print(count_scores_in_bins(train_scores_list))
+# print(count_scores_in_bins(train_scores_list))
+
+# Analysis of text data
+plot_histogram_of_scores(text_length_list, num_bins=10,
+                         plot_name="text token length")

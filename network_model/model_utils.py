@@ -83,7 +83,7 @@ class TextDataset(torch.utils.data.Dataset):
             tokenizer(
                 text,
                 padding="max_length",
-                max_length=512,
+                max_length=120,
                 truncation=True,
                 return_tensors="pt",
             )
@@ -246,7 +246,7 @@ def train_text(
             total_loss_train += batch_loss.item()
 
             # acc = (output.argmax(dim=1) == train_label).sum().item()
-            # Define accuracy as within 10% of the true label
+            
             acc = test_accuracy(output, train_label, test_absolute)
             total_acc_train += acc
 
@@ -268,7 +268,6 @@ def train_text(
                 total_loss_val += batch_loss.item()
 
                 # acc = (output.argmax(dim=1) == val_label).sum().item()
-                # Define accuracy as within 10% of the true label
                 acc = test_accuracy(output, val_label, test_absolute)
                 total_acc_val += acc
             # early stopping
@@ -339,7 +338,7 @@ def evaluate_text(model, test_data, tokenizer, batch_size, test_absolute):
             output = output.flatten()
 
             # acc = (output.argmax(dim=1) == test_label).sum().item()
-            # Define accuracy as within 10% of the true label
+            
             acc = test_accuracy(output, test_label, test_absolute)
             total_acc_test += acc
 
@@ -352,16 +351,48 @@ def augment_audio_random(audio):
     :param audio_array: Original audio in dataframe entries (list).
     :return: augmented audio array.
     """
-    # Loudness
+    random_number = random.randint(0, 6)
+    print("random number", random_number)
     audio_array = np.array(audio)
-    aug = naa.LoudnessAug()
-    augmented_data = aug.augment(audio_array)
-    # Noise
-    aug = naa.NoiseAug()
-    augmented_data = aug.augment(augmented_data)
-    # Pitch
-    aug = naa.PitchAug(sampling_rate=16000, factor=(2, 3))
-    augmented_data = aug.augment(augmented_data)
+    if random_number == 0:
+        # Loudness
+        aug = naa.LoudnessAug()
+        augmented_data = aug.augment(audio_array)
+    elif random_number == 1:
+        # Noise
+        aug = naa.NoiseAug()
+        augmented_data = aug.augment(audio_array)
+    elif random_number == 2:
+        # Pitch
+        aug = naa.PitchAug(sampling_rate=16000, factor=(2, 3))
+        augmented_data = aug.augment(audio_array)
+    elif random_number == 3:
+        # Loudness and noise
+        aug = naa.LoudnessAug()
+        augmented_data = aug.augment(audio_array)
+        aug = naa.NoiseAug()
+        augmented_data = aug.augment(augmented_data)
+    elif random_number == 4:
+        # Loudness and pitch
+        aug = naa.LoudnessAug()
+        augmented_data = aug.augment(audio_array)
+        aug = naa.PitchAug(sampling_rate=16000, factor=(2, 3))
+        augmented_data = aug.augment(augmented_data)
+    elif random_number == 5:
+        # Noise and pitch
+        aug = naa.NoiseAug()
+        augmented_data = aug.augment(audio_array)
+        aug = naa.PitchAug(sampling_rate=16000, factor=(2, 3))
+        augmented_data = aug.augment(augmented_data)
+    else:
+        # Loudness, noise and pitch
+        aug = naa.LoudnessAug()
+        augmented_data = aug.augment(audio_array)
+        aug = naa.NoiseAug()
+        augmented_data = aug.augment(augmented_data)
+        aug = naa.PitchAug(sampling_rate=16000, factor=(2, 3))
+        augmented_data = aug.augment(augmented_data)
+
     return augmented_data
 
 
@@ -560,10 +591,11 @@ def load_text_and_score_from_crowdsourcing_results(
     return result_df
 
 
-def upsample_and_augment(result_df):
+def upsample_and_augment(result_df, times):
     """
     Upsample the dataframes in smaller buckets and augment audio data.
     :param result_df: Original unbalanced dataset.
+    :param times: Number of times the total dataset size to be increased
     :return: Balanced dataset
     """
     first_bucket_df = result_df.loc[result_df["score"] < -1.5]
@@ -585,7 +617,7 @@ def upsample_and_augment(result_df):
     else:
         num_repeat_first = num_rows_per_bucket / first_bucket_df.shape[0]
         first_bucket_df = first_bucket_df.sample(
-            frac=num_repeat_first, replace=True, random_state=1
+            frac=num_repeat_first*times, replace=True, random_state=1
         )
         first_bucket_df["audio_array"] = first_bucket_df["audio_array"].apply(
             augment_audio_random
@@ -593,7 +625,7 @@ def upsample_and_augment(result_df):
 
     num_repeat_second = num_rows_per_bucket / second_bucket_df.shape[0]
     second_bucket_df = second_bucket_df.sample(
-        frac=num_repeat_second, replace=True, random_state=1
+        frac=num_repeat_second*times, replace=True, random_state=1
     )
     second_bucket_df["audio_array"] = second_bucket_df["audio_array"].apply(
         augment_audio_random
@@ -601,13 +633,13 @@ def upsample_and_augment(result_df):
 
     num_repeat_third = num_rows_per_bucket / third_bucket_df.shape[0]
     third_bucket_df = third_bucket_df.sample(
-        frac=num_repeat_third, replace=True, random_state=1
+        frac=num_repeat_third*times, replace=True, random_state=1
     )
     third_bucket_df["audio_array"] = third_bucket_df["audio_array"].apply(
         augment_audio_random
     )
 
-    fourth_bucket_df = fourth_bucket_df.sample(frac=1, replace=True, random_state=1)
+    fourth_bucket_df = fourth_bucket_df.sample(frac=times, replace=True, random_state=1)
     fourth_bucket_df["audio_array"] = fourth_bucket_df["audio_array"].apply(
         augment_audio_random
     )
@@ -617,7 +649,7 @@ def upsample_and_augment(result_df):
     else:
         num_repeat_fifth = num_rows_per_bucket / fifth_bucket_df.shape[0]
         fifth_bucket_df = fifth_bucket_df.sample(
-            frac=num_repeat_fifth, replace=True, random_state=1
+            frac=num_repeat_fifth*times, replace=True, random_state=1
         )
         fifth_bucket_df["audio_array"] = fifth_bucket_df["audio_array"].apply(
             augment_audio_random
@@ -723,7 +755,7 @@ def load_audio_text_and_score_from_crowdsourcing_results(
     )
 
     if augment_audio:
-        result_df = upsample_and_augment(result_df)
+        result_df = upsample_and_augment(result_df, times=5)
         print("size of final training dataset", result_df.shape[0])
     if save_to_single_csv:
         if augment_audio:
@@ -1025,7 +1057,7 @@ def train_select_features(
             total_loss_train += batch_loss.item()
 
             # acc = (output.argmax(dim=1) == train_label).sum().item()
-            # Define accuracy as within 10% of the true label
+            
             acc = test_accuracy(output, train_label, test_absolute)
             total_acc_train += acc
 
@@ -1046,7 +1078,7 @@ def train_select_features(
                 total_loss_val += batch_loss.item()
 
                 # acc = (output.argmax(dim=1) == val_label).sum().item()
-                # Define accuracy as within 10% of the true label
+                
                 acc = test_accuracy(output, val_label, test_absolute)
                 total_acc_val += acc
 
@@ -1105,7 +1137,7 @@ def evaluate_select_features(
             output = output.flatten()
 
             # acc = (output.argmax(dim=1) == test_label).sum().item()
-            # Define accuracy as within 10% of the true label
+            
             acc = test_accuracy(output, test_label, test_absolute)
             total_acc_test += acc
 
@@ -1315,7 +1347,7 @@ def train_audio(
             total_loss_train += batch_loss.item()
 
             # acc = (output.argmax(dim=1) == train_label).sum().item()
-            # Define accuracy as within 10% of the true label
+            
             acc = test_accuracy(output, train_label, test_absolute)
             total_acc_train += acc
 
@@ -1346,7 +1378,7 @@ def train_audio(
                 total_loss_val += batch_loss.item()
 
                 # acc = (output.argmax(dim=1) == val_label).sum().item()
-                # Define accuracy as within 10% of the true label
+                
                 acc = test_accuracy(output, val_label, test_absolute)
                 total_acc_val += acc
 
@@ -1421,7 +1453,7 @@ def evaluate_audio(
             output = output.flatten()
 
             # acc = (output.argmax(dim=1) == test_label).sum().item()
-            # Define accuracy as within 10% of the true label
+            
             acc = test_accuracy(output, test_label, test_absolute)
             total_acc_test += acc
 
@@ -1458,7 +1490,7 @@ class AudioTextDataset(torch.utils.data.Dataset):
             text_tokenizer(
                 text,
                 padding="max_length",
-                max_length=512,
+                max_length=120,
                 truncation=True,
                 return_tensors="pt",
             )
@@ -1657,7 +1689,7 @@ def train_audio_text(
             total_loss_train += batch_loss.item()
 
             # acc = (output.argmax(dim=1) == train_label).sum().item()
-            # Define accuracy as within 10% of the true label
+            
             acc = test_accuracy(output, train_label, test_absolute)
             total_acc_train += acc
             batch_loss.backward()
@@ -1691,7 +1723,7 @@ def train_audio_text(
                 total_loss_val += val_batch_loss.item()
 
                 # acc = (output.argmax(dim=1) == val_label).sum().item()
-                # Define accuracy as within 10% of the true label
+                
                 val_acc = test_accuracy(val_output, val_label, test_absolute)
                 total_acc_val += val_acc
 
@@ -1863,7 +1895,7 @@ def evaluate_audio_text(
             output = output.flatten()
 
             # acc = (output.argmax(dim=1) == test_label).sum().item()
-            # Define accuracy as within 10% of the true label
+            
             acc = test_accuracy(output, test_label, test_absolute)
             total_acc_test += acc
 

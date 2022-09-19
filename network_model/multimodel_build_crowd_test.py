@@ -71,7 +71,7 @@ accum_iter = 4
 
 # Initialise audio model
 # audio_model = HubertClassifier()
-multimodel = CustomMultiModel()
+multimodel = CustomMultiModelSimplePooled()
 
 # Train model
 train_audio_text(
