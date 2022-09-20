@@ -664,8 +664,8 @@ def upsample_and_augment(result_df, times):
     """
     Upsample the dataframes in smaller buckets and augment audio data.
     :param result_df: Original unbalanced dataset.
-    :param times: Number of times the total dataset size to be increased
-    :return: Balanced dataset
+    :param times: Number of times the total dataset size to be increased.
+    :return: Balanced dataset dataframe.
     """
     first_bucket_df = result_df.loc[result_df["score"] < -1.5]
     second_bucket_df = result_df.loc[
