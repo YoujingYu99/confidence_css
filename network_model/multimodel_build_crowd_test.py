@@ -38,7 +38,7 @@ print("start of application!")
 audio_text_train_df = load_audio_text_and_score_from_crowdsourcing_results(
     home_dir,
     crowdsourcing_results_train_df_path,
-    save_to_single_csv,
+    save_to_single_csv=True,
     augment_audio=True,
     two_scores=two_scores,
 )

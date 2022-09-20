@@ -21,19 +21,19 @@ crowdsourcing_results_train_df_path = os.path.join(
     home_dir,
     "data_sheets",
     "crowdsourcing_results",
-    "Batch_4799159_batch_results_complete_reject_filtered_numbered_cleaned_renamed_soft_train.csv",
+    "Batch_4799159_batch_results_complete_reject_filtered_numbered_cleaned_train.csv",
 )
 crowdsourcing_results_val_df_path = os.path.join(
     home_dir,
     "data_sheets",
     "crowdsourcing_results",
-    "Batch_4799159_batch_results_complete_reject_filtered_numbered_cleaned_renamed_soft_val.csv",
+    "Batch_4799159_batch_results_complete_reject_filtered_numbered_cleaned_val.csv",
 )
 crowdsourcing_results_test_df_path = os.path.join(
     home_dir,
     "data_sheets",
     "crowdsourcing_results",
-    "Batch_4799159_batch_results_complete_reject_filtered_numbered_cleaned_renamed_soft_test.csv",
+    "Batch_4799159_batch_results_complete_reject_filtered_numbered_cleaned_test.csv",
 )
 
 

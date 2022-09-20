@@ -43,36 +43,36 @@ def split_to_train_val_test(home_dir):
         home_dir,
         "data_sheets",
         "crowdsourcing_results",
-        "Batch_4799159_batch_results_complete_reject_filtered_numbered_cleaned_renamed_soft.csv",
+        "Batch_4799159_batch_results_complete_reject_filtered_numbered_cleaned.csv",
     )
 
     crowdsourcing_results_train_df_path = os.path.join(
         home_dir,
         "data_sheets",
         "crowdsourcing_results",
-        "Batch_4799159_batch_results_complete_reject_filtered_numbered_cleaned_renamed_soft_train.csv",
+        "Batch_4799159_batch_results_complete_reject_filtered_numbered_cleaned_train.csv",
     )
 
     crowdsourcing_results_val_df_path = os.path.join(
         home_dir,
         "data_sheets",
         "crowdsourcing_results",
-        "Batch_4799159_batch_results_complete_reject_filtered_numbered_cleaned_renamed_soft_val.csv",
+        "Batch_4799159_batch_results_complete_reject_filtered_numbered_cleaned_val.csv",
     )
 
     crowdsourcing_results_test_df_path = os.path.join(
         home_dir,
         "data_sheets",
         "crowdsourcing_results",
-        "Batch_4799159_batch_results_complete_reject_filtered_numbered_cleaned_renamed_soft_test.csv",
+        "Batch_4799159_batch_results_complete_reject_filtered_numbered_cleaned_test.csv",
     )
 
     total_df = pd.read_csv(crowdsourcing_results_df_path)
-    train_df = total_df[:2760]
+    train_df = total_df[:3600]
     train_df.to_csv(crowdsourcing_results_train_df_path)
-    val_df = total_df[2761:3100]
+    val_df = total_df[3601:4050]
     val_df.to_csv(crowdsourcing_results_val_df_path)
-    test_df = total_df[3101:]
+    test_df = total_df[4051:]
     test_df.to_csv(crowdsourcing_results_test_df_path)
 
 
@@ -395,8 +395,7 @@ def augment_audio_random(audio):
         augmented_data = aug.augment(augmented_data)
         aug = naa.PitchAug(sampling_rate=16000, factor=(2, 3))
         augmented_data = aug.augment(augmented_data)
-
-    return augmented_data
+    return augmented_data[0].tolist()
 
 
 def augment_text_random_iter(sample_rate, result_df_augmented):
@@ -413,7 +412,7 @@ def augment_text_random_iter(sample_rate, result_df_augmented):
             # Write the .wav file
             wav_path = os.path.join("/home", "yyu", "wav_audio.wav")
             wavio.write(
-                wav_path, np.array(row["audio_array"][0]), sample_rate, sampwidth=2
+                wav_path, np.array(row["audio_array"]), sample_rate, sampwidth=2
             )
 
             # initialize the recognizer
@@ -825,7 +824,7 @@ def load_audio_text_and_score_from_crowdsourcing_results(
     )
 
     if augment_audio:
-        result_df = upsample_and_augment(result_df, times=5)
+        result_df = upsample_and_augment(result_df, times=1)
         print("size of final training dataset", result_df.shape[0])
     if save_to_single_csv:
         if augment_audio:
