@@ -2,6 +2,9 @@
 Extract the raw audio array, transcription and confidence score from the individual audio
 classes. Then use this data to train the network for regression.
 """
+import os.path
+
+import pandas as pd
 from transformers import AutoFeatureExtractor, BertTokenizer
 from model_utils import *
 
@@ -33,14 +36,17 @@ crowdsourcing_results_test_df_path = os.path.join(
 
 
 print("start of application!")
-
-# Read in individual csvs and load into a final dataframe
-audio_text_train_df = load_audio_text_and_score_from_crowdsourcing_results(
+generate_train_data_from_crowdsourcing_results(
     home_dir,
     crowdsourcing_results_train_df_path,
-    save_to_single_csv=True,
     augment_audio=True,
     two_scores=two_scores,
+)
+
+
+# Read in individual csvs and load into a final dataframe
+audio_text_train_df = pd.read_csv(
+    os.path.join(home_dir, "data_sheets", "audio_text_upsampled_augmented.csv")
 )
 
 
