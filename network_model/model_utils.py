@@ -357,7 +357,7 @@ def augment_audio_random(audio):
     :return: augmented audio array.
     """
     random_number = random.randint(0, 7)
-    print("length of input", len(audio))
+    # print("length of input", len(audio))
     audio_array = np.array(json.loads(audio))
     try:
         if random_number == 0:
@@ -404,9 +404,9 @@ def augment_audio_random(audio):
         print("Error!", e)
         augmented_data = [audio_array, 2]
         pass
+    #
+    # print("length of tansformed array", len(augmented_data[0].tolist()))
 
-    print("length of tansformed array", len(augmented_data[0].tolist()))
-    print("transformed array first 10 elements", augmented_data[0].tolist()[:10])
     return augmented_data[0].tolist()
 
 
@@ -436,6 +436,7 @@ def augment_text_random_iter(sample_rate, result_df_augmented):
                 # recognize (convert from speech to text)
                 try:
                     text = r.recognize_google(audio_data, language="en-IN")
+                    print("success speech translation!")
                 except:
                     # Use original text
                     text = row["sentence"]
@@ -446,34 +447,6 @@ def augment_text_random_iter(sample_rate, result_df_augmented):
         else:
             continue
     return result_df_augmented
-
-
-def augment_text_random(audio_list):
-    """
-    Speech to text translation on the audio file.
-    :param audio_list: List of raw audio.
-    :return: Translated text.
-    """
-    sample_rate = 22050
-    # Write the .wav file
-    wav_path = os.path.join("/home", "yyu", "wav_audio.wav")
-    wavio.write(wav_path, np.array(audio_list), sample_rate, sampwidth=2)
-
-    # initialize the recognizer
-    r = sr.Recognizer()
-    # open the file
-    with sr.AudioFile(wav_path) as source:
-        # listen for the data (load audio to memory)
-        audio_data = r.record(source)
-        # recognize (convert from speech to text)
-        try:
-            text = r.recognize_google(audio_data, language="en-IN")
-            print("with translation:", text)
-        except:
-            # Use original text
-            text = ""
-        # print(text)
-    return text
 
 
 def load_audio_and_score_from_folder(folder_path_dir, file_type, save_to_single_csv):
