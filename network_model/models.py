@@ -350,7 +350,7 @@ class CustomMultiModelSimplePooled(nn.Module):
         super(CustomMultiModelSimplePooled, self).__init__()
         self.bert = BertModel.from_pretrained("bert-base-cased")
         self.hubert = HubertModel.from_pretrained("facebook/hubert-base-ls960")
-        self.layernorm1 = nn.LayerNorm([8, 768 * 2])
+        self.layernorm1 = nn.LayerNorm([4, 768 * 2])
         self.dropout = nn.Dropout(dropout)
         self.linear1 = nn.Linear(768 * 2, 32)
         self.layernorm2 = nn.LayerNorm([1, 32])
@@ -363,7 +363,7 @@ class CustomMultiModelSimplePooled(nn.Module):
         sequence_output_bert, pooled_output_bert = self.bert(
             input_ids=input_id, attention_mask=mask, return_dict=False
         )
-        print("pooled bert", pooled_output_bert.size())
+        # print("pooled bert", pooled_output_bert.size())
 
         ## Hubert transform
         # print("hubert input size", input_values.size())
@@ -371,21 +371,21 @@ class CustomMultiModelSimplePooled(nn.Module):
         (pooled_output_hubert,) = output_tuple_hubert
         # print("pooled hubert", pooled_output_hubert.size())
         pooled_hubert = torch.mean(pooled_output_hubert, dim=1)
-        print("pooled hubert", pooled_hubert.size())
+        # print("pooled hubert", pooled_hubert.size())
 
         # Concat the two models
         concat = torch.cat((pooled_output_bert, pooled_hubert), dim=1)
-        print("concat size", concat.size())
+        # print("concat size", concat.size())
         concat_norm = self.layernorm1(concat)
         dropout1 = self.dropout(concat_norm)
-        print("concat size", dropout1.size())
+        # print("concat size", dropout1.size())
 
         linear1 = self.linear1(dropout1)
         dropout2 = self.dropout(linear1)
         dropout2_norm = self.layernorm2(dropout2)
-        print("dropout2 norm", dropout2_norm.size())
+        # print("dropout2 norm", dropout2_norm.size())
         linear2 = self.linear2(dropout2_norm)
-        print("linear 2 size", linear2.size())
+        # print("linear 2 size", linear2.size())
         tanh = self.tanh(linear2)
         # Scale to match input
         prediction = tanh * 2.5

@@ -399,6 +399,39 @@ def augment_audio_random(audio):
     return augmented_data
 
 
+def augment_text_random_iter(sample_rate, result_df_augmented):
+    """
+    Augment text randomly.
+    :param sample_rate: Sample rate for the audio.
+    :param result_df_augmented: Original df with augmented audio.
+    :return: Df with augmented audio and text.
+    """
+    # Find the feature csv locally
+    for index, row in result_df_augmented.iterrows():
+        random_number = random.randint(0, 1)
+        if random_number == 0:
+            # Write the .wav file
+            wav_path = os.path.join("/home", "yyu", "wav_audio.wav")
+            wavio.write(
+                wav_path, np.array(row["audio_array"][0]), sample_rate, sampwidth=2
+            )
+
+            # initialize the recognizer
+            r = sr.Recognizer()
+            # open the file
+            with sr.AudioFile(wav_path) as source:
+                # listen for the data (load audio to memory)
+                audio_data = r.record(source)
+                # recognize (convert from speech to text)
+                try:
+                    text = r.recognize_google(audio_data, language="en-IN")
+                except:
+                    # Use original text
+                    text = row["sentence"]
+                row["sentence"] = text
+    return result_df_augmented
+
+
 def augment_text_random(audio_list):
     """
     Speech to text translation on the audio file.
@@ -407,8 +440,13 @@ def augment_text_random(audio_list):
     """
     sample_rate = 22050
     # Write the .wav file
-    wav_path = os.path.join("/home", "yyu", "wav_audio.wav",)
+    wav_path = os.path.join("/home", "yyu", "wav_audio.wav")
     wavio.write(wav_path, np.array(audio_list), sample_rate, sampwidth=2)
+    all_df = pd.read_csv(
+        os.path.join(
+            "/home", "yyu", "data_sheets", "audio_text_crowd_all_model_aug.csv"
+        )
+    )
 
     # initialize the recognizer
     r = sr.Recognizer()
@@ -417,7 +455,13 @@ def augment_text_random(audio_list):
         # listen for the data (load audio to memory)
         audio_data = r.record(source)
         # recognize (convert from speech to text)
-        text = r.recognize_google(audio_data)
+        try:
+            text = r.recognize_google(audio_data, language="en-IN")
+            print("with translation:", text)
+        except:
+            # Use original text
+            text = ""
+        # print(text)
     return text
 
 
@@ -672,15 +716,18 @@ def upsample_and_augment(result_df, times):
         fifth_bucket_df,
     ]
     result_df = pd.concat(all_dfs)
-    # Augment audio and text
-    result_df_augmented = result_df.copy()
-    result_df_augmented["audio_array"] = result_df["audio_array"].apply(
+    # Augment audio
+    result_df_augmented_audio = result_df.copy()
+    result_df_augmented_audio["audio_array"] = result_df["audio_array"].apply(
         augment_audio_random
     )
-    result_df_augmented["sentence"] = result_df["audio_array"].apply(
-        augment_text_random
+    # Augment text
+    sample_rate = 22050
+    result_df_augmented_audio_text = augment_text_random_iter(
+        sample_rate=sample_rate, result_df_augmented=result_df_augmented_audio
     )
-    return result_df_augmented
+
+    return result_df_augmented_audio_text
 
 
 def take_two_from_row(row):
@@ -1765,7 +1812,7 @@ def train_audio_text(
         val_acc_list.append(total_acc_val / len(val_data))
 
         # Generate plots
-        plot_name = "audio_text_upsample_two"
+        plot_name = "audio_text_upsample_two_augment_"
         gen_acc_plots(train_acc_list, val_acc_list, plot_name)
         gen_loss_plots(train_loss_list, val_loss_list, plot_name)
         gen_val_scatter_plot(val_output_list, val_label_list, plot_name)
