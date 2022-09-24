@@ -19,41 +19,52 @@ text_tokenizer = BertTokenizer.from_pretrained("bert-base-cased")
 # home_dir is the location of script
 home_dir = os.path.join("/home", "yyu")
 
-# Path for crowdsourcing results
+
 # Path for crowdsourcing results
 crowdsourcing_results_train_df_path = os.path.join(
     home_dir,
     "data_sheets",
     "crowdsourcing_results",
-    "Batch_4799159_batch_results_complete_reject_filtered_numbered_cleaned_renamed_soft_train.csv",
+    "Batch_4799159_batch_results_complete_reject_filtered_numbered_cleaned_train.csv",
 )
 crowdsourcing_results_val_df_path = os.path.join(
     home_dir,
     "data_sheets",
     "crowdsourcing_results",
-    "Batch_4799159_batch_results_complete_reject_filtered_numbered_cleaned_renamed_soft_val.csv",
+    "Batch_4799159_batch_results_complete_reject_filtered_numbered_cleaned_val.csv",
 )
 crowdsourcing_results_test_df_path = os.path.join(
     home_dir,
     "data_sheets",
     "crowdsourcing_results",
-    "Batch_4799159_batch_results_complete_reject_filtered_numbered_cleaned_renamed_soft_test.csv",
+    "Batch_4799159_batch_results_complete_reject_filtered_numbered_cleaned_test.csv",
 )
-
 
 print("start of application!")
 
 # Read in individual csvs and load into a final dataframe
 text_train_df = load_text_and_score_from_crowdsourcing_results(
-    home_dir, crowdsourcing_results_train_df_path, save_to_single_csv
+    home_dir,
+    crowdsourcing_results_train_df_path,
+    save_to_single_csv,
+    augment_text=True,
+    two_scores=True,
 )
 
 text_val_df = load_text_and_score_from_crowdsourcing_results(
-    home_dir, crowdsourcing_results_val_df_path, save_to_single_csv
+    home_dir,
+    crowdsourcing_results_val_df_path,
+    save_to_single_csv,
+    augment_text=False,
+    two_scores=True,
 )
 
 text_test_df = load_text_and_score_from_crowdsourcing_results(
-    home_dir, crowdsourcing_results_test_df_path, save_to_single_csv
+    home_dir,
+    crowdsourcing_results_test_df_path,
+    save_to_single_csv,
+    augment_text=False,
+    two_scores=True,
 )
 
 # Decide on Epoch and model
@@ -65,7 +76,7 @@ num_workers = 4
 
 # Initialise model
 # text_model = BertClassifier()
-text_model = CustomBERTModel()
+text_model = CustomBERTSimpleModel()
 
 # Train model
 train_text(

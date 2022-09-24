@@ -13,7 +13,7 @@ crowdsourcing_results_df_path = os.path.join(
     home_dir,
     "data_sheets",
     "crowdsourcing_results",
-    "Batch_4799159_batch_results_complete_reject_filtered_numbered_cleaned_renamed_soft.csv",
+    "Batch_4799159_batch_results_complete_reject_filtered_numbered_cleaned.csv",
 )
 
 
@@ -21,7 +21,11 @@ print("start of application!")
 
 # Read in individual csvs and load into a final dataframe
 audio_df = load_audio_and_score_from_crowdsourcing_results(
-    home_dir, crowdsourcing_results_df_path, save_to_single_csv
+    home_dir,
+    crowdsourcing_results_df_path,
+    save_to_single_csv,
+    augment_audio=False,
+    two_scores=True,
 )
 
 
@@ -30,8 +34,6 @@ true_scores = audio_df["score"].tolist()
 random_list = []
 for i in range(len(true_scores)):
     random_list.append(random.uniform(-2.5, 2.5))
-
-print(random_list)
 
 
 def test_accuracy(output_list, actual_list, absolute):
@@ -46,7 +48,7 @@ def test_accuracy(output_list, actual_list, absolute):
     for i in range(len(output_list)):
         # If test by absolute value
         if absolute:
-            if actual_list[i] - 0.2 <= output_list[i] <= actual_list[i] + 0.2:
+            if actual_list[i] - 0.5 <= output_list[i] <= actual_list[i] + 0.5:
                 count += 1
         else:
             if actual_list[i] * 0.8 <= output_list[i] <= actual_list[i] * 1.2:

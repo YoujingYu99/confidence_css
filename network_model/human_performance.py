@@ -25,14 +25,13 @@ human_df = pd.read_csv(
     os.path.join(
         home_dir,
         "data_sheets",
-        "crowdsourcing_results",
         "Batch_4799159_batch_results_complete_reject_filtered_numbered_cleaned_test_yyu.csv",
     )
 )
 
 # Get two series of scores
 true_scores = audio_text_test_df["score"].astype(float)
-human_scores = human_df["score4"].astype(float)
+human_scores = human_df["score4"].astype(float) - 2.5
 
 count = test_accuracy(human_scores, true_scores, absolute=True)
 print("Human accuracy rate is", count / human_scores.size)

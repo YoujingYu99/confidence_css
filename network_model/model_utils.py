@@ -8,7 +8,7 @@ Class AudioTextDataset: Class that handles the preparation of both text and
                 audio for training.
 """
 import warnings
-from pydub import AudioSegment
+import nlpaug.augmenter.word as naw
 import wavio
 import speech_recognition as sr
 from scipy.io.wavfile import write
@@ -30,7 +30,60 @@ from models import *
 
 warnings.filterwarnings("ignore", category=np.VisibleDeprecationWarning)
 warnings.simplefilter(action="ignore", category=FutureWarning)
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
+
 num_gpus = torch.cuda.device_count()
+
+
+def count_scores_in_bins(train_scores_list):
+    """
+    Count the scores in five bins.
+    :param train_scores_list: List of all scores.
+    :return: Five numbers of scores in each bin.
+    """
+    trains_scores_centered = [i - 2.5 for i in train_scores_list]
+    first_bucket_count = 0
+    second_bucket_count = 0
+    third_bucket_count = 0
+    fourth_bucket_count = 0
+    fifth_bucket_count = 0
+    for score in trains_scores_centered:
+        if -2.5 <= score < -1.5:
+            first_bucket_count += 1
+        elif -1.5 <= score < -0.5:
+            second_bucket_count += 1
+        elif -0.5 <= score < 0.5:
+            third_bucket_count += 1
+        elif 0.5 <= score < 1.5:
+            fourth_bucket_count += 1
+        else:
+            fifth_bucket_count += 1
+    return (
+        first_bucket_count,
+        second_bucket_count,
+        third_bucket_count,
+        fourth_bucket_count,
+        fifth_bucket_count,
+    )
+
+
+def plot_histogram_of_scores(home_dir, input_list, num_bins, plot_name, x_label):
+    """
+    Plot the histogram of scores.
+    :param home_dir: Home directory.
+    :param input_list: List of scores.
+    :param num_bins: Number of bins.
+    :param plot_name: Name of plot
+    :param x_label: X label name.
+    :return: Save histogram plot.
+    """
+    plt.figure()
+    plt.hist(input_list, bins=num_bins)
+    plt.xlabel(x_label)
+    plt.ylabel("Frequencies")
+    plt.title("Histogram of " + plot_name)
+    plt.savefig(os.path.join(home_dir, "plots", plot_name))
+    plt.show()
 
 
 def split_to_train_val_test(home_dir):
@@ -353,61 +406,99 @@ def evaluate_text(model, test_data, tokenizer, batch_size, test_absolute):
 def augment_audio_random(audio):
     """
     Augment audio into new arrays.
-    :param audio: Original audio in dataframe entries (string).
+    :param audio: Original audio in dataframe entries (list).
     :return: augmented audio array.
     """
     random_number = random.randint(0, 7)
     # print("length of input", len(audio))
-    audio_array = np.array(json.loads(audio))
+    if isinstance(audio, str):
+        audio = np.array(json.loads(audio))
+    else:
+        audio = np.array(audio)
+        pass
     try:
         if random_number == 0:
             # Loudness
             aug = naa.LoudnessAug()
-            augmented_data = aug.augment(audio_array)
+            augmented_data = aug.augment(audio)
         elif random_number == 1:
             # Noise
             aug = naa.NoiseAug()
-            augmented_data = aug.augment(audio_array)
+            augmented_data = aug.augment(audio)
         elif random_number == 2:
             # Pitch
             aug = naa.PitchAug(sampling_rate=16000, factor=(2, 3))
-            augmented_data = aug.augment(audio_array)
+            augmented_data = aug.augment(audio)
         elif random_number == 3:
             # Loudness and noise
             aug = naa.LoudnessAug()
-            augmented_data = aug.augment(audio_array)
+            augmented_data = aug.augment(audio)
             aug = naa.NoiseAug()
             augmented_data = aug.augment(augmented_data)
         elif random_number == 4:
             # Loudness and pitch
             aug = naa.LoudnessAug()
-            augmented_data = aug.augment(audio_array)
+            augmented_data = aug.augment(audio)
             aug = naa.PitchAug(sampling_rate=16000, factor=(2, 3))
             augmented_data = aug.augment(augmented_data)
         elif random_number == 5:
             # Noise and pitch
             aug = naa.NoiseAug()
-            augmented_data = aug.augment(audio_array)
+            augmented_data = aug.augment(audio)
             aug = naa.PitchAug(sampling_rate=16000, factor=(2, 3))
             augmented_data = aug.augment(augmented_data)
         elif random_number == 6:
             # Loudness, noise and pitch
             aug = naa.LoudnessAug()
-            augmented_data = aug.augment(audio_array)
+            augmented_data = aug.augment(audio)
             aug = naa.NoiseAug()
             augmented_data = aug.augment(augmented_data)
             aug = naa.PitchAug(sampling_rate=16000, factor=(2, 3))
             augmented_data = aug.augment(augmented_data)
         else:
-            augmented_data = [audio_array, "test"]
+            augmented_data = audio
     except Exception as e:
         print("Error!", e)
-        augmented_data = [audio_array, 2]
+        # augmented_data = [audio, 2]
+        augmented_data = audio
         pass
-    #
-    # print("length of tansformed array", len(augmented_data[0].tolist()))
 
-    return augmented_data[0].tolist()
+    # return augmented_data[0].tolist()
+    return augmented_data
+
+
+def augment_text_random(text):
+    """
+    Augment text into new string.
+    :param text: Original text in dataframe entries (string).
+    :return: augmented text.
+    """
+    random_number = random.randint(0, 5)
+    try:
+        if random_number == 0:
+            # Contextual word embeddings
+            aug = naw.ContextualWordEmbsAug(
+                model_path="bert-base-uncased", action="insert"
+            )
+            augmented_text = aug.augment(text)[0]
+        elif random_number == 1:
+            # Substitute
+            aug = naw.ContextualWordEmbsAug(
+                model_path="bert-base-uncased", action="substitute"
+            )
+            augmented_text = aug.augment(text)[0]
+        elif random_number == 2:
+            # Delete word randomly
+            aug = naw.RandomWordAug()
+            augmented_text = aug.augment(text)[0]
+        else:
+            augmented_text = text
+    except Exception as e:
+        print("Error!", e)
+        augmented_text = text
+        pass
+
+    return augmented_text
 
 
 def augment_text_random_iter(sample_rate, result_df_augmented):
@@ -422,10 +513,11 @@ def augment_text_random_iter(sample_rate, result_df_augmented):
         random_number = random.randint(0, 1)
         wav_path = os.path.join("/home", "yyu", "wav_audio.wav")
         if random_number == 0:
-            # Write the .wav file
-            wavio.write(
-                wav_path, np.array(row["audio_array"]), sample_rate, sampwidth=2
-            )
+            if isinstance(row["audio_array"], list):
+                # Write the .wav file
+                wavio.write(wav_path, row["audio_array"][0], sample_rate, sampwidth=2)
+            elif isinstance(row["audio_array"], np.ndarray):
+                wavio.write(wav_path, row["audio_array"], sample_rate, sampwidth=2)
 
             # initialize the recognizer
             r = sr.Recognizer()
@@ -436,7 +528,6 @@ def augment_text_random_iter(sample_rate, result_df_augmented):
                 # recognize (convert from speech to text)
                 try:
                     text = r.recognize_google(audio_data, language="en-IN")
-                    print("success speech translation!")
                 except:
                     # Use original text
                     text = row["sentence"]
@@ -513,13 +604,19 @@ def load_audio_and_score_from_folder(folder_path_dir, file_type, save_to_single_
 
 
 def load_audio_and_score_from_crowdsourcing_results(
-    home_dir, crowdsourcing_results_df_path, save_to_single_csv
+    home_dir,
+    crowdsourcing_results_df_path,
+    save_to_single_csv,
+    augment_audio,
+    two_scores,
 ):
     """
     Load the audio arrays and user scores from the csv files.
     :param home_dir: Home directory.
     :param crowdsourcing_results_df_path: Path to the results dataframe.
     :param save_to_single_csv: Whether to save to a single csv file.
+    :param augment_audio: Whether to augment the audio.
+    :param:two_scores: Only use two scores from the worker.
     :return: Dataframe of audio arrays and average score.
     """
     # Load crowdsourcing results df
@@ -543,7 +640,6 @@ def load_audio_and_score_from_crowdsourcing_results(
         # Only proceed if file exists
         if os.path.isfile(total_df_path):
             total_df = pd.read_csv(total_df_path, encoding="utf-8", dtype="unicode")
-            score_list.append(row["average"] - 2.5)
             try:
                 # Convert audio to list
                 curr_audio_data = total_df["audio_array"].to_list()
@@ -554,26 +650,26 @@ def load_audio_and_score_from_crowdsourcing_results(
                     curr_audio_data = [json.loads(i) for i in curr_audio_data]
                 audio_list.append(curr_audio_data)
 
-                # # Convert to list
-                # curr_audio_data = total_df["audio_array"].to_list()
-                # # If list contains element of type string
-                # if not all(isinstance(i, float) for i in curr_audio_data):
-                #     print("Found wrong data type!")
-                #     # Decode to float using json
-                #     curr_audio_data = json.loads(curr_audio_data[0])
-                #     curr_audio_data = [float(elem) for elem in curr_audio_data]
-                #     print(type(curr_audio_data[0]))
-                # audio_list.append(curr_audio_data)
+                if two_scores:
+                    # Only take the most similar two answers
+                    score = take_two_from_row(row)
+                else:
+                    score = row["average"] - 2.5
+                score_list.append(score)
+
             except Exception as e:
                 print("Error in parsing! File name = " + total_df_path)
                 print(e)
                 continue
 
-    print(len(audio_list))
-    print(len(score_list))
     result_df = pd.DataFrame(
         np.column_stack([audio_list, score_list]), columns=["audio_array", "score"]
     )
+
+    if augment_audio:
+        result_df = upsample_and_augment_audio_only(result_df, times=3)
+        print("size of final training dataset", result_df.shape[0])
+
     if save_to_single_csv:
         ## Save all data into a single csv file.
         save_path = os.path.join(
@@ -584,13 +680,19 @@ def load_audio_and_score_from_crowdsourcing_results(
 
 
 def load_text_and_score_from_crowdsourcing_results(
-    home_dir, crowdsourcing_results_df_path, save_to_single_csv
+    home_dir,
+    crowdsourcing_results_df_path,
+    save_to_single_csv,
+    augment_text,
+    two_scores,
 ):
     """
     Load the text and user scores from the csv files.
     :param home_dir: Home directory.
     :param crowdsourcing_results_df_path: Path to the results dataframe.
     :param save_to_single_csv: Whether to save to a single csv file.
+    :param augment_text: Whether to augment the text.
+    :param two_scores: Whether to use only two scores
     :return: Dataframe of text and average score.
     """
     # Load crowdsourcing results df
@@ -617,24 +719,31 @@ def load_text_and_score_from_crowdsourcing_results(
                 select_features_df = pd.read_csv(
                     all_features_csv_path, encoding="utf-8", dtype="unicode"
                 )
-                # Conver to numpy integer type
-                score_list.append(row["average"] - 2.5)
                 # Convert to list
                 curr_text_data = select_features_df["text"].to_list()[0]
                 # print("curr text data", curr_text_data)
                 # print(type(curr_text_data))
                 text_list.append([curr_text_data])
+                if two_scores:
+                    # Only take the most similar two answers
+                    score = take_two_from_row(row)
+                else:
+                    score = row["average"] - 2.5
+                score_list.append(score)
             except Exception as e:
                 print("Error in parsing! File name = " + all_features_csv_path)
                 print(e)
                 continue
 
-    print(len(text_list))
-    print(len(score_list))
     result_df = pd.DataFrame(
         np.column_stack([text_list, score_list]), columns=["sentence", "score"]
     )
     result_df["score"] = result_df["score"].astype(float)
+
+    if augment_text:
+        result_df = upsample_and_augment_text_only(result_df, times=3)
+        print("size of final training dataset", result_df.shape[0])
+
     if save_to_single_csv:
         ## Save all data into a single csv file.
         save_path = os.path.join(
@@ -691,6 +800,7 @@ def upsample_audio_text_augment(
             del mylist
 
             augment_training_data_audio(unaug_df, number=i)
+            print("finished the " + str(i) + "audio augmentation.")
 
     if augment_text_train:
         print("start augmenting text!")
@@ -715,9 +825,10 @@ def upsample_audio_text_augment(
 
     if concat_final_train_df:
         print("start concatenating final df!")
+        total_df_list = []
         for i in [1, 2, 3]:
-            # Large dataset
-            mylistaudiotext = []
+            # Individual dfs
+            indiv_df_list = []
             for chunk in pd.read_csv(
                 os.path.join(
                     "/home",
@@ -727,12 +838,17 @@ def upsample_audio_text_augment(
                 ),
                 chunksize=1000,
             ):
-                mylistaudiotext.append(chunk)
+                indiv_df_list.append(chunk)
 
-            audio_text_aug = pd.concat(mylistaudiotext, axis=0)
-            del mylistaudio
+            audio_text_aug = pd.concat(indiv_df_list, axis=0)
+            del indiv_df_list
+            # Append to the large list
+            total_df_list.append(audio_text_aug)
 
-        audio_text_aug.to_csv(
+        # Concat to form the total dataframe.
+        total_audio_text_aug = pd.concat(total_df_list)
+        del total_df_list
+        total_audio_text_aug.to_csv(
             os.path.join(
                 "/home",
                 "yyu",
@@ -844,7 +960,6 @@ def augment_training_data_audio(upsampled_df, number):
     """
     print("Start augmenting!")
     # Augment audio
-    # result_df_augmented_audio = result_df.copy()
     upsampled_df["audio_array"] = upsampled_df["audio_array"].apply(
         augment_audio_random
     )
@@ -883,7 +998,7 @@ def augment_training_data_text(audio_aug_df, number):
     )
 
 
-def upsample_and_augment(result_df, times):
+def upsample_and_augment_audio_only(result_df, times):
     """
     Upsample the dataframes in smaller buckets and augment audio data.
     :param result_df: Original unbalanced dataset.
@@ -962,11 +1077,178 @@ def upsample_and_augment(result_df, times):
     print("Deleted all individual dfs")
 
     # Augment audio
-    # result_df_augmented_audio = result_df.copy()
     result_df["audio_array"] = result_df["audio_array"].apply(augment_audio_random)
 
-    # Augment text
-    sample_rate = 22050
+    return result_df
+
+
+def upsample_and_augment_text_only(result_df, times):
+    """
+    Upsample the dataframes in smaller buckets and augment text data.
+    :param result_df: Original unbalanced dataset.
+    :param times: Number of times the total dataset size to be increased.
+    :return: Balanced dataset dataframe.
+    """
+    print("start upsamping!")
+    first_bucket_df = result_df.loc[result_df["score"] < -1.5]
+    second_bucket_df = result_df.loc[
+        (result_df["score"] >= -1.5) & (result_df["score"] < -0.5)
+    ]
+    third_bucket_df = result_df.loc[
+        (result_df["score"] >= -0.5) & (result_df["score"] < 0.5)
+    ]
+    fourth_bucket_df = result_df.loc[
+        (result_df["score"] >= 0.5) & (result_df["score"] < 1.5)
+    ]
+    fifth_bucket_df = result_df.loc[result_df["score"] >= 1.5]
+
+    # Upsample the dfs
+    num_rows_per_bucket = fourth_bucket_df.shape[0]
+    if first_bucket_df.shape[0] == 0:
+        pass
+    else:
+        num_repeat_first = num_rows_per_bucket / first_bucket_df.shape[0]
+        first_bucket_df = first_bucket_df.sample(
+            frac=num_repeat_first * times, replace=True, random_state=1
+        )
+
+    num_repeat_second = num_rows_per_bucket / second_bucket_df.shape[0]
+    second_bucket_df = second_bucket_df.sample(
+        frac=num_repeat_second * times, replace=True, random_state=1
+    )
+
+    num_repeat_third = num_rows_per_bucket / third_bucket_df.shape[0]
+    third_bucket_df = third_bucket_df.sample(
+        frac=num_repeat_third * times, replace=True, random_state=1
+    )
+
+    fourth_bucket_df = fourth_bucket_df.sample(frac=times, replace=True, random_state=1)
+
+    if first_bucket_df.shape[0] == 0:
+        pass
+    else:
+        num_repeat_fifth = num_rows_per_bucket / fifth_bucket_df.shape[0]
+        fifth_bucket_df = fifth_bucket_df.sample(
+            frac=num_repeat_fifth * times, replace=True, random_state=1
+        )
+    all_dfs = [
+        first_bucket_df,
+        second_bucket_df,
+        third_bucket_df,
+        fourth_bucket_df,
+        fifth_bucket_df,
+    ]
+    result_df = pd.concat(all_dfs)
+
+    result_df.to_csv(
+        os.path.join(
+            "/home", "yyu", "data_sheets", "audio_text_upsampled_unaugmented.csv",
+        )
+    )
+    # Delete individual dataframes
+    del first_bucket_df
+    del second_bucket_df
+    del third_bucket_df
+    del fourth_bucket_df
+    del fifth_bucket_df
+    del all_dfs
+    gc.collect()
+    first_bucket_df = pd.DataFrame()
+    second_bucket_df = pd.DataFrame()
+    third_bucket_df = pd.DataFrame()
+    fourth_bucket_df = pd.DataFrame()
+    fifth_bucket_df = pd.DataFrame()
+    print("Deleted all individual dfs")
+
+    # Augment audio
+    result_df["sentence"] = result_df["sentence"].apply(augment_text_random)
+
+    return result_df
+
+
+def upsample_and_augment(result_df, times):
+    """
+    Upsample the dataframes in smaller buckets and augment audio data.
+    :param result_df: Original unbalanced dataset.
+    :param times: Number of times the total dataset size to be increased.
+    :return: Balanced dataset dataframe.
+    """
+    print("start upsamping!")
+    first_bucket_df = result_df.loc[result_df["score"] < -1.5]
+    second_bucket_df = result_df.loc[
+        (result_df["score"] >= -1.5) & (result_df["score"] < -0.5)
+    ]
+    third_bucket_df = result_df.loc[
+        (result_df["score"] >= -0.5) & (result_df["score"] < 0.5)
+    ]
+    fourth_bucket_df = result_df.loc[
+        (result_df["score"] >= 0.5) & (result_df["score"] < 1.5)
+    ]
+    fifth_bucket_df = result_df.loc[result_df["score"] >= 1.5]
+
+    # Upsample the dfs
+    num_rows_per_bucket = fourth_bucket_df.shape[0]
+    if first_bucket_df.shape[0] == 0:
+        pass
+    else:
+        num_repeat_first = num_rows_per_bucket / first_bucket_df.shape[0]
+        first_bucket_df = first_bucket_df.sample(
+            frac=num_repeat_first * times, replace=True, random_state=1
+        )
+
+    num_repeat_second = num_rows_per_bucket / second_bucket_df.shape[0]
+    second_bucket_df = second_bucket_df.sample(
+        frac=num_repeat_second * times, replace=True, random_state=1
+    )
+
+    num_repeat_third = num_rows_per_bucket / third_bucket_df.shape[0]
+    third_bucket_df = third_bucket_df.sample(
+        frac=num_repeat_third * times, replace=True, random_state=1
+    )
+
+    fourth_bucket_df = fourth_bucket_df.sample(frac=times, replace=True, random_state=1)
+
+    if first_bucket_df.shape[0] == 0:
+        pass
+    else:
+        num_repeat_fifth = num_rows_per_bucket / fifth_bucket_df.shape[0]
+        fifth_bucket_df = fifth_bucket_df.sample(
+            frac=num_repeat_fifth * times, replace=True, random_state=1
+        )
+    all_dfs = [
+        first_bucket_df,
+        second_bucket_df,
+        third_bucket_df,
+        fourth_bucket_df,
+        fifth_bucket_df,
+    ]
+    result_df = pd.concat(all_dfs)
+
+    # result_df.to_csv(
+    #     os.path.join(
+    #         "/home", "yyu", "data_sheets", "audio_text_upsampled_unaugmented.csv",
+    #     )
+    # )
+    # Delete individual dataframes
+    del first_bucket_df
+    del second_bucket_df
+    del third_bucket_df
+    del fourth_bucket_df
+    del fifth_bucket_df
+    del all_dfs
+    gc.collect()
+    first_bucket_df = pd.DataFrame()
+    second_bucket_df = pd.DataFrame()
+    third_bucket_df = pd.DataFrame()
+    fourth_bucket_df = pd.DataFrame()
+    fifth_bucket_df = pd.DataFrame()
+    print("Deleted all individual dfs")
+
+    # Augment audio
+    result_df["audio_array"] = result_df["audio_array"].apply(augment_audio_random)
+
+    # # Augment text
+    sample_rate = 16000
     result_df_augmented_audio_text = augment_text_random_iter(
         sample_rate=sample_rate, result_df_augmented=result_df
     )
@@ -1077,7 +1359,7 @@ def load_audio_text_and_score_from_crowdsourcing_results(
     )
 
     if augment_audio:
-        result_df = upsample_and_augment(result_df, times=3)
+        result_df = upsample_and_augment(result_df, times=2)
         print("size of final training dataset", result_df.shape[0])
     if save_to_single_csv:
         if augment_audio:
@@ -1088,7 +1370,7 @@ def load_audio_text_and_score_from_crowdsourcing_results(
         else:
             ## Save all data into a single csv file.
             save_path = os.path.join(
-                home_dir, "data_sheets", "audio_text_crowd_all_model.csv"
+                home_dir, "data_sheets", "audio_text_crowd_test.csv"
             )
         result_df.to_csv(save_path, index=False)
     return result_df
@@ -1576,7 +1858,7 @@ class AudioDataset(torch.utils.data.Dataset):
                 sampling_rate=16000,
                 padding="max_length",
                 truncation=True,
-                max_length=200000,
+                max_length=1000000,
                 return_tensors="pt",
             )
             audios.append(extracted_tensor)
@@ -1864,11 +2146,11 @@ class AudioTextDataset(torch.utils.data.Dataset):
 
     def __init__(self, df, audio_feature_extractor, text_tokenizer, vectorise):
         self.df = df
-        self.labels = df["score"]
+        self.labels = df["score"].tolist()
 
         # Get audio
         self.audio_series = df["audio_array"]
-        self.audios_list = self.audio_series.tolist()
+        # self.audios_list = self.audio_series.tolist()
 
         self.audio_feature_extractor = audio_feature_extractor
         self.max_length = 0
@@ -1878,6 +2160,14 @@ class AudioTextDataset(torch.utils.data.Dataset):
             self.extract_audio_features()
         else:
             # Get padded audio
+            # If string
+            if isinstance(self.audio_series[0], str):
+                self.audios_list = [
+                    json.loads(element) for element in self.audio_series
+                ]
+            # If not string
+            else:
+                self.audios_list = self.audio_series.tolist()
             self.find_max_array_length()
             self.pad_audio()
 
@@ -1900,13 +2190,17 @@ class AudioTextDataset(torch.utils.data.Dataset):
         """
         audios = []
         for audio in self.audio_series:
+            # if isinstance(audio, str):
+            #     audio = json.loads(audio)
+            # else:
+            #     pass
             # Extract the features
             extracted_tensor = self.audio_feature_extractor(
                 audio,
                 sampling_rate=16000,
                 padding="max_length",
                 truncation=True,
-                max_length=200000,
+                max_length=1000000,
                 return_tensors="pt",
             )
             audios.append(extracted_tensor)
@@ -2025,8 +2319,6 @@ def train_audio_text(
     device = torch.device("cuda" if use_cuda else "cpu")
 
     # Freezing selected model parameters
-    print("length of bert", len(list(model.bert.parameters())))
-    print("length of hubert", len(list(model.hubert.parameters())))
     for name, param in list(model.bert.named_parameters())[:100]:
         param.requires_grad = False
     for name, param in list(model.hubert.named_parameters())[:100]:
@@ -2043,7 +2335,6 @@ def train_audio_text(
     optimizer = Adam(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
     # initialize the early_stopping object
     early_stopping = EarlyStopping(tolerance=5, min_delta=1)
-    writer = SummaryWriter()
 
     if use_cuda:
         print("Using cuda!")
@@ -2066,9 +2357,8 @@ def train_audio_text(
 
         # batch accumulation parameter
         accum_iter = accum_iter
-
         model.train()
-        for batch_idx, (train_input, train_label) in enumerate(train_dataloader):
+        for train_input, train_label in tqdm(train_dataloader):
             train_label = train_label.to(device)
             # Audio
             input_values = train_input["audio"]["input_values"].squeeze(1).to(device)
@@ -2089,12 +2379,7 @@ def train_audio_text(
             acc = test_accuracy(output, train_label, test_absolute)
             total_acc_train += acc
             batch_loss.backward()
-
-            # weights update only when all batches iterated
-            if ((batch_idx + 1) % accum_iter == 0) or (
-                batch_idx + 1 == len(train_dataloader)
-            ):
-                optimizer.step()
+            optimizer.step()
 
         total_acc_val = 0
         total_loss_val = 0
@@ -2128,7 +2413,7 @@ def train_audio_text(
             total_loss_train / len(train_data), total_loss_val / len(val_data)
         )
         if early_stopping.early_stop:
-            print("We are at epoch:", epoch_num)
+            print("We are at epoch:", epoch_num + 1)
             break
 
         # Append to list
