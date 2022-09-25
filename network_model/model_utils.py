@@ -234,6 +234,7 @@ def train_text(
     batch_size,
     num_workers,
     test_absolute,
+    accum_iter,
 ):
     """
     Train the model based on extracted text.
@@ -247,6 +248,7 @@ def train_text(
     :param batch_size: Number of batches.
     :param num_workers: Number of workers.
     :param test_absolute: Whether to use absolute test.
+    :param accum_iter: Number of epochs to accumulate before zero grad.
     :return: Training and evaluation accuracies.
     """
     train, val = train_data.reset_index(drop=True), val_data.reset_index(drop=True)
@@ -286,30 +288,46 @@ def train_text(
 
     train_loss_list = []
     train_acc_list = []
+    train_output_list = []
+    train_label_list = []
     val_loss_list = []
     val_acc_list = []
+    val_output_list = []
+    val_label_list = []
 
     for epoch_num in range(epochs):
         total_acc_train = 0
         total_loss_train = 0
 
+        # batch accumulation parameter
+        accum_iter = accum_iter
         model.train()
-        for train_input, train_label in tqdm(train_dataloader):
+        for batch_idx, (train_input, train_label) in enumerate(train_dataloader):
             train_label = train_label.to(device)
             mask = train_input["attention_mask"].to(device)
             input_id = train_input["input_ids"].squeeze(1).to(device)
-            output = model(input_id, mask)
-            output = output.flatten()
-            batch_loss = criterion(output.float(), train_label.float())
+            train_output = model(input_id, mask)
+            train_output = train_output.flatten()
+            append_to_list(
+                train_output, train_label, train_output_list, train_label_list
+            )
+            batch_loss = criterion(train_output.float(), train_label.float())
+            # normalize loss to account for batch accumulation
+            batch_loss = batch_loss / accum_iter
             total_loss_train += batch_loss.item()
 
             # acc = (output.argmax(dim=1) == train_label).sum().item()
 
-            acc = test_accuracy(output, train_label, test_absolute)
+            acc = test_accuracy(train_output, train_label, test_absolute)
             total_acc_train += acc
 
             batch_loss.backward()
-            optimizer.step()
+            # Weights update
+            if ((batch_idx + 1) % accum_iter == 0) or (
+                batch_idx + 1 == len(train_dataloader)
+            ):
+                optimizer.step()
+                optimizer.zero_grad()
 
         total_acc_val = 0
         total_loss_val = 0
@@ -320,13 +338,14 @@ def train_text(
                 val_label = val_label.to(device)
                 mask = val_input["attention_mask"].to(device)
                 input_id = val_input["input_ids"].squeeze(1).to(device)
-                output = model(input_id, mask)
-                output = output.flatten()
-                batch_loss = criterion(output.float(), val_label.float())
+                val_output = model(input_id, mask)
+                val_output = val_output.flatten()
+                append_to_list(val_output, val_label, val_output_list, val_label_list)
+                batch_loss = criterion(val_output.float(), val_label.float())
                 total_loss_val += batch_loss.item()
 
                 # acc = (output.argmax(dim=1) == val_label).sum().item()
-                acc = test_accuracy(output, val_label, test_absolute)
+                acc = test_accuracy(val_output, val_label, test_absolute)
                 total_acc_val += acc
             # early stopping
             early_stopping(
@@ -340,11 +359,19 @@ def train_text(
             val_acc_list.append(total_acc_val / len(val_data))
 
             # Generate plots
-            plot_name = "text_lstm_"
+            plot_name = "text_simple_"
             gen_acc_plots(train_acc_list, val_acc_list, plot_name)
             gen_loss_plots(train_loss_list, val_loss_list, plot_name)
             save_training_results(
-                train_loss_list, train_acc_list, val_loss_list, val_acc_list, plot_name
+                train_loss_list,
+                train_acc_list,
+                train_output_list,
+                train_label_list,
+                val_loss_list,
+                val_acc_list,
+                val_output_list,
+                val_label_list,
+                plot_name,
             )
 
             if early_stopping.early_stop:
@@ -1945,6 +1972,7 @@ def train_audio(
     vectorise,
     num_workers,
     test_absolute,
+    accum_iter,
 ):
     """
     Train the model based on extracted audio vectors.
@@ -1958,6 +1986,7 @@ def train_audio(
     :param batch_size: Number of batches.
     :param vectorise: If vectorised, use transformers to tokenize audios.
     :param test_absolute: Whether to use absolute test.
+    :param accum_iter: Number of epochs to iterate until no grad.
     :return: Training and evaluation accuracies.
     """
     # Prepare data into dataloader
@@ -2001,15 +2030,21 @@ def train_audio(
 
     train_loss_list = []
     train_acc_list = []
+    train_output_list = []
+    train_label_list = []
     val_loss_list = []
     val_acc_list = []
+    val_output_list = []
+    val_label_list = []
 
     for epoch_num in range(epochs):
         total_acc_train = 0
         total_loss_train = 0
 
+        # batch accumulation parameter
+        accum_iter = accum_iter
         model.train()
-        for train_input, train_label in tqdm(train_dataloader):
+        for batch_idx, (train_input, train_label) in enumerate(train_dataloader):
             train_label = train_label.to(device)
             # mask = train_input["attention_mask"].to(device)
             if vectorise:
@@ -2018,19 +2053,29 @@ def train_audio(
                 input_values = train_input.squeeze(1).to(device, dtype=torch.float)
                 print("input size", input_values.size())
 
-            optimizer.zero_grad()
-            output = model(input_values)
-            output = output.flatten()
-            batch_loss = criterion(output.float(), train_label.float())
+            train_output = model(input_values)
+            train_output = train_output.flatten()
+            append_to_list(
+                train_output, train_label, train_output_list, train_label_list
+            )
+            batch_loss = criterion(train_output.float(), train_label.float())
+            # normalize loss to account for batch accumulation
+            batch_loss = batch_loss / accum_iter
             total_loss_train += batch_loss.item()
 
             # acc = (output.argmax(dim=1) == train_label).sum().item()
 
-            acc = test_accuracy(output, train_label, test_absolute)
+            acc = test_accuracy(train_output, train_label, test_absolute)
             total_acc_train += acc
 
             batch_loss.backward()
-            optimizer.step()
+
+            # Weights update
+            if ((batch_idx + 1) % accum_iter == 0) or (
+                batch_idx + 1 == len(train_dataloader)
+            ):
+                optimizer.step()
+                optimizer.zero_grad()
 
         total_acc_val = 0
         total_loss_val = 0
@@ -2041,23 +2086,24 @@ def train_audio(
                 val_label = val_label.to(device)
                 # mask = val_input["attention_mask"].to(device)
                 if vectorise:
-                    input_values = train_input["input_values"].squeeze(1).to(device)
+                    input_values = val_input["input_values"].squeeze(1).to(device)
                 else:
                     # print("train input type", type(train_input))
                     # print(train_input)
                     # print(type(train_input["input_values"]))
                     # input_values = train_input["input_values"].to(device, dtype=torch.float)
                     # print(input_values.size())
-                    input_values = train_input.to(device, dtype=torch.float)
+                    input_values = val_input.to(device, dtype=torch.float)
 
-                output = model(input_values)
-                output = output.flatten()
-                batch_loss = criterion(output.float(), train_label.float())
+                val_output = model(input_values)
+                val_output = val_output.flatten()
+                append_to_list(val_output, val_label, val_output_list, val_label_list)
+                batch_loss = criterion(val_output.float(), val_input.float())
                 total_loss_val += batch_loss.item()
 
                 # acc = (output.argmax(dim=1) == val_label).sum().item()
 
-                acc = test_accuracy(output, val_label, test_absolute)
+                acc = test_accuracy(val_output, val_label, test_absolute)
                 total_acc_val += acc
 
         # early stopping
@@ -2070,12 +2116,21 @@ def train_audio(
         train_acc_list.append(total_acc_train / len(train_data))
         val_loss_list.append(total_loss_val / len(val_data))
         val_acc_list.append(total_acc_val / len(val_data))
+
         # Generate plots
-        plot_name = "audio_lstm_"
+        plot_name = "audio_simple_"
         gen_acc_plots(train_acc_list, val_acc_list, plot_name)
         gen_loss_plots(train_loss_list, val_loss_list, plot_name)
         save_training_results(
-            train_loss_list, train_acc_list, val_loss_list, val_acc_list, plot_name
+            train_loss_list,
+            train_acc_list,
+            train_output_list,
+            train_label_list,
+            val_loss_list,
+            val_acc_list,
+            val_output_list,
+            val_label_list,
+            plot_name,
         )
 
         if early_stopping.early_stop:
@@ -2346,6 +2401,8 @@ def train_audio_text(
 
     train_loss_list = []
     train_acc_list = []
+    train_output_list = []
+    train_label_list = []
     val_loss_list = []
     val_acc_list = []
     val_output_list = []
@@ -2367,17 +2424,19 @@ def train_audio_text(
             mask = train_input["text"]["attention_mask"].to(device)
             input_id = train_input["text"]["input_ids"].squeeze(1).to(device)
 
-            optimizer.zero_grad()
-            output = model(input_values, input_id, mask)
-            output = output.flatten()
-            batch_loss = criterion(output.float(), train_label.float())
+            train_output = model(input_values, input_id, mask)
+            train_output = train_output.flatten()
+            append_to_list(
+                train_output, train_label, train_output_list, train_label_list
+            )
+            batch_loss = criterion(train_output.float(), train_label.float())
             # normalize loss to account for batch accumulation
             batch_loss = batch_loss / accum_iter
             total_loss_train += batch_loss.item()
 
             # acc = (output.argmax(dim=1) == train_label).sum().item()
 
-            acc = test_accuracy(output, train_label, test_absolute)
+            acc = test_accuracy(train_output, train_label, test_absolute)
             total_acc_train += acc
             batch_loss.backward()
 
@@ -2406,7 +2465,7 @@ def train_audio_text(
                 val_output = model(val_input_values, val_input_id, val_mask)
                 val_output = val_output.flatten()
                 # Append results to the val lists
-                append_to_val(val_output, val_label, val_output_list, val_label_list)
+                append_to_list(val_output, val_label, val_output_list, val_label_list)
                 val_batch_loss = criterion(val_output.float(), val_label.float())
                 total_loss_val += val_batch_loss.item()
 
@@ -2435,7 +2494,15 @@ def train_audio_text(
         gen_loss_plots(train_loss_list, val_loss_list, plot_name)
         gen_val_scatter_plot(val_output_list, val_label_list, plot_name)
         save_training_results(
-            train_loss_list, train_acc_list, val_loss_list, val_acc_list, plot_name
+            train_loss_list,
+            train_acc_list,
+            train_output_list,
+            train_label_list,
+            val_loss_list,
+            val_acc_list,
+            val_output_list,
+            val_label_list,
+            plot_name,
         )
 
         print(
@@ -2449,39 +2516,70 @@ def train_audio_text(
         torch.cuda.empty_cache()
 
 
-def append_to_val(val_output, val_label, val_output_list, val_label_list):
+def append_to_list(output, label, output_list, label_list):
     """
     Append output score and label scores into the lists.
-    :param val_output: Output tensor from the model.
-    :param val_label: Label tensor.
-    :param val_output_list: List of outputs for validation.
-    :param val_label_list: List of true label for validation.
+    :param output: Output tensor from the model.
+    :param label: Label tensor.
+    :param output_list: List of outputs for validation.
+    :param label_list: List of true label for validation.
     :return:
     """
-    for i in val_output.tolist():
-        val_output_list.append(i)
-    for l in val_label.tolist():
-        val_label_list.append(l)
+    for i in output.tolist():
+        output_list.append(i)
+    for l in label.tolist():
+        label_list.append(l)
 
 
 # Save data to csv
 def save_training_results(
-    train_loss_list, train_acc_list, val_loss_list, val_acc_list, plot_name
+    train_loss_list,
+    train_acc_list,
+    train_output_list,
+    train_label_list,
+    val_loss_list,
+    val_acc_list,
+    val_output_list,
+    val_label_list,
+    plot_name,
 ):
     """
     Save the results from model training.
     :param train_loss_list: List of training losses.
     :param train_acc_list: List of training accuracies.
+    :param train_output_list: List of training output.
+    :param train_label_list: List of tensors of training labels.
     :param val_loss_list: List of evaluation losses.
     :param val_acc_list: List of evaluation accuracies.
+    :param val_output_list: List of val output.
+    :param val_label_list: List of tensors of val labels.
     :param plot_name: Name of the plot depending on model.
     :return: Save results to a csv.
     """
     list_of_tuples = list(
-        zip(train_loss_list, train_acc_list, val_loss_list, val_acc_list)
+        zip(
+            train_loss_list,
+            train_acc_list,
+            train_output_list,
+            train_label_list,
+            val_loss_list,
+            val_acc_list,
+            val_output_list,
+            val_label_list,
+        )
     )
     training_results = pd.DataFrame(
-        list_of_tuples, columns=["Train Loss", "Train Acc", "Eval Loss", "Eval Acc"]
+        list_of_tuples,
+        columns=[
+            "Train Loss",
+            "Train Acc",
+            "Train Output",
+            "Train Label",
+            "Val Loss",
+            "Val Acc",
+            "Val Output",
+            "Val Label",
+        ],
     )
     training_results.to_csv(
         os.path.join("/home", "yyu", "plots", plot_name + "training_results.csv")

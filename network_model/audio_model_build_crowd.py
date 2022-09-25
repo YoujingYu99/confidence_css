@@ -70,8 +70,9 @@ audio_test_df = load_audio_and_score_from_crowdsourcing_results(
 epochs = 500
 LR = 5e-4
 weight_decay = 5e-5
-batch_size = 8
+batch_size = 1
 num_workers = 4
+accum_iter = 4
 
 # Initialise audio model
 # audio_model = HubertClassifier()
@@ -90,6 +91,7 @@ train_audio(
     vectorise,
     num_workers,
     test_absolute,
+    accum_iter,
 )
 
 evaluate_audio(

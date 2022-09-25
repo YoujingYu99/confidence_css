@@ -19,22 +19,13 @@ home_dir = os.path.join("/home", "yyu")
 
 # Path for crowdsourcing results
 crowdsourcing_results_train_df_path = os.path.join(
-    home_dir,
-    "data_sheets",
-    "crowdsourcing_results",
-    "test_crowd.csv",
+    home_dir, "data_sheets", "crowdsourcing_results", "test_crowd.csv",
 )
 crowdsourcing_results_val_df_path = os.path.join(
-    home_dir,
-    "data_sheets",
-    "crowdsourcing_results",
-    "test_crowd.csv",
+    home_dir, "data_sheets", "crowdsourcing_results", "test_crowd.csv",
 )
 crowdsourcing_results_test_df_path = os.path.join(
-    home_dir,
-    "data_sheets",
-    "crowdsourcing_results",
-    "test_crowd.csv",
+    home_dir, "data_sheets", "crowdsourcing_results", "test_crowd.csv",
 )
 
 
@@ -72,6 +63,7 @@ LR = 5e-4
 weight_decay = 5e-5
 batch_size = 8
 num_workers = 4
+accum_iter = 4
 
 # Initialise audio model
 # audio_model = HubertClassifier()
@@ -90,6 +82,7 @@ train_audio(
     vectorise,
     num_workers,
     test_absolute,
+    accum_iter,
 )
 
 evaluate_audio(
