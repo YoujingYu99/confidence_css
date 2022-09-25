@@ -2334,7 +2334,7 @@ def train_audio_text(
     criterion = nn.MSELoss()
     optimizer = Adam(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
     # initialize the early_stopping object
-    early_stopping = EarlyStopping(tolerance=5, min_delta=1)
+    early_stopping = EarlyStopping(tolerance=5, min_delta=100)
 
     if use_cuda:
         print("Using cuda!")
@@ -2358,7 +2358,8 @@ def train_audio_text(
         # batch accumulation parameter
         accum_iter = accum_iter
         model.train()
-        for train_input, train_label in tqdm(train_dataloader):
+        for batch_idx, (train_input, train_label) in enumerate(train_dataloader):
+            # for train_input, train_label in tqdm(train_dataloader):
             train_label = train_label.to(device)
             # Audio
             input_values = train_input["audio"]["input_values"].squeeze(1).to(device)
@@ -2379,7 +2380,13 @@ def train_audio_text(
             acc = test_accuracy(output, train_label, test_absolute)
             total_acc_train += acc
             batch_loss.backward()
-            optimizer.step()
+
+            # Weights update
+            if ((batch_idx + 1) % accum_iter == 0) or (
+                batch_idx + 1 == len(train_dataloader)
+            ):
+                optimizer.step()
+                optimizer.zero_grad()
 
         total_acc_val = 0
         total_loss_val = 0
@@ -2437,6 +2444,9 @@ def train_audio_text(
                         | Val Loss: {total_loss_val / len(val_data): .3f} \
                         | Val Accuracy: {total_acc_val / len(val_data): .3f}"
         )
+
+        gc.collect()
+        torch.cuda.empty_cache()
 
 
 def append_to_val(val_output, val_label, val_output_list, val_label_list):

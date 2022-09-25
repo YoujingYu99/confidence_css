@@ -47,7 +47,7 @@ audio_text_train_df = load_audio_text_and_score_from_crowdsourcing_results(
     crowdsourcing_results_train_df_path,
     save_to_single_csv=False,
     augment_audio=True,
-    two_scores=True,
+    two_scores=two_scores,
 )
 
 
@@ -56,7 +56,7 @@ audio_text_val_df = load_audio_text_and_score_from_crowdsourcing_results(
     crowdsourcing_results_val_df_path,
     save_to_single_csv=False,
     augment_audio=False,
-    two_scores=True,
+    two_scores=two_scores,
 )
 
 audio_text_test_df = load_audio_text_and_score_from_crowdsourcing_results(
@@ -64,7 +64,7 @@ audio_text_test_df = load_audio_text_and_score_from_crowdsourcing_results(
     crowdsourcing_results_test_df_path,
     save_to_single_csv=False,
     augment_audio=False,
-    two_scores=True,
+    two_scores=two_scores,
 )
 
 
@@ -72,9 +72,9 @@ audio_text_test_df = load_audio_text_and_score_from_crowdsourcing_results(
 epochs = 1500
 LR = 5e-6
 weight_decay = 1e-6
-batch_size = 8
+batch_size = 1
 num_workers = 4
-accum_iter = 2
+accum_iter = 4
 
 # Initialise audio model
 # audio_model = HubertClassifier()
