@@ -8,6 +8,8 @@ Class AudioTextDataset: Class that handles the preparation of both text and
                 audio for training.
 """
 import warnings
+
+# import pingouin as pg
 import nlpaug.augmenter.word as naw
 import wavio
 import speech_recognition as sr
@@ -84,6 +86,7 @@ def plot_histogram_of_scores(home_dir, input_list, num_bins, plot_name, x_label)
     plt.title("Histogram of " + plot_name)
     plt.savefig(os.path.join(home_dir, "plots", plot_name))
     plt.show()
+    plt.clf()
 
 
 def split_to_train_val_test(home_dir):
@@ -205,6 +208,104 @@ def test_accuracy(output, actual, absolute):
             if actual_list[i] * 0.8 <= output_list[i] <= actual_list[i] * 1.2:
                 count += 1
     return count
+
+
+def get_icc(output, actual, icc_type="ICC(3,1)"):
+    """
+    Get intraclass correlation score.
+    :param output: Score list output by model.
+    :param actual: Actual score list.
+    :param icc_type: type of ICC to calculate. (ICC(2,1), ICC(2,k), ICC(3,1), ICC(3,k))
+    :return: A floating number of ICC score.
+    """
+    Y = np.column_stack((output, actual))
+    [n, k] = Y.shape
+
+    # Degrees of Freedom
+    dfc = k - 1
+    dfe = (n - 1) * (k - 1)
+    dfr = n - 1
+
+    # Sum Square Total
+    mean_Y = np.mean(Y)
+    SST = ((Y - mean_Y) ** 2).sum()
+
+    # create the design matrix for the different levels
+    x = np.kron(np.eye(k), np.ones((n, 1)))  # sessions
+    x0 = np.tile(np.eye(n), (k, 1))  # subjects
+    X = np.hstack([x, x0])
+
+    # Sum Square Error
+    predicted_Y = np.dot(
+        np.dot(np.dot(X, np.linalg.pinv(np.dot(X.T, X))), X.T), Y.flatten("F")
+    )
+    residuals = Y.flatten("F") - predicted_Y
+    SSE = (residuals ** 2).sum()
+    MSE = SSE / dfe
+
+    # Sum square column effect - between colums
+    SSC = ((np.mean(Y, 0) - mean_Y) ** 2).sum() * n
+    MSC = SSC / dfc  # / n (without n in SPSS results)
+
+    # Sum Square subject effect - between rows/subjects
+    SSR = SST - SSC - SSE
+    MSR = SSR / dfr
+
+    if icc_type == "icc1":
+        # ICC(2,1) = (mean square subject - mean square error) /
+        # (mean square subject + (k-1)*mean square error +
+        # k*(mean square columns - mean square error)/n)
+        # ICC = (MSR - MSRW) / (MSR + (k-1) * MSRW)
+        NotImplementedError("This method isn't implemented yet.")
+
+    elif icc_type == "ICC(2,1)" or icc_type == "ICC(2,k)":
+        # ICC(2,1) = (mean square subject - mean square error) /
+        # (mean square subject + (k-1)*mean square error +
+        # k*(mean square columns - mean square error)/n)
+        if icc_type == "ICC(2,k)":
+            k = 1
+        ICC = (MSR - MSE) / (MSR + (k - 1) * MSE + k * (MSC - MSE) / n)
+
+    elif icc_type == "ICC(3,1)" or icc_type == "ICC(3,k)":
+        # ICC(3,1) = (mean square subject - mean square error) /
+        # (mean square subject + (k-1)*mean square error)
+        if icc_type == "ICC(3,k)":
+            k = 1
+        ICC = (MSR - MSE) / (MSR + (k - 1) * MSE)
+
+    return ICC
+
+
+# def get_icc(output, actual):
+#     """
+#     Get intraclass correlation score.
+#     :param output: Score tensor output by model.
+#     :param actual: Actual score tensor.
+#     :return: A floating number of ICC score.
+#     """
+#     output_list = output.tolist()
+#     actual_list = actual.tolist()
+#
+#     # create DataFrame
+#     index_list = list(range(len(output_list)))
+#     index_list_2 = index_list.copy()
+#     index_list_2.extend(index_list)
+#
+#
+#     icc_df = pd.DataFrame(
+#         {
+#             "index": index_list_2,
+#             "rater": ["1"] * len(output_list) + ["2"] * len(actual_list),
+#             "rating": [*output_list, *actual_list],
+#         }
+#     )
+#     # icc_results_df = pg.intraclass_corr(
+#     #     data=icc_df, targets="index", raters="rater", ratings="rating"
+#     # )
+#     # icc_value_df = icc_results_df.loc[icc_results_df.Type == "ICC3k", "ICC"]
+#     # icc_value = icc_value_df.to_numpy()[0]
+#     icc_value = 0
+#     return icc_value
 
 
 class EarlyStopping:
@@ -347,42 +448,49 @@ def train_text(
                 # acc = (output.argmax(dim=1) == val_label).sum().item()
                 acc = test_accuracy(val_output, val_label, test_absolute)
                 total_acc_val += acc
-            # early stopping
-            early_stopping(
-                total_loss_train / len(train_data), total_loss_val / len(val_data)
-            )
 
-            # Append to list
-            train_loss_list.append(total_loss_train / len(train_data))
-            train_acc_list.append(total_acc_train / len(train_data))
-            val_loss_list.append(total_loss_val / len(val_data))
-            val_acc_list.append(total_acc_val / len(val_data))
+        # early stopping
+        early_stopping(
+            total_loss_train / len(train_data), total_loss_val / len(val_data)
+        )
 
-            # Generate plots
-            plot_name = "text_simple_"
-            gen_acc_plots(train_acc_list, val_acc_list, plot_name)
-            gen_loss_plots(train_loss_list, val_loss_list, plot_name)
-            save_training_results(
-                train_loss_list,
-                train_acc_list,
-                train_output_list,
-                train_label_list,
-                val_loss_list,
-                val_acc_list,
-                val_output_list,
-                val_label_list,
-                plot_name,
-            )
+        # Append to list
+        train_loss_list.append(total_loss_train / len(train_data))
+        train_acc_list.append(total_acc_train / len(train_data))
+        val_loss_list.append(total_loss_val / len(val_data))
+        val_acc_list.append(total_acc_val / len(val_data))
 
-            if early_stopping.early_stop:
-                print("We are at epoch:", epoch_num)
-                break
+        # Generate plots
+        plot_name = "text_simple_"
+        gen_acc_plots(train_acc_list, val_acc_list, plot_name)
+        gen_loss_plots(train_loss_list, val_loss_list, plot_name)
+        save_training_results(
+            train_loss_list,
+            train_acc_list,
+            train_output_list,
+            train_label_list,
+            val_loss_list,
+            val_acc_list,
+            val_output_list,
+            val_label_list,
+            plot_name,
+        )
+
+        if early_stopping.early_stop:
+            print("We are at epoch:", epoch_num)
+            break
+
+        # Calculate icc values
+        train_icc = get_icc(train_output_list, train_label_list, icc_type="ICC(3,1)")
+        val_icc = get_icc(val_output_list, val_label_list, icc_type="ICC(3,1)")
 
         print(
             f"Epochs: {epoch_num + 1} | Train Loss: {total_loss_train / len(train_data): .3f} \
                         | Train Accuracy: {total_acc_train / len(train_data): .3f} \
+        | Train ICC: {train_icc: .3f} \
                         | Val Loss: {total_loss_val / len(val_data): .3f} \
-                        | Val Accuracy: {total_acc_val / len(val_data): .3f}"
+                        | Val Accuracy: {total_acc_val / len(val_data): .3f}\
+            | Val ICC: {val_icc: .3f}"
         )
 
 
@@ -537,9 +645,9 @@ def augment_text_random_iter(sample_rate, result_df_augmented):
     """
     # Find the feature csv locally
     for index, row in result_df_augmented.iterrows():
-        random_number = random.randint(0, 1)
-        wav_path = os.path.join("/home", "yyu", "wav_audio.wav")
+        random_number = random.randint(0, 6)
         if random_number == 0:
+            wav_path = os.path.join("/home", "yyu", "wav_audio.wav")
             if isinstance(row["audio_array"], list):
                 # Write the .wav file
                 wavio.write(wav_path, row["audio_array"][0], sample_rate, sampwidth=2)
@@ -554,16 +662,38 @@ def augment_text_random_iter(sample_rate, result_df_augmented):
                 audio_data = r.record(source)
                 # recognize (convert from speech to text)
                 try:
-                    text = r.recognize_google(audio_data, language="en-IN")
+                    augmented_text = r.recognize_google(audio_data, language="en-IN")
                 except:
                     # Use original text
-                    text = row["sentence"]
-                row["sentence"] = text
-        # Delete the wav file if exists
-        if os.path.exists(wav_path):
-            os.remove(wav_path)
+                    augmented_text = row["sentence"]
+
+            # Delete the wav file if exists
+            if os.path.exists(wav_path):
+                os.remove(wav_path)
+            else:
+                continue
+        elif random_number == 1:
+            # Contextual word embeddings
+            aug = naw.ContextualWordEmbsAug(
+                model_path="bert-base-uncased", action="insert"
+            )
+            augmented_text = aug.augment(row["sentence"])[0]
+        elif random_number == 2:
+            # Substitute
+            aug = naw.ContextualWordEmbsAug(
+                model_path="bert-base-uncased", action="substitute"
+            )
+            augmented_text = aug.augment(row["sentence"])[0]
+        elif random_number == 3:
+            # Delete word randomly
+            aug = naw.RandomWordAug()
+            augmented_text = aug.augment(row["sentence"])[0]
         else:
-            continue
+            augmented_text = row["sentence"]
+
+        # Assign augmented text to original dataframe
+        row["sentence"] = augmented_text
+
     return result_df_augmented
 
 
@@ -766,7 +896,7 @@ def load_text_and_score_from_crowdsourcing_results(
         np.column_stack([text_list, score_list]), columns=["sentence", "score"]
     )
     result_df["score"] = result_df["score"].astype(float)
-
+    print("size of training dataset", result_df.shape[0])
     if augment_text:
         result_df = upsample_and_augment_text_only(result_df, times=3)
         print("size of final training dataset", result_df.shape[0])
@@ -2102,7 +2232,6 @@ def train_audio(
                 total_loss_val += batch_loss.item()
 
                 # acc = (output.argmax(dim=1) == val_label).sum().item()
-
                 acc = test_accuracy(val_output, val_label, test_absolute)
                 total_acc_val += acc
 
@@ -2137,11 +2266,17 @@ def train_audio(
             print("We are at epoch:", epoch_num)
             break
 
+        # Calculate icc values
+        train_icc = get_icc(train_output_list, train_label_list, icc_type="ICC(3,1)")
+        val_icc = get_icc(val_output_list, val_label_list, icc_type="ICC(3,1)")
+
         print(
             f"Epochs: {epoch_num + 1} | Train Loss: {total_loss_train / len(train_data): .3f} \
-                        | Train Accuracy: {total_acc_train / len(train_data): .3f} \
-                        | Val Loss: {total_loss_val / len(val_data): .3f} \
-                        | Val Accuracy: {total_acc_val / len(val_data): .3f}"
+                            | Train Accuracy: {total_acc_train / len(train_data): .3f} \
+            | Train ICC: {train_icc: .3f} \
+                            | Val Loss: {total_loss_val / len(val_data): .3f} \
+                            | Val Accuracy: {total_acc_val / len(val_data): .3f}\
+                | Val ICC: {val_icc: .3f}"
         )
 
 
@@ -2373,18 +2508,18 @@ def train_audio_text(
     use_cuda = torch.cuda.is_available()
     device = torch.device("cuda" if use_cuda else "cpu")
 
-    # Freezing selected model parameters
-    for name, param in list(model.bert.named_parameters())[:100]:
-        param.requires_grad = False
-    for name, param in list(model.hubert.named_parameters())[:100]:
+    # # Freezing selected model parameters
+    # for name, param in list(model.bert.named_parameters())[:100]:
+    #     param.requires_grad = False
+    # for name, param in list(model.hubert.named_parameters())[:100]:
+    #     param.requires_grad = False
+
+    # Freeze Bert/HuBert
+    for param in model.bert.parameters():
         param.requires_grad = False
 
-    # # Freeze Bert/HuBert
-    # for param in model.bert.parameters():
-    #     param.requires_grad = False
-    #
-    # for param in model.hubert.parameters():
-    #     param.requires_grad = False
+    for param in model.hubert.parameters():
+        param.requires_grad = False
 
     criterion = nn.MSELoss()
     optimizer = Adam(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
@@ -2435,7 +2570,6 @@ def train_audio_text(
             total_loss_train += batch_loss.item()
 
             # acc = (output.argmax(dim=1) == train_label).sum().item()
-
             acc = test_accuracy(train_output, train_label, test_absolute)
             total_acc_train += acc
             batch_loss.backward()
@@ -2504,12 +2638,17 @@ def train_audio_text(
             val_label_list,
             plot_name,
         )
+        # Calculate icc values
+        train_icc = get_icc(train_output_list, train_label_list, icc_type="ICC(3,1)")
+        val_icc = get_icc(val_output_list, val_label_list, icc_type="ICC(3,1)")
 
         print(
             f"Epochs: {epoch_num + 1} | Train Loss: {total_loss_train / len(train_data): .3f} \
                         | Train Accuracy: {total_acc_train / len(train_data): .3f} \
+        | Train ICC: {train_icc: .3f} \
                         | Val Loss: {total_loss_val / len(val_data): .3f} \
-                        | Val Accuracy: {total_acc_val / len(val_data): .3f}"
+                        | Val Accuracy: {total_acc_val / len(val_data): .3f}\
+            | Val ICC: {val_icc: .3f}"
         )
 
         gc.collect()
@@ -2604,6 +2743,7 @@ def gen_acc_plots(train_acc_list, val_acc_list, plot_name):
     plt.legend()
     save_path = os.path.join("/home", "yyu", "plots", plot_name + "acc.png")
     plt.savefig(save_path)
+    plt.clf()
     # plt.show()
 
 
@@ -2625,6 +2765,7 @@ def gen_loss_plots(train_loss_list, val_loss_list, plot_name):
     plt.legend()
     save_path = os.path.join("/home", "yyu", "plots", plot_name + "loss.png")
     plt.savefig(save_path)
+    plt.clf()
 
 
 def gen_val_scatter_plot(val_output_list, val_label_list, plot_name):
@@ -2635,6 +2776,7 @@ def gen_val_scatter_plot(val_output_list, val_label_list, plot_name):
     plt.title("Model output and ground truth for validation")
     save_path = os.path.join("/home", "yyu", "plots", plot_name + "val_scatter.png")
     plt.savefig(save_path)
+    plt.clf()
 
 
 def evaluate_audio_text(
