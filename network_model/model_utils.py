@@ -34,6 +34,10 @@ warnings.filterwarnings("ignore", category=np.VisibleDeprecationWarning)
 warnings.simplefilter(action="ignore", category=FutureWarning)
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
+# Label and title size
+plt.rcParams["axes.labelsize"] = 20
+plt.rcParams["axes.titlesize"] = 20
+
 num_gpus = torch.cuda.device_count()
 
 
@@ -219,6 +223,7 @@ def get_icc(output, actual, icc_type="ICC(3,1)"):
     :return: A floating number of ICC score.
     """
     Y = np.column_stack((output, actual))
+    print(Y)
     [n, k] = Y.shape
 
     # Degrees of Freedom
@@ -274,6 +279,17 @@ def get_icc(output, actual, icc_type="ICC(3,1)"):
         ICC = (MSR - MSE) / (MSR + (k - 1) * MSE)
 
     return ICC
+
+
+def calculate_mse(output_list, actual_list):
+    """
+    Calculate MSE between two lists.
+    :param output_list: Score list output by model.
+    :param actual_list: Actual score list.
+    :return: MSE value.
+    """
+    mse = np.mean((actual_list - output_list) ** 2)
+    return mse
 
 
 # def get_icc(output, actual):
@@ -480,17 +496,15 @@ def train_text(
             print("We are at epoch:", epoch_num)
             break
 
-        # Calculate icc values
-        train_icc = get_icc(train_output_list, train_label_list, icc_type="ICC(3,1)")
-        val_icc = get_icc(val_output_list, val_label_list, icc_type="ICC(3,1)")
+        # # Calculate icc values
+        # train_icc = get_icc(train_output_list, train_label_list, icc_type="ICC(3,1)")
+        # val_icc = get_icc(val_output_list, val_label_list, icc_type="ICC(3,1)")
 
         print(
             f"Epochs: {epoch_num + 1} | Train Loss: {total_loss_train / len(train_data): .3f} \
                         | Train Accuracy: {total_acc_train / len(train_data): .3f} \
-        | Train ICC: {train_icc: .3f} \
                         | Val Loss: {total_loss_val / len(val_data): .3f} \
-                        | Val Accuracy: {total_acc_val / len(val_data): .3f}\
-            | Val ICC: {val_icc: .3f}"
+                        | Val Accuracy: {total_acc_val / len(val_data): .3f}"
         )
 
 
@@ -2266,17 +2280,15 @@ def train_audio(
             print("We are at epoch:", epoch_num)
             break
 
-        # Calculate icc values
-        train_icc = get_icc(train_output_list, train_label_list, icc_type="ICC(3,1)")
-        val_icc = get_icc(val_output_list, val_label_list, icc_type="ICC(3,1)")
+        # # Calculate icc values
+        # train_icc = get_icc(train_output_list, train_label_list, icc_type="ICC(3,1)")
+        # val_icc = get_icc(val_output_list, val_label_list, icc_type="ICC(3,1)")
 
         print(
             f"Epochs: {epoch_num + 1} | Train Loss: {total_loss_train / len(train_data): .3f} \
                             | Train Accuracy: {total_acc_train / len(train_data): .3f} \
-            | Train ICC: {train_icc: .3f} \
                             | Val Loss: {total_loss_val / len(val_data): .3f} \
-                            | Val Accuracy: {total_acc_val / len(val_data): .3f}\
-                | Val ICC: {val_icc: .3f}"
+                            | Val Accuracy: {total_acc_val / len(val_data): .3f}"
         )
 
 
@@ -2638,17 +2650,15 @@ def train_audio_text(
             val_label_list,
             plot_name,
         )
-        # Calculate icc values
-        train_icc = get_icc(train_output_list, train_label_list, icc_type="ICC(3,1)")
-        val_icc = get_icc(val_output_list, val_label_list, icc_type="ICC(3,1)")
+        # # Calculate icc values
+        # train_icc = get_icc(train_output_list, train_label_list, icc_type="ICC(3,1)")
+        # val_icc = get_icc(val_output_list, val_label_list, icc_type="ICC(3,1)")
 
         print(
             f"Epochs: {epoch_num + 1} | Train Loss: {total_loss_train / len(train_data): .3f} \
                         | Train Accuracy: {total_acc_train / len(train_data): .3f} \
-        | Train ICC: {train_icc: .3f} \
                         | Val Loss: {total_loss_val / len(val_data): .3f} \
-                        | Val Accuracy: {total_acc_val / len(val_data): .3f}\
-            | Val ICC: {val_icc: .3f}"
+                        | Val Accuracy: {total_acc_val / len(val_data): .3f}"
         )
 
         gc.collect()

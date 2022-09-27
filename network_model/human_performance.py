@@ -36,6 +36,7 @@ human_scores = human_df["score4"].astype(float) - 2.5
 # count = test_accuracy(human_scores, true_scores, absolute=True)
 # print("Human accuracy rate is", count / human_scores.size)
 
+
 def test_accuracy_score(output, actual, absolute, margin):
     """
     Testify whether the output is accurate.
@@ -66,7 +67,10 @@ def plot_accuracy_boundary(human_scores, true_scores):
     margin_array = np.arange(0, 2.5, 0.001)
     accuracy_list = []
     for margin in margin_array:
-        accuracy = test_accuracy_score(human_scores, true_scores, absolute=True, margin=margin) / human_scores.size
+        accuracy = (
+            test_accuracy_score(human_scores, true_scores, absolute=True, margin=margin)
+            / human_scores.size
+        )
         accuracy_list.append(accuracy)
 
     plt.figure()
@@ -77,4 +81,25 @@ def plot_accuracy_boundary(human_scores, true_scores):
     save_path = os.path.join("/home", "yyu", "plots", "acc_margin.png")
     plt.savefig(save_path)
 
-plot_accuracy_boundary(human_scores, true_scores)
+
+## Plot the accuracy with respect to the margins
+# plot_accuracy_boundary(human_scores, true_scores)
+
+# Get human icc
+# print(get_icc(human_scores, true_scores, icc_type="ICC(3,1)"))
+# Get MSE
+# print(calculate_mse(human_scores, true_scores))
+
+
+def calculate_mse(output_list, actual_list):
+    """
+    Calculate MSE between two lists.
+    :param output_list: Score list output by model.
+    :param actual_list: Actual score list.
+    :return: MSE value.
+    """
+    mse = np.mean((np.array(actual_list) - np.array(output_list)) ** 2)
+    return mse
+
+
+print(calculate_mse(human_scores, true_scores))

@@ -70,14 +70,12 @@ audio_text_test_df = load_audio_text_and_score_from_crowdsourcing_results(
 
 # Training parameters
 epochs = 1500
-LR = 1e-6
-weight_decay = 1e-6
+LR = 1e-5
+weight_decay = 1e-7
 batch_size = 1
 num_workers = 4
 accum_iter = 4
 
-# Initialise audio model
-# audio_model = HubertClassifier()
 multimodel = CustomMultiModelSimplePooled()
 
 print("Start training!")

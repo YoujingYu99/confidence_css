@@ -4,10 +4,9 @@ import os
 from transformers import AutoFeatureExtractor, BertTokenizer
 from model_utils import (
     load_text_and_score_from_crowdsourcing_results,
+    load_audio_and_score_from_crowdsourcing_results,
     plot_histogram_of_scores,
 )
-
-print("start of application!")
 
 # Decide whether to save the concatenated file to a single csv
 save_to_single_csv = False
@@ -29,6 +28,7 @@ crowdsourcing_results_df_path = os.path.join(
     "Batch_4799159_batch_results_complete_reject_filtered_numbered_cleaned_train.csv",
 )
 
+
 print("start of application!")
 
 # Read in individual csvs and load into a final dataframe
@@ -40,40 +40,35 @@ print("start of application!")
 #     two_scores=False,
 # )
 #
-# audio_df_train = load_audio_and_score_from_crowdsourcing_results(
-#     home_dir,
-#     crowdsourcing_results_df_path,
-#     save_to_single_csv,
-#     augment_audio=False,
-#     two_scores=True,
-# )
-
-text_train_df = load_text_and_score_from_crowdsourcing_results(
+audio_df_train = load_audio_and_score_from_crowdsourcing_results(
     home_dir,
     crowdsourcing_results_df_path,
     save_to_single_csv,
-    augment_text=False,
+    augment_audio=False,
     two_scores=True,
 )
 
-# # Analysis of score distribution
-# train_scores_list = audio_df_train["score"].tolist()
-# train_scores_origin_list = [i + 2.5 for i in train_scores_list]
-# plot_histogram_of_scores(
+# text_train_df = load_text_and_score_from_crowdsourcing_results(
 #     home_dir,
-#     train_scores_origin_list,
-#     num_bins=5,
-#     plot_name="Score Distribution",
-#     x_label="Scores",
+#     crowdsourcing_results_df_path,
+#     save_to_single_csv,
+#     augment_text=False,
+#     two_scores=True,
 # )
-#
-# # Analysis of text token length data
-# text_length_list = [
-#     len(sentence.split()) for sentence in audio_text_df_train["sentence"].tolist()
-# ]
-# plot_histogram_of_scores(home_dir, text_length_list, num_bins=10, plot_name="Text Token Length", x_label="Token Length")
+
+## Analysis of score distribution
+train_scores_list = audio_df_train["score"].tolist()
+train_scores_origin_list = [i + 2.5 for i in train_scores_list]
+plot_histogram_of_scores(
+    home_dir,
+    train_scores_origin_list,
+    num_bins=5,
+    plot_name="Score Distribution",
+    x_label="Scores",
+)
 
 
+## Analysis of audio token length
 # audio_df_train = load_audio_and_score_from_crowdsourcing_results(
 #     home_dir, crowdsourcing_results_df_path, save_to_single_csv,augment_audio=False,
 #     two_scores=True,
@@ -86,30 +81,31 @@ text_train_df = load_text_and_score_from_crowdsourcing_results(
 #         audio, sampling_rate=16000, return_tensors="pt",
 #     )
 #     audio_tensor_length_list.append(list(extracted_tensor.input_values.size())[1])
-
+#
 # plot_histogram_of_scores(home_dir, audio_tensor_length_list, num_bins=10, plot_name="Audio Token Length", x_label="Token Length")
 
 # print(
 #     "number of audios with more than 100000 tensors",
 #     sum(1 for i in audio_tensor_length_list if i > 1000000),
 # )
-
-texts = text_train_df["sentence"]
-text_tensor_length_list = []
-for text in texts:
-    extracted_tensor = text_tokenizer(text, return_tensors="pt")
-    text_tensor_length_list.append(list(extracted_tensor.input_values.size())[1])
-
-print("Start plotting!")
-plot_histogram_of_scores(
-    home_dir,
-    text_tensor_length_list,
-    num_bins=10,
-    plot_name="Text Token Length",
-    x_label="Token Length",
-)
+## Analysis of text token length
+#
+# texts = text_train_df["sentence"]
+# text_tensor_length_list = []
+# for text in texts:
+#     extracted_tensor = text_tokenizer(text, return_tensors="pt")
+#     text_tensor_length_list.append(len(extracted_tensor.input_ids[0]))
+#
+# print("Start plotting!")
+# plot_histogram_of_scores(
+#     home_dir,
+#     text_tensor_length_list,
+#     num_bins=10,
+#     plot_name="Text Token Length",
+#     x_label="Token Length",
+# )
 
 # print(
-#     "number of audios with more than 100000 tensors",
-#     sum(1 for i in audio_tensor_length_list if i > 1000000),
+#     "number of audios with more than 120 tensors",
+#     sum(1 for i in text_tensor_length_list if i > 120),
 # )

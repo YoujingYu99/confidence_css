@@ -1,6 +1,9 @@
 """Dummy accuracy test for minimum required accuracy."""
-from model_utils import load_audio_and_score_from_crowdsourcing_results
+import pandas as pd
+
+from model_utils import load_audio_and_score_from_crowdsourcing_results, get_icc
 import os
+import numpy as np
 import random
 
 save_to_single_csv = False
@@ -16,6 +19,13 @@ crowdsourcing_results_df_path = os.path.join(
     "Batch_4799159_batch_results_complete_reject_filtered_numbered_cleaned.csv",
 )
 
+model_training_results_df_path = os.path.join(
+    home_dir,
+    "plots",
+    "crowdsourcing_results",
+    "audio_text_upsample_two_augment_training_result.csv",
+)
+
 
 print("start of application!")
 
@@ -27,7 +37,6 @@ audio_df = load_audio_and_score_from_crowdsourcing_results(
     augment_audio=False,
     two_scores=True,
 )
-
 
 true_scores = audio_df["score"].tolist()
 # Generate random scores
@@ -56,6 +65,42 @@ def test_accuracy(output_list, actual_list, absolute):
     return count
 
 
-accuracy = test_accuracy(random_list, true_scores, absolute=True) / len(random_list)
+## Test accuracy
+# accuracy = test_accuracy(random_list, true_scores, absolute=True) / len(random_list)
+# print("Random classifier accuracy is", accuracy)
 
-print("Random classifier accuracy is", accuracy)
+## Test ICC
+# print(get_icc(random_list, true_scores, icc_type="ICC(3,1)"))
+
+
+def calculate_mse(output_list, actual_list):
+    """
+    Calculate MSE between two lists.
+    :param output_list: Score list output by model.
+    :param actual_list: Actual score list.
+    :return: MSE value.
+    """
+    mse = np.mean((np.array(actual_list) - np.array(output_list)) ** 2)
+    return mse
+
+
+## Test MSE
+print(calculate_mse(random_list, true_scores))
+
+
+## Test model ICC
+mode_result = pd.read_csv(
+    model_training_results_df_path,
+    usecols=["Train Output", "Train Label", "Val Output", "Val Label",],
+)
+
+train_icc = get_icc(
+    mode_result["Train Output"].tolist(),
+    mode_result["Train Label"].tolist(),
+    icc_type="ICC(3,1)",
+)
+val_icc = get_icc(
+    mode_result["Val Output"].tolist(),
+    mode_result["Val Label"].tolist(),
+    icc_type="ICC(3,1)",
+)
