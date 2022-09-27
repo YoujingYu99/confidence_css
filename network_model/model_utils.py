@@ -425,7 +425,7 @@ def train_text(
             input_id = train_input["input_ids"].squeeze(1).to(device)
             train_output = model(input_id, mask)
             train_output = train_output.flatten()
-            append_to_list(
+            train_output_list, train_label_list = append_to_list(
                 train_output, train_label, train_output_list, train_label_list
             )
             batch_loss = criterion(train_output.float(), train_label.float())
@@ -457,7 +457,9 @@ def train_text(
                 input_id = val_input["input_ids"].squeeze(1).to(device)
                 val_output = model(input_id, mask)
                 val_output = val_output.flatten()
-                append_to_list(val_output, val_label, val_output_list, val_label_list)
+                val_output_list, val_label_list = append_to_list(
+                    val_output, val_label, val_output_list, val_label_list
+                )
                 batch_loss = criterion(val_output.float(), val_label.float())
                 total_loss_val += batch_loss.item()
 
@@ -2199,7 +2201,7 @@ def train_audio(
 
             train_output = model(input_values)
             train_output = train_output.flatten()
-            append_to_list(
+            train_output_list, train_label_list = append_to_list(
                 train_output, train_label, train_output_list, train_label_list
             )
             batch_loss = criterion(train_output.float(), train_label.float())
@@ -2241,7 +2243,9 @@ def train_audio(
 
                 val_output = model(input_values)
                 val_output = val_output.flatten()
-                append_to_list(val_output, val_label, val_output_list, val_label_list)
+                val_output_list, val_label_list = append_to_list(
+                    val_output, val_label, val_output_list, val_label_list
+                )
                 batch_loss = criterion(val_output.float(), val_input.float())
                 total_loss_val += batch_loss.item()
 
@@ -2573,7 +2577,7 @@ def train_audio_text(
 
             train_output = model(input_values, input_id, mask)
             train_output = train_output.flatten()
-            append_to_list(
+            train_output_list, train_label_list = append_to_list(
                 train_output, train_label, train_output_list, train_label_list
             )
             batch_loss = criterion(train_output.float(), train_label.float())
@@ -2611,7 +2615,9 @@ def train_audio_text(
                 val_output = model(val_input_values, val_input_id, val_mask)
                 val_output = val_output.flatten()
                 # Append results to the val lists
-                append_to_list(val_output, val_label, val_output_list, val_label_list)
+                val_output_list, val_label_list = append_to_list(
+                    val_output, val_label, val_output_list, val_label_list
+                )
                 val_batch_loss = criterion(val_output.float(), val_label.float())
                 total_loss_val += val_batch_loss.item()
 
@@ -2679,6 +2685,8 @@ def append_to_list(output, label, output_list, label_list):
     for l in label.tolist():
         label_list.append(l)
 
+    return output_list, label_list
+
 
 # Save data to csv
 def save_training_results(
@@ -2705,34 +2713,45 @@ def save_training_results(
     :param plot_name: Name of the plot depending on model.
     :return: Save results to a csv.
     """
-    list_of_tuples = list(
-        zip(
-            train_loss_list,
-            train_acc_list,
-            train_output_list,
-            train_label_list,
-            val_loss_list,
-            val_acc_list,
-            val_output_list,
-            val_label_list,
-        )
+    list_of_tuples_loss_acc = list(
+        zip(train_loss_list, train_acc_list, val_loss_list, val_acc_list,)
     )
-    training_results = pd.DataFrame(
-        list_of_tuples,
-        columns=[
-            "Train Loss",
-            "Train Acc",
-            "Train Output",
-            "Train Label",
-            "Val Loss",
-            "Val Acc",
-            "Val Output",
-            "Val Label",
-        ],
+    loss_acc_df = pd.DataFrame(
+        list_of_tuples_loss_acc,
+        columns=["Train Loss", "Train Acc", "Val Loss", "Val Acc",],
     )
-    training_results.to_csv(
-        os.path.join("/home", "yyu", "plots", plot_name + "training_results.csv")
+
+    loss_acc_df.to_csv(
+        os.path.join(
+            "/home", "yyu", "plots", "training_csv", plot_name + "loss_acc.csv"
+        ),
+        index=False,
     )
+
+    list_of_tuples_output = list(
+        zip(train_output_list, train_label_list, val_output_list, val_label_list,)
+    )
+    loss_acc_df = pd.DataFrame(
+        list_of_tuples_output,
+        columns=["Train Output", "Train Label", "Val Output", "Val Label",],
+    )
+
+    loss_acc_df.to_csv(
+        os.path.join(
+            "/home", "yyu", "plots", "training_csv", plot_name + "output_label.csv"
+        ),
+        index=False,
+    )
+
+    # my_data = {"Train Loss": train_loss_list, "Train Acc": train_acc_list, "Train Output": train_output_list,
+    #            "Train Label": train_label_list, "Val Loss": val_loss_list, "Val Acc": val_acc_list, "Val Output": val_output_list,
+    #            "Val Label": val_label_list}
+    #
+    # my_data_dict = dict([(k, pd.Series(v)) for k, v in my_data.items()])
+    # my_df = pd.DataFrame(my_data_dict)
+    # my_df.to_csv(
+    #     os.path.join("/home", "yyu", "plots", plot_name + "training_results.csv")
+    # )
 
 
 def gen_acc_plots(train_acc_list, val_acc_list, plot_name):

@@ -22,7 +22,7 @@ crowdsourcing_results_df_path = os.path.join(
 model_training_results_df_path = os.path.join(
     home_dir,
     "plots",
-    "crowdsourcing_results",
+    "training_csv",
     "audio_text_upsample_two_augment_training_result.csv",
 )
 
@@ -91,7 +91,7 @@ print(calculate_mse(random_list, true_scores))
 ## Test model ICC
 mode_result = pd.read_csv(
     model_training_results_df_path,
-    usecols=["Train Output", "Train Label", "Val Output", "Val Label",],
+    usecols=["Train Output", "Train Label", "Val Output", "Val Label"],
 )
 
 train_icc = get_icc(
