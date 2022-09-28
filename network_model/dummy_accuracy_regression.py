@@ -1,7 +1,11 @@
 """Dummy accuracy test for minimum required accuracy."""
 import pandas as pd
 
-from model_utils import load_audio_and_score_from_crowdsourcing_results, get_icc
+from model_utils import (
+    load_audio_and_score_from_crowdsourcing_results,
+    get_icc,
+    calculate_mse,
+)
 import os
 import numpy as np
 import random
@@ -69,38 +73,27 @@ def test_accuracy(output_list, actual_list, absolute):
 # accuracy = test_accuracy(random_list, true_scores, absolute=True) / len(random_list)
 # print("Random classifier accuracy is", accuracy)
 
-## Test ICC
-# print(get_icc(random_list, true_scores, icc_type="ICC(3,1)"))
+# Test ICC
+print(get_icc(random_list, true_scores, icc_type="ICC(3,1)"))
 
 
-def calculate_mse(output_list, actual_list):
-    """
-    Calculate MSE between two lists.
-    :param output_list: Score list output by model.
-    :param actual_list: Actual score list.
-    :return: MSE value.
-    """
-    mse = np.mean((np.array(actual_list) - np.array(output_list)) ** 2)
-    return mse
+# ## Test MSE
+# print(calculate_mse(random_list, true_scores))
 
 
-## Test MSE
-print(calculate_mse(random_list, true_scores))
-
-
-## Test model ICC
-mode_result = pd.read_csv(
-    model_training_results_df_path,
-    usecols=["Train Output", "Train Label", "Val Output", "Val Label"],
-)
-
-train_icc = get_icc(
-    mode_result["Train Output"].tolist(),
-    mode_result["Train Label"].tolist(),
-    icc_type="ICC(3,1)",
-)
-val_icc = get_icc(
-    mode_result["Val Output"].tolist(),
-    mode_result["Val Label"].tolist(),
-    icc_type="ICC(3,1)",
-)
+# ## Test model ICC
+# mode_result = pd.read_csv(
+#     model_training_results_df_path,
+#     usecols=["Train Output", "Train Label", "Val Output", "Val Label"],
+# )
+#
+# train_icc = get_icc(
+#     mode_result["Train Output"].tolist(),
+#     mode_result["Train Label"].tolist(),
+#     icc_type="ICC(3,1)",
+# )
+# val_icc = get_icc(
+#     mode_result["Val Output"].tolist(),
+#     mode_result["Val Label"].tolist(),
+#     icc_type="ICC(3,1)",
+# )

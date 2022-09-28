@@ -214,6 +214,17 @@ def test_accuracy(output, actual, absolute):
     return count
 
 
+def calculate_mse(output_list, actual_list):
+    """
+    Calculate MSE between two lists.
+    :param output_list: Score list output by model.
+    :param actual_list: Actual score list.
+    :return: MSE value.
+    """
+    mse = np.mean((np.array(actual_list) - np.array(output_list)) ** 2)
+    return mse
+
+
 def get_icc(output, actual, icc_type="ICC(3,1)"):
     """
     Get intraclass correlation score.
@@ -460,8 +471,10 @@ def train_text(
                 val_output_list, val_label_list = append_to_list(
                     val_output, val_label, val_output_list, val_label_list
                 )
-                batch_loss = criterion(val_output.float(), val_label.float())
-                total_loss_val += batch_loss.item()
+                val_batch_loss = criterion(val_output.float(), val_label.float())
+                # normalize loss to account for batch accumulation
+                val_batch_loss = val_batch_loss / accum_iter
+                total_loss_val += val_batch_loss.item()
 
                 # acc = (output.argmax(dim=1) == val_label).sum().item()
                 acc = test_accuracy(val_output, val_label, test_absolute)
@@ -562,11 +575,11 @@ def augment_audio_random(audio):
     """
     random_number = random.randint(0, 7)
     # print("length of input", len(audio))
+    # If string, decode to list then apply array
     if isinstance(audio, str):
         audio = np.array(json.loads(audio))
     else:
         audio = np.array(audio)
-        pass
     try:
         if random_number == 0:
             # Loudness
@@ -663,6 +676,7 @@ def augment_text_random_iter(sample_rate, result_df_augmented):
     for index, row in result_df_augmented.iterrows():
         random_number = random.randint(0, 6)
         if random_number == 0:
+            # Speech to text translation
             wav_path = os.path.join("/home", "yyu", "wav_audio.wav")
             if isinstance(row["audio_array"], list):
                 # Write the .wav file
@@ -2246,8 +2260,10 @@ def train_audio(
                 val_output_list, val_label_list = append_to_list(
                     val_output, val_label, val_output_list, val_label_list
                 )
-                batch_loss = criterion(val_output.float(), val_input.float())
-                total_loss_val += batch_loss.item()
+                val_batch_loss = criterion(val_output.float(), val_input.float())
+                # normalize loss to account for batch accumulation
+                val_batch_loss = val_batch_loss / accum_iter
+                total_loss_val += val_batch_loss.item()
 
                 # acc = (output.argmax(dim=1) == val_label).sum().item()
                 acc = test_accuracy(val_output, val_label, test_absolute)
@@ -2525,9 +2541,9 @@ def train_audio_text(
     device = torch.device("cuda" if use_cuda else "cpu")
 
     # # Freezing selected model parameters
-    # for name, param in list(model.bert.named_parameters())[:100]:
+    # for name, param in list(model.bert.named_parameters())[:105]:
     #     param.requires_grad = False
-    # for name, param in list(model.hubert.named_parameters())[:100]:
+    # for name, param in list(model.hubert.named_parameters())[:105]:
     #     param.requires_grad = False
 
     # Freeze Bert/HuBert
@@ -2619,6 +2635,8 @@ def train_audio_text(
                     val_output, val_label, val_output_list, val_label_list
                 )
                 val_batch_loss = criterion(val_output.float(), val_label.float())
+                # normalize loss to account for batch accumulation
+                val_batch_loss = val_batch_loss / accum_iter
                 total_loss_val += val_batch_loss.item()
 
                 # acc = (output.argmax(dim=1) == val_label).sum().item()

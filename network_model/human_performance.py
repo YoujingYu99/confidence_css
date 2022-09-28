@@ -90,16 +90,4 @@ def plot_accuracy_boundary(human_scores, true_scores):
 # Get MSE
 # print(calculate_mse(human_scores, true_scores))
 
-
-def calculate_mse(output_list, actual_list):
-    """
-    Calculate MSE between two lists.
-    :param output_list: Score list output by model.
-    :param actual_list: Actual score list.
-    :return: MSE value.
-    """
-    mse = np.mean((np.array(actual_list) - np.array(output_list)) ** 2)
-    return mse
-
-
 print(calculate_mse(human_scores, true_scores))
