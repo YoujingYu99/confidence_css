@@ -386,7 +386,6 @@ class CustomMultiModelSimplePooled(nn.Module):
 
         # Concat the two models
         concat = torch.cat((pooled_output_bert, pooled_hubert), dim=1)
-        # print("concat size", concat.size())
         concat_norm = self.layernorm1(concat)
         dropout1 = self.dropout(concat_norm)
         # print("concat size", dropout1.size())

@@ -9,7 +9,7 @@ from model_utils import *
 
 # Decide on whether to tokenize audios before training or use raw audio arrays.
 vectorise = True
-two_scores = True
+two_scores = False
 test_absolute = True
 
 # Load feature extractor
@@ -72,7 +72,7 @@ audio_text_test_df = load_audio_text_and_score_from_crowdsourcing_results(
 epochs = 1500
 LR = 5e-6
 weight_decay = 1e-7
-batch_size = 1
+batch_size = 2
 num_workers = 4
 accum_iter = 4
 
@@ -105,3 +105,5 @@ evaluate_audio_text(
     vectorise,
     test_absolute,
 )
+
+## Now we try with just augmenting audio and batch size = 4.

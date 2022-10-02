@@ -32,7 +32,7 @@ from models import *
 
 warnings.filterwarnings("ignore", category=np.VisibleDeprecationWarning)
 warnings.simplefilter(action="ignore", category=FutureWarning)
-os.environ["TOKENIZERS_PARALLELISM"] = "false"
+# os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 # Label and title size
 plt.rcParams["axes.labelsize"] = 20
@@ -1431,24 +1431,24 @@ def upsample_and_augment(result_df, times):
     fifth_bucket_df = pd.DataFrame()
     print("Deleted all individual dfs")
 
-    # Augment audio
-    result_df["audio_array"] = result_df["audio_array"].apply(augment_audio_random)
+    # # Augment audio
+    # result_df["audio_array"] = result_df["audio_array"].apply(augment_audio_random)
+    #
+    # # # Augment text
+    # sample_rate = 16000
+    # result_df_augmented_audio_text = augment_text_random_iter(
+    #     sample_rate=sample_rate, result_df_augmented=result_df
+    # )
+    #
+    # # Delete dataframes and list to free memory
+    # lst = [result_df]
+    # del result_df
+    # del lst
+    # gc.collect()
+    # result_df = pd.DataFrame()
+    # print("Deleted result_df")
 
-    # # Augment text
-    sample_rate = 16000
-    result_df_augmented_audio_text = augment_text_random_iter(
-        sample_rate=sample_rate, result_df_augmented=result_df
-    )
-
-    # Delete dataframes and list to free memory
-    lst = [result_df]
-    del result_df
-    del lst
-    gc.collect()
-    result_df = pd.DataFrame()
-    print("Deleted result_df")
-
-    return result_df_augmented_audio_text
+    return result_df
 
 
 def take_two_from_row(row):
@@ -1546,7 +1546,7 @@ def load_audio_text_and_score_from_crowdsourcing_results(
     )
 
     if augment_audio:
-        result_df = upsample_and_augment(result_df, times=2)
+        result_df = upsample_and_augment(result_df, times=1)
         print("size of final training dataset", result_df.shape[0])
     if save_to_single_csv:
         if augment_audio:
@@ -2659,7 +2659,7 @@ def train_audio_text(
         val_acc_list.append(total_acc_val / len(val_data))
 
         # Generate plots
-        plot_name = "audio_text_upsample_two_augment_"
+        plot_name = "multi_upsample_three_augment_audio_"
         gen_acc_plots(train_acc_list, val_acc_list, plot_name)
         gen_loss_plots(train_loss_list, val_loss_list, plot_name)
         gen_val_scatter_plot(val_output_list, val_label_list, plot_name)
