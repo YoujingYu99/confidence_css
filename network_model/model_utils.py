@@ -11,6 +11,7 @@ import warnings
 
 # import pingouin as pg
 import nlpaug.augmenter.word as naw
+import seaborn as sns
 import wavio
 import speech_recognition as sr
 from scipy.io.wavfile import write
@@ -84,13 +85,20 @@ def plot_histogram_of_scores(home_dir, input_list, num_bins, plot_name, x_label)
     :return: Save histogram plot.
     """
     plt.figure()
-    plt.hist(input_list, bins=num_bins)
-    plt.xlabel(x_label)
-    plt.ylabel("Frequencies")
-    plt.title("Histogram of " + plot_name)
+    # plt.hist(input_list, bins=num_bins)
+    # plt.xlabel(x_label)
+    # plt.ylabel("Frequencies")
+    # plt.title("Histogram of " + plot_name)
+    # plt.savefig(os.path.join(home_dir, "plots", plot_name))
+    # plt.show()
+    # plt.clf()
+    hist = sns.histplot(input_list, color='cornflowerblue'
+                        , kde=True, bins=num_bins
+                        )
+    plt.title("Histogram of " + plot_name, fontsize=20)
+    plt.xlabel(x_label, fontsize=20)
+    plt.ylabel('Frequency', fontsize=20)
     plt.savefig(os.path.join(home_dir, "plots", plot_name))
-    plt.show()
-    plt.clf()
 
 
 def split_to_train_val_test(home_dir):

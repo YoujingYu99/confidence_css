@@ -1,5 +1,6 @@
 """Test the accuracy of human performance on the confidence detection on the
-test set. This is the upperbound of the model performance
+test set. This is the upperbound of the model performance. We also test model
+performance here.
 """
 import pandas as pd
 
@@ -15,13 +16,13 @@ crowdsourcing_results_test_df_path = os.path.join(
     "Batch_4799159_batch_results_complete_reject_filtered_numbered_cleaned_test.csv",
 )
 
-audio_text_test_df = load_audio_text_and_score_from_crowdsourcing_results(
-    home_dir,
-    crowdsourcing_results_test_df_path,
-    save_to_single_csv=False,
-    augment_audio=False,
-    two_scores=False,
-)
+# audio_text_test_df = load_audio_text_and_score_from_crowdsourcing_results(
+#     home_dir,
+#     crowdsourcing_results_test_df_path,
+#     save_to_single_csv=False,
+#     augment_audio=False,
+#     two_scores=False,
+# )
 
 human_df = pd.read_csv(
     os.path.join(
@@ -31,17 +32,14 @@ human_df = pd.read_csv(
     )
 )
 
-model_output_df = pd.read_csv(
-    os.path.join(
-        home_dir,
-        "plots",
-        "training_csv" "multi_upsample_three_augment_audio_output_label.csv",
-    )
-)
+# model_output_df = pd.read_csv(
+#     os.path.join(
+#         home_dir,
+#         "plots",
+#         "training_csv" "multi_upsample_three_augment_audio_output_label.csv",
+#     )
+# )
 
-
-# count = test_accuracy(human_scores, true_scores, absolute=True)
-# print("Human accuracy rate is", count / human_scores.size)
 
 
 # def test_accuracy_score(output, actual, absolute, margin):
@@ -93,39 +91,40 @@ model_output_df = pd.read_csv(
 # # plot_accuracy_boundary(human_scores, true_scores)
 
 
-# ## Test human performance
-# # Get two series of scores
+## Test human performance
+# Get two series of scores
 # true_scores = audio_text_test_df["score"].astype(float)
-# human_scores = human_df["score4"].astype(float) - 2.5
+true_scores = pd.read_csv(crowdsourcing_results_test_df_path)["average"].astype(float) - 2.5
+human_scores = human_df["score4"].astype(float) - 2.5
 
-# count = test_accuracy(human_scores, true_scores, absolute=True)
-# print("Human accuracy rate is", count / human_scores.size)
+count = test_accuracy(human_scores, true_scores, absolute=True)
+print("Human accuracy rate is", count / human_scores.size)
 
 # Get human icc
-# print(get_icc(human_scores, true_scores, icc_type="ICC(3,1)"))
+print(get_icc(human_scores, true_scores, icc_type="ICC(3,1)"))
 # Get MSE
-# print(calculate_mse(human_scores, true_scores))
+print(calculate_mse(human_scores, true_scores))
 
-## Test model performance
-train_output = model_output_df["Train Output"].astype(float)
-train_labels = model_output_df["Train Label"].astype(float)
-
-count = test_accuracy(train_output, train_labels, absolute=True)
-print("Model Training accuracy rate is", count / train_labels.size)
-
-# Get icc
-print(get_icc(train_output, train_labels, icc_type="ICC(3,1)"))
-# Get MSE
-print(calculate_mse(train_output, train_labels))
-
-
-val_output = model_output_df["Val Output"].astype(float)
-val_labels = model_output_df["Val Label"].astype(float)
-
-count = test_accuracy(val_output, val_labels, absolute=True)
-print("Model Val accuracy rate is", count / val_labels.size)
-
-# Get icc
-print(get_icc(val_output, val_labels, icc_type="ICC(3,1)"))
-# Get MSE
-print(calculate_mse(val_output, val_labels))
+# ## Test model performance
+# train_output = model_output_df["Train Output"].astype(float)
+# train_labels = model_output_df["Train Label"].astype(float)
+#
+# count = test_accuracy(train_output, train_labels, absolute=True)
+# print("Model Training accuracy rate is", count / train_labels.size)
+#
+# # Get icc
+# print(get_icc(train_output, train_labels, icc_type="ICC(3,1)"))
+# # Get MSE
+# print(calculate_mse(train_output, train_labels))
+#
+#
+# val_output = model_output_df["Val Output"].astype(float)
+# val_labels = model_output_df["Val Label"].astype(float)
+#
+# count = test_accuracy(val_output, val_labels, absolute=True)
+# print("Model Val accuracy rate is", count / val_labels.size)
+#
+# # Get icc
+# print(get_icc(val_output, val_labels, icc_type="ICC(3,1)"))
+# # Get MSE
+# print(calculate_mse(val_output, val_labels))

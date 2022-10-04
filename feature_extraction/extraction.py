@@ -13,7 +13,7 @@ from features import *
 
 # Set target sampling rate
 target_sampling_rate = 16000
-folder_number = 6
+folder_number = 7
 
 
 def extract_features_from_folders(home_dir, folder_path_list, type):

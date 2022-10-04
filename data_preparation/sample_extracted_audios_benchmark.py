@@ -15,8 +15,12 @@ home_dir = os.path.join("/home", "yyu")
 
 # Get datasheet path
 old_path = os.path.join(home_dir, "extracted_audio", "extracted_audio_total")
-new_path = os.path.join(home_dir, "extracted_audio", "extracted_audio_samples_benchmark_200")
-existed_path = os.path.join(home_dir, "extracted_audio", "extracted_audio_samples_benchmark_20")
+new_path = os.path.join(
+    home_dir, "extracted_audio", "extracted_audio_samples_benchmark_200"
+)
+existed_path = os.path.join(
+    home_dir, "extracted_audio", "extracted_audio_samples_benchmark_20"
+)
 
 for i in folder_numbers:
     source = os.path.join(old_path, str(i))
@@ -66,8 +70,8 @@ for i in folder_numbers:
 
 # prefix = "samples_benchmark_200" + "/"
 #
-# ACCESS_KEY = "AKIA5JV4AUW3DNDSDB76"
-# SECRET_KEY = "qDjIKdmO7MGcAG3lB32AQt36Udo45kC1GtoYhPZ+"
+# ACCESS_KEY = "*"
+# SECRET_KEY = "*"
 #
 # s3_client = boto3.client(
 #     "s3", aws_access_key_id=ACCESS_KEY, aws_secret_access_key=SECRET_KEY

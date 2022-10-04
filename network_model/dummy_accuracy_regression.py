@@ -20,29 +20,31 @@ crowdsourcing_results_df_path = os.path.join(
     home_dir,
     "data_sheets",
     "crowdsourcing_results",
-    "Batch_4799159_batch_results_complete_reject_filtered_numbered_cleaned.csv",
+    "Batch_4799159_batch_results_complete_reject_filtered_numbered_cleaned_test.csv",
 )
 
-model_training_results_df_path = os.path.join(
-    home_dir,
-    "plots",
-    "training_csv",
-    "audio_text_upsample_two_augment_training_result.csv",
-)
+# model_training_results_df_path = os.path.join(
+#     home_dir,
+#     "plots",
+#     "training_csv",
+#     "audio_text_upsample_two_augment_training_result.csv",
+# )
 
 
 print("start of application!")
 
-# Read in individual csvs and load into a final dataframe
-audio_df = load_audio_and_score_from_crowdsourcing_results(
-    home_dir,
-    crowdsourcing_results_df_path,
-    save_to_single_csv,
-    augment_audio=False,
-    two_scores=True,
-)
+# # Read in individual csvs and load into a final dataframe
+# audio_df = load_audio_and_score_from_crowdsourcing_results(
+#     home_dir,
+#     crowdsourcing_results_df_path,
+#     save_to_single_csv,
+#     augment_audio=False,
+#     two_scores=False,
+# )
 
-true_scores = audio_df["score"].tolist()
+# true_scores = audio_df["score"].tolist()
+
+true_scores = pd.read_csv(crowdsourcing_results_df_path)["average"].astype(float) - 2.5
 # Generate random scores
 random_list = []
 for i in range(len(true_scores)):
@@ -69,31 +71,14 @@ def test_accuracy(output_list, actual_list, absolute):
     return count
 
 
-## Test accuracy
-# accuracy = test_accuracy(random_list, true_scores, absolute=True) / len(random_list)
-# print("Random classifier accuracy is", accuracy)
+# Test accuracy
+accuracy = test_accuracy(random_list, true_scores, absolute=True) / len(random_list)
+print("Random classifier accuracy is", accuracy)
 
 # Test ICC
 print(get_icc(random_list, true_scores, icc_type="ICC(3,1)"))
 
 
-# ## Test MSE
-# print(calculate_mse(random_list, true_scores))
+## Test MSE
+print(calculate_mse(random_list, true_scores))
 
-
-# ## Test model ICC
-# mode_result = pd.read_csv(
-#     model_training_results_df_path,
-#     usecols=["Train Output", "Train Label", "Val Output", "Val Label"],
-# )
-#
-# train_icc = get_icc(
-#     mode_result["Train Output"].tolist(),
-#     mode_result["Train Label"].tolist(),
-#     icc_type="ICC(3,1)",
-# )
-# val_icc = get_icc(
-#     mode_result["Val Output"].tolist(),
-#     mode_result["Val Label"].tolist(),
-#     icc_type="ICC(3,1)",
-# )

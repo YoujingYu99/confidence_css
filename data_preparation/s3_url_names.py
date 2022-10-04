@@ -1,7 +1,7 @@
 """Extract sw3 urls to csv.
 
 This scripts extracts the urls of the audio files in sw3 and save to csv. Since
-we set 10 audios per HIT plus 2 test questions,
+we set 10 audios per HIT plus 2 test questions, we have 12 audios per HIT.
 """
 
 
