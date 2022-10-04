@@ -1,4 +1,5 @@
-"""Analysis of the score distribution, the text token length and the audio token length.
+"""Analysis of the score distribution, the text token length and the audio token length
+on the original dataset.
 """
 import os
 from transformers import AutoFeatureExtractor, BertTokenizer
