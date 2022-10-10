@@ -50,7 +50,7 @@ print("start of application!")
 #     two_scores=False,
 # )
 
-# text_train_df = load_text_and_score_from_crowdsourcing_results(
+# text_df_train = load_text_and_score_from_crowdsourcing_results(
 #     home_dir,
 #     crowdsourcing_results_df_path,
 #     save_to_single_csv,
@@ -70,37 +70,44 @@ print("start of application!")
 # )
 
 
-# Analysis of audio token length
-audio_df_train = load_audio_and_score_from_crowdsourcing_results(
-    home_dir, crowdsourcing_results_df_path, save_to_single_csv,augment_audio=False,
-    two_scores=False,
-)
-
-audio_series = audio_df_train["audio_array"]
-audio_tensor_length_list = []
-for audio in audio_series:
-    extracted_tensor = audio_feature_extractor(
-        audio, sampling_rate=16000, return_tensors="pt",
-    )
-    audio_tensor_length_list.append(list(extracted_tensor.input_values.size())[1])
-
-df = pd.DataFrame(audio_tensor_length_list, columns=["Audio Token Length"])
-df.to_csv(home_dir, "plots", "audio_token_length.csv")
+# # Analysis of audio token length
+# audio_df_train = load_audio_and_score_from_crowdsourcing_results(
+#     home_dir, crowdsourcing_results_df_path, save_to_single_csv,augment_audio=False,
+#     two_scores=False,
+# )
+#
+# audio_series = audio_df_train["audio_array"]
+# audio_tensor_length_list = []
+# print("Start tokenisation")
+# for audio in audio_series:
+#     extracted_tensor = audio_feature_extractor(
+#         audio, sampling_rate=16000, return_tensors="pt",
+#     )
+#     audio_tensor_length_list.append(list(extracted_tensor.input_values.size())[1])
+#
+# df = pd.DataFrame(audio_tensor_length_list, columns=["Audio Token Length"])
+# df.to_csv(os.path.join(home_dir, "plots", "audio_token_length.csv"))
 # plot_histogram_of_scores(home_dir, audio_tensor_length_list, num_bins=30, plot_name="Audio Token Length", x_label="Token Length")
 
 
 
-## Analysis of text token length
-#
-# texts = text_train_df["sentence"]
-# text_tensor_length_list = []
-# for text in texts:
-#     extracted_tensor = text_tokenizer(text, return_tensors="pt")
-#     text_tensor_length_list.append(len(extracted_tensor.input_ids[0]))
-#
-# print("Start plotting!")
-# df = pd.DataFrame(text_tensor_length_list, columns=["Text Token Length"])
-# df.to_csv(home_dir, "plots", "text_token_length.csv")
+# Analysis of text token length
+text_df_train = load_text_and_score_from_crowdsourcing_results(
+    home_dir,
+    crowdsourcing_results_df_path,
+    save_to_single_csv,
+    augment_text=False,
+    two_scores=False,
+)
+texts = text_df_train["sentence"]
+text_tensor_length_list = []
+for text in texts:
+    extracted_tensor = text_tokenizer(text, return_tensors="pt")
+    text_tensor_length_list.append(len(extracted_tensor.input_ids[0]))
+
+print("Start plotting!")
+df = pd.DataFrame(text_tensor_length_list, columns=["Text Token Length"])
+df.to_csv(os.path.join(home_dir, "plots", "text_token_length.csv"))
 # plot_histogram_of_scores(
 #     home_dir,
 #     text_tensor_length_list,

@@ -862,7 +862,7 @@ def load_audio_and_score_from_crowdsourcing_results(
     )
 
     if augment_audio:
-        result_df = upsample_and_augment_audio_only(result_df, times=3)
+        result_df = upsample_and_augment_audio_only(result_df, times=1)
         print("size of final training dataset", result_df.shape[0])
 
     if save_to_single_csv:
@@ -936,7 +936,7 @@ def load_text_and_score_from_crowdsourcing_results(
     result_df["score"] = result_df["score"].astype(float)
     print("size of training dataset", result_df.shape[0])
     if augment_text:
-        result_df = upsample_and_augment_text_only(result_df, times=3)
+        result_df = upsample_and_augment_text_only(result_df, times=1)
         print("size of final training dataset", result_df.shape[0])
 
     if save_to_single_csv:

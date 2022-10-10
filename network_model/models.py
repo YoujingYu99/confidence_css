@@ -143,9 +143,9 @@ class CustomBERTSimpleModel(nn.Module):
     def __init__(self, dropout=0.5):
         super(CustomBERTSimpleModel, self).__init__()
         self.bert = BertModel.from_pretrained("bert-base-cased")
-        self.layernorm1 = nn.LayerNorm([1, 768])
+        self.layernorm1 = nn.LayerNorm([8, 768])
         self.linear1 = nn.Linear(768, 32)
-        self.layernorm2 = nn.LayerNorm([1, 32])
+        self.layernorm2 = nn.LayerNorm([8, 32])
         self.dropout = nn.Dropout(dropout)
         self.linear2 = nn.Linear(32, 1)
         self.tanh = nn.Tanh()
@@ -206,9 +206,9 @@ class CustomHUBERTSimpleModel(nn.Module):
     def __init__(self, dropout=0.5):
         super(CustomHUBERTSimpleModel, self).__init__()
         self.hubert = HubertModel.from_pretrained("facebook/hubert-base-ls960")
-        self.layernorm1 = nn.LayerNorm([1, 768])
+        self.layernorm1 = nn.LayerNorm([8, 768])
         self.linear1 = nn.Linear(768, 32)
-        self.layernorm2 = nn.LayerNorm([1, 32])
+        self.layernorm2 = nn.LayerNorm([8, 32])
         self.dropout = nn.Dropout(dropout)
         self.linear2 = nn.Linear(32, 1)
         self.tanh = nn.Tanh()
