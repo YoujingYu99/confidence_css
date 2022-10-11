@@ -36,7 +36,7 @@ human_df = pd.read_csv(
 #     os.path.join(
 #         home_dir,
 #         "plots",
-#         "training_csv" "multi_upsample_three_augment_audio_output_label.csv",
+#         "training_csv "multi_upsample_three_augment_audio_output_label.csv",
 #     )
 # )
 

@@ -2535,14 +2535,14 @@ def train_audio_text(
         shuffle=True,
         num_workers=num_workers,
         drop_last=True,
-        pin_memory=True,
+        # pin_memory=True,
     )
     val_dataloader = torch.utils.data.DataLoader(
         val,
         batch_size=batch_size,
         num_workers=num_workers,
         drop_last=True,
-        pin_memory=True,
+        # pin_memory=True,
     )
 
     use_cuda = torch.cuda.is_available()
@@ -2602,15 +2602,15 @@ def train_audio_text(
             train_output = model(input_values, input_id, mask)
             train_output = train_output.flatten()
             train_output_list, train_label_list = append_to_list(
-                train_output, train_label, train_output_list, train_label_list
+                train_output.cpu(), train_label.cpu(), train_output_list.cpu(), train_label_list.cpu()
             )
             batch_loss = criterion(train_output.float(), train_label.float())
             # normalize loss to account for batch accumulation
             batch_loss = batch_loss / accum_iter
-            total_loss_train += batch_loss.item()
+            total_loss_train += batch_loss.item().cpu()
 
             # acc = (output.argmax(dim=1) == train_label).sum().item()
-            acc = test_accuracy(train_output, train_label, test_absolute)
+            acc = test_accuracy(train_output, train_label, test_absolute).cpu()
             total_acc_train += acc
             batch_loss.backward()
 
@@ -2640,16 +2640,16 @@ def train_audio_text(
                 val_output = val_output.flatten()
                 # Append results to the val lists
                 val_output_list, val_label_list = append_to_list(
-                    val_output, val_label, val_output_list, val_label_list
+                    val_output.cpu(), val_label.cpu(), val_output_list.cpu(), val_label_list.cpu()
                 )
                 val_batch_loss = criterion(val_output.float(), val_label.float())
                 # normalize loss to account for batch accumulation
                 val_batch_loss = val_batch_loss / accum_iter
-                total_loss_val += val_batch_loss.item()
+                total_loss_val += val_batch_loss.item().cpu()
 
                 # acc = (output.argmax(dim=1) == val_label).sum().item()
 
-                val_acc = test_accuracy(val_output, val_label, test_absolute)
+                val_acc = test_accuracy(val_output, val_label, test_absolute).cpu()
                 total_acc_val += val_acc
 
         # early stopping
