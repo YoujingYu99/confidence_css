@@ -76,14 +76,14 @@ print("start of application!")
 #     two_scores=False,
 # )
 #
-# audio_series = audio_df_train["audio_array"]
-# audio_tensor_length_list = []
-# print("Start tokenisation")
-# for audio in audio_series:
-#     extracted_tensor = audio_feature_extractor(
-#         audio, sampling_rate=16000, return_tensors="pt",
-#     )
-#     audio_tensor_length_list.append(list(extracted_tensor.input_values.size())[1])
+audio_series = audio_df_train["audio_array"]
+audio_tensor_length_list = []
+print("Start tokenisation")
+for audio in audio_series:
+    extracted_tensor = audio_feature_extractor(
+        audio, sampling_rate=16000, return_tensors="pt",
+    )
+    audio_tensor_length_list.append(list(extracted_tensor.input_values.size())[1])
 #
 # df = pd.DataFrame(audio_tensor_length_list, columns=["Audio Token Length"])
 # df.to_csv(os.path.join(home_dir, "plots", "audio_token_length.csv"))

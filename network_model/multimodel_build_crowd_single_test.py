@@ -71,7 +71,7 @@ multimodel = CustomMultiModelSimplePooled()
 
 print("Start training!")
 # Train model
-train_audio_text(
+train_audio_text_no_save(
     multimodel,
     audio_feature_extractor,
     text_tokenizer,
