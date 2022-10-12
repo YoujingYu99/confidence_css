@@ -105,5 +105,3 @@ evaluate_audio_text(
     vectorise,
     test_absolute,
 )
-
-## Now we try with just augmenting audio and batch size = 4.

@@ -2585,11 +2585,8 @@ def train_audio_text(
         total_acc_train = 0
         total_loss_train = 0
 
-        # batch accumulation parameter
-        accum_iter = accum_iter
         model.train()
-        for batch_idx, (train_input, train_label) in tqdm(enumerate(train_dataloader)):
-            # for train_input, train_label in tqdm(train_dataloader):
+        for train_input, train_label in tqdm(train_dataloader):
             train_label = train_label.to(device)
             # Audio
             input_values = train_input["audio"]["input_values"].squeeze(1).to(device)
@@ -2606,8 +2603,7 @@ def train_audio_text(
                     train_output_list,
                     train_label_list,
                 )
-                batch_loss = criterion(train_output.float(),
-                                       train_label.float())
+                batch_loss = criterion(train_output.float(), train_label.float())
                 # normalize loss to account for batch accumulation
                 batch_loss = batch_loss / accum_iter
                 total_loss_train += batch_loss.item()
@@ -2617,12 +2613,8 @@ def train_audio_text(
             total_acc_train += acc
             batch_loss.backward()
 
-            # Weights update
-            if ((batch_idx + 1) % accum_iter == 0) or (
-                batch_idx + 1 == len(train_dataloader)
-            ):
-                optimizer.step()
-                optimizer.zero_grad()
+            optimizer.step()
+            optimizer.zero_grad()
 
         total_acc_val = 0
         total_loss_val = 0
@@ -2698,6 +2690,7 @@ def train_audio_text(
 
         gc.collect()
         torch.cuda.empty_cache()
+
 
 def train_audio_text_no_save(
     model,
@@ -2907,6 +2900,7 @@ def train_audio_text_no_save(
 
         gc.collect()
         torch.cuda.empty_cache()
+
 
 def append_to_list(output, label, output_list, label_list):
     """

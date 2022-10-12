@@ -61,7 +61,7 @@ audio_text_test_df = load_audio_text_and_score_from_crowdsourcing_results(
 epochs = 1500
 LR = 1e-5
 weight_decay = 1e-7
-batch_size = 16
+batch_size = 32
 num_workers = 4
 accum_iter = 4
 
