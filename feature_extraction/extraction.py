@@ -13,7 +13,7 @@ from features import *
 
 # Set target sampling rate
 target_sampling_rate = 16000
-folder_number = 7
+# folder_number = 7
 
 
 def extract_features_from_folders(home_dir, folder_path_list, type):
@@ -23,12 +23,12 @@ def extract_features_from_folders(home_dir, folder_path_list, type):
     :return: Extract features and save to csvs
     """
     audio_path_list = audio_path_in_dir(folder_path_list)
-    # Find folder number
-    audio_folder_name = audio_path_list[0].split("/")[-2]
     for audio_path in audio_path_list:
+        # Find folder number
+        audio_folder_name = audio_path.split("/")[-2]
         # Create csv name
         feature_csv_folder_path = os.path.join(
-            home_dir, "data_sheets", "features", str(audio_folder_name)
+            home_dir, "data_sheets", "features_all", str(audio_folder_name)
         )
         audio_array_csv_folder_path = os.path.join(
             home_dir, "data_sheets", "features_audio_array", str(audio_folder_name)
@@ -44,22 +44,22 @@ def extract_features_from_folders(home_dir, folder_path_list, type):
         if type == "audio_array":
             # Skip files that have already been extracted
             if not os.path.isfile(audio_array_csv_path):
-                try:
-                    features = SingleFileFeatureExtraction(
-                        home_dir=home_dir,
-                        audio_path=audio_path,
-                        feature_csv_folder_path=feature_csv_folder_path,
-                        audio_array_csv_folder_path=audio_array_csv_folder_path,
-                        target_sampling_rate=target_sampling_rate,
-                    )
-                    # features.write_features_to_csv()
-                    features.write_audio_array_to_csv()
-                except:
-                    continue
+            # try:
+                features = SingleFileFeatureExtraction(
+                    home_dir=home_dir,
+                    audio_path=audio_path,
+                    feature_csv_folder_path=feature_csv_folder_path,
+                    audio_array_csv_folder_path=audio_array_csv_folder_path,
+                    target_sampling_rate=target_sampling_rate,
+                )
+                # features.write_features_to_csv()
+                features.write_audio_array_to_csv()
+                # except:
+                #     continue
         elif type == "all_features":
             # Skip files that have already been extracted
             if not os.path.isfile(feature_csv_path):
-                try:
+                # try:
                     features = SingleFileFeatureExtraction(
                         home_dir=home_dir,
                         audio_path=audio_path,
@@ -68,12 +68,16 @@ def extract_features_from_folders(home_dir, folder_path_list, type):
                         target_sampling_rate=target_sampling_rate,
                     )
                     features.write_features_to_csv()
-                except:
-                    continue
+                # except:
+                #     continue
 
 
 # home_dir is the location of script
 home_dir = os.path.join("/home", "yyu")
 
-folder_path_list = [os.path.join(home_dir, "extracted_audios", str(folder_number))]
+# folder_path_list = [os.path.join(home_dir, "extracted_audios", str(folder_number))]
+folder_path_list = []
+for i in range(8):
+    folder_path_list.append(os.path.join(home_dir, "extracted_audios", str(i)))
+
 extract_features_from_folders(home_dir, folder_path_list, "all_features")

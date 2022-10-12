@@ -7,7 +7,7 @@ from model_utils import *
 
 # Decide on whether to tokenize audios before training or use raw audio arrays.
 vectorise = True
-two_scores = True
+two_scores = False
 test_absolute = True
 
 # Load feature extractor
@@ -36,7 +36,7 @@ audio_text_train_df = load_audio_text_and_score_from_crowdsourcing_results(
     crowdsourcing_results_train_df_path,
     save_to_single_csv=False,
     augment_audio=False,
-    two_scores=True,
+    two_scores=two_scores,
 )
 
 
@@ -45,7 +45,7 @@ audio_text_val_df = load_audio_text_and_score_from_crowdsourcing_results(
     crowdsourcing_results_val_df_path,
     save_to_single_csv=False,
     augment_audio=False,
-    two_scores=True,
+    two_scores=two_scores,
 )
 
 audio_text_test_df = load_audio_text_and_score_from_crowdsourcing_results(
@@ -53,7 +53,7 @@ audio_text_test_df = load_audio_text_and_score_from_crowdsourcing_results(
     crowdsourcing_results_test_df_path,
     save_to_single_csv=False,
     augment_audio=False,
-    two_scores=True,
+    two_scores=two_scores,
 )
 
 
@@ -61,7 +61,7 @@ audio_text_test_df = load_audio_text_and_score_from_crowdsourcing_results(
 epochs = 1500
 LR = 1e-5
 weight_decay = 1e-7
-batch_size = 2
+batch_size = 4
 num_workers = 4
 accum_iter = 4
 
