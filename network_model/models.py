@@ -361,10 +361,10 @@ class CustomMultiModelSimplePooled(nn.Module):
         super(CustomMultiModelSimplePooled, self).__init__()
         self.bert = BertModel.from_pretrained("bert-base-cased")
         self.hubert = HubertModel.from_pretrained("facebook/hubert-base-ls960")
-        self.layernorm1 = nn.LayerNorm([2, 768 * 2])
+        self.layernorm1 = nn.LayerNorm([8, 768 * 2])
         self.dropout = nn.Dropout(dropout)
         self.linear1 = nn.Linear(768 * 2, 32)
-        self.layernorm2 = nn.LayerNorm([2, 32])
+        self.layernorm2 = nn.LayerNorm([8, 32])
         self.linear2 = nn.Linear(32, 1)
         self.tanh = nn.Tanh()
 
@@ -377,7 +377,7 @@ class CustomMultiModelSimplePooled(nn.Module):
         # print("pooled bert", pooled_output_bert.size())
 
         ## Hubert transform
-        print("hubert input size", input_values.size())
+        # print("hubert input size", input_values.size())
         output_tuple_hubert = self.hubert(input_values=input_values, return_dict=False)
         (pooled_output_hubert,) = output_tuple_hubert
         # print("pooled hubert", pooled_output_hubert.size())

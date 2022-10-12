@@ -2051,7 +2051,7 @@ class AudioDataset(torch.utils.data.Dataset):
                 sampling_rate=16000,
                 padding="max_length",
                 truncation=True,
-                max_length=1000000,
+                max_length=300000,
                 return_tensors="pt",
             )
             audios.append(extracted_tensor)
@@ -2428,7 +2428,7 @@ class AudioTextDataset(torch.utils.data.Dataset):
                 sampling_rate=16000,
                 padding="max_length",
                 truncation=True,
-                max_length=1000000,
+                max_length=300000,
                 return_tensors="pt",
             )
             audios.append(extracted_tensor)
@@ -2588,7 +2588,7 @@ def train_audio_text(
         # batch accumulation parameter
         accum_iter = accum_iter
         model.train()
-        for batch_idx, (train_input, train_label) in enumerate(train_dataloader):
+        for batch_idx, (train_input, train_label) in tqdm(enumerate(train_dataloader)):
             # for train_input, train_label in tqdm(train_dataloader):
             train_label = train_label.to(device)
             # Audio
@@ -2597,18 +2597,20 @@ def train_audio_text(
             mask = train_input["text"]["attention_mask"].to(device)
             input_id = train_input["text"]["input_ids"].squeeze(1).to(device)
 
-            train_output = model(input_values, input_id, mask)
-            train_output = train_output.flatten()
-            train_output_list, train_label_list = append_to_list(
-                train_output.cpu(),
-                train_label.cpu(),
-                train_output_list,
-                train_label_list,
-            )
-            batch_loss = criterion(train_output.float(), train_label.float())
-            # normalize loss to account for batch accumulation
-            batch_loss = batch_loss / accum_iter
-            total_loss_train += batch_loss.item()
+            with torch.cuda.amp.autocast():
+                train_output = model(input_values, input_id, mask)
+                train_output = train_output.flatten()
+                train_output_list, train_label_list = append_to_list(
+                    train_output.cpu(),
+                    train_label.cpu(),
+                    train_output_list,
+                    train_label_list,
+                )
+                batch_loss = criterion(train_output.float(),
+                                       train_label.float())
+                # normalize loss to account for batch accumulation
+                batch_loss = batch_loss / accum_iter
+                total_loss_train += batch_loss.item()
 
             # acc = (output.argmax(dim=1) == train_label).sum().item()
             acc = test_accuracy(train_output, train_label, test_absolute)
