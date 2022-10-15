@@ -33,7 +33,7 @@ def download_s3_folder(bucket_name, s3_folder, local_dir=None):
 
 
 home_dir = os.path.join("/home", "yyu")
-local_dir = os.path.join(home_dir, "extracted_audios", "samples_benchmark_200")
+local_dir = os.path.join(home_dir, "extracted_audios", "Samples_Benchmark_200")
 download_s3_folder(
-    bucket_name="extractedaudio", s3_folder="samples_benchmark_200", local_dir=local_dir
+    bucket_name="extractedaudio", s3_folder="Samples_Benchmark_200", local_dir=local_dir
 )

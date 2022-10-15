@@ -22,19 +22,19 @@ text_tokenizer = BertTokenizer.from_pretrained("bert-base-cased")
 home_dir = os.path.join("/home", "yyu")
 featuers_folder_path_dir = os.path.join(home_dir, "data_sheets", "features")
 
-# # Path for crowdsourcing results
-# crowdsourcing_results_df_path = os.path.join(
-#     home_dir,
-#     "data_sheets",
-#     "crowdsourcing_results",
-# "Batch_4799159_batch_results_complete_reject_filtered_numbered_cleaned_train.csv",
-# )
-
+# Path for crowdsourcing results
 crowdsourcing_results_df_path = os.path.join(
     home_dir,
     "data_sheets",
     "crowdsourcing_results",
-"test_crowd.csv",
+"Batch_4799159_batch_results_complete_reject_filtered_numbered_cleaned_train.csv",
+)
+
+crowdsourcing_results_val_df_path = os.path.join(
+    home_dir,
+    "data_sheets",
+    "crowdsourcing_results",
+"Batch_4799159_batch_results_complete_reject_filtered_numbered_cleaned_val.csv",
 )
 
 
@@ -49,13 +49,13 @@ print("start of application!")
 #     two_scores=False,
 # )
 #
-# audio_df_train = load_audio_and_score_from_crowdsourcing_results(
-#     home_dir,
-#     crowdsourcing_results_df_path,
-#     save_to_single_csv,
-#     augment_audio=False,
-#     two_scores=False,
-# )
+audio_df_train = load_audio_and_score_from_crowdsourcing_results(
+    home_dir,
+    crowdsourcing_results_df_path,
+    save_to_single_csv,
+    augment_audio=False,
+    two_scores=False,
+)
 
 # text_df_train = load_text_and_score_from_crowdsourcing_results(
 #     home_dir,
@@ -65,33 +65,39 @@ print("start of application!")
 #     two_scores=False,
 # )
 
-# ## Analysis of score distribution
-# train_scores_list = audio_df_train["score"].tolist()
-# train_scores_origin_list = [i + 2.5 for i in train_scores_list]
-# plot_histogram_of_scores(
-#     home_dir,
-#     train_scores_origin_list,
-#     num_bins=5,
-#     plot_name="Score Distribution",
-#     x_label="Scores",
+## Analysis of score distribution
+train_scores_list = audio_df_train["score"].tolist()
+train_scores_origin_list = [i + 2.5 for i in train_scores_list]
+plot_histogram_of_scores(
+    home_dir,
+    train_scores_origin_list,
+    num_bins=5,
+    plot_name="Train Score Distribution",
+    x_label="Scores",
+)
+
+
+# # # Analysis of audio token length
+# audio_df_train = load_audio_and_score_from_crowdsourcing_results(
+#     home_dir, crowdsourcing_results_df_path, save_to_single_csv,augment_audio=False,
+#     two_scores=False,
+# )
+# #
+# audio_series = audio_df_train["audio_array"]
+# audio_tensor_length_list = []
+# print("Start tokenisation")
+# for audio in audio_series:
+#     extracted_tensor = audio_feature_extractor(
+#         audio, sampling_rate=16000, return_tensors="pt",
+#     )
+#     print(extracted_tensor.input_values.size())
+#     audio_tensor_length_list.append(list(extracted_tensor.input_values.size())[1])
+#
+# print(
+#     "number of audios with more than 500000 tensors",
+#     sum(1 for i in audio_tensor_length_list if i > 500000),
 # )
 
-
-# # Analysis of audio token length
-audio_df_train = load_audio_and_score_from_crowdsourcing_results(
-    home_dir, crowdsourcing_results_df_path, save_to_single_csv,augment_audio=False,
-    two_scores=False,
-)
-#
-audio_series = audio_df_train["audio_array"]
-audio_tensor_length_list = []
-print("Start tokenisation")
-for audio in audio_series:
-    extracted_tensor = audio_feature_extractor(
-        audio, sampling_rate=16000, return_tensors="pt",
-    )
-    print(extracted_tensor.input_values.size())
-    audio_tensor_length_list.append(list(extracted_tensor.input_values.size())[1])
 
 # df = pd.DataFrame(audio_tensor_length_list, columns=["Audio Token Length"])
 # df.to_csv(os.path.join(home_dir, "plots", "audio_token_length.csv"))

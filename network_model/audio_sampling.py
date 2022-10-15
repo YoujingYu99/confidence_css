@@ -17,7 +17,7 @@ crowdsourcing_results_df_path = os.path.join(
 )
 
 benchmark_path = os.path.join(
-        home_dir, "data_sheets", "sw3_urls", "samples_benchmark_200_marked.csv"
+        home_dir, "data_sheets", "sw3_urls", "Samples_Benchmark_200_Marked.csv"
     )
 extracted_audio_path = os.path.join(home_dir, "extracted_audios")
 used_audio_path = os.path.join(home_dir, "used_audios")
@@ -37,7 +37,7 @@ for audio_url in used_audio_urls:
     # Move to new destination
     shutil.copy(old_audio_path, new_path)
 
-# extracted_audio_path = os.path.join(home_dir, "extracted_audios", "samples_benchmark_200")
+# extracted_audio_path = os.path.join(home_dir, "extracted_audios", "Samples_Benchmark_200")
 # used_audio_path = os.path.join(home_dir, "extracted_audios", "samples_benchmark_labelled")
 #
 #
@@ -57,7 +57,7 @@ for audio_url in used_audio_urls:
 #         shutil.copy(old_audio_path, new_path)
 
 
-# all_features_path = os.path.join(home_dir, "data_sheets", "features", "samples_benchmark_200")
+# all_features_path = os.path.join(home_dir, "data_sheets", "features", "Samples_Benchmark_200")
 # used_features_path = os.path.join(home_dir, "data_sheets", "features", "samples_labelled")
 #
 #

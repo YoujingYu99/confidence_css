@@ -13,7 +13,7 @@ samples_benchmark_csv_path = os.path.join(
     home_dir,
     "data_sheets",
     "crowdsourcing_results",
-    "samples_benchmark_200_marked.csv",
+    "Samples_Benchmark_200_Marked.csv",
 )
 
 num_audios_per_HIT = 12
