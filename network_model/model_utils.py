@@ -433,10 +433,8 @@ def train_text(
         total_acc_train = 0
         total_loss_train = 0
 
-        # batch accumulation parameter
-        accum_iter = accum_iter
         model.train()
-        for batch_idx, (train_input, train_label) in enumerate(train_dataloader):
+        for train_input, train_label in tqdm(train_dataloader):
             train_label = train_label.to(device)
             mask = train_input["attention_mask"].to(device)
             input_id = train_input["input_ids"].squeeze(1).to(device)
@@ -456,12 +454,9 @@ def train_text(
             total_acc_train += acc
 
             batch_loss.backward()
-            # Weights update
-            if ((batch_idx + 1) % accum_iter == 0) or (
-                batch_idx + 1 == len(train_dataloader)
-            ):
-                optimizer.step()
-                optimizer.zero_grad()
+
+            optimizer.step()
+            optimizer.zero_grad()
 
         total_acc_val = 0
         total_loss_val = 0
@@ -1249,11 +1244,11 @@ def upsample_and_augment_audio_only(result_df, times):
     ]
     result_df = pd.concat(all_dfs)
 
-    result_df.to_csv(
-        os.path.join(
-            "/home", "yyu", "data_sheets", "audio_text_upsampled_unaugmented.csv",
-        )
-    )
+    # result_df.to_csv(
+    #     os.path.join(
+    #         "/home", "yyu", "data_sheets", "audio_text_upsampled_unaugmented.csv",
+    #     )
+    # )
     # Delete individual dataframes
     del first_bucket_df
     del second_bucket_df
@@ -1333,11 +1328,11 @@ def upsample_and_augment_text_only(result_df, times):
     ]
     result_df = pd.concat(all_dfs)
 
-    result_df.to_csv(
-        os.path.join(
-            "/home", "yyu", "data_sheets", "audio_text_upsampled_unaugmented.csv",
-        )
-    )
+    # result_df.to_csv(
+    #     os.path.join(
+    #         "/home", "yyu", "data_sheets", "audio_text_upsampled_unaugmented.csv",
+    #     )
+    # )
     # Delete individual dataframes
     del first_bucket_df
     del second_bucket_df
@@ -2184,7 +2179,7 @@ def train_audio(
     criterion = nn.MSELoss()
     optimizer = Adam(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
     # initialize the early_stopping object
-    early_stopping = EarlyStopping(tolerance=5, min_delta=1)
+    early_stopping = EarlyStopping(tolerance=5, min_delta=0.1)
 
     if use_cuda:
         print("Using cuda!")
@@ -2203,14 +2198,16 @@ def train_audio(
     val_output_list = []
     val_label_list = []
 
+    for param in model.hubert.parameters():
+        param.requires_grad = False
+
     for epoch_num in range(epochs):
         total_acc_train = 0
         total_loss_train = 0
 
-        # batch accumulation parameter
-        accum_iter = accum_iter
+
         model.train()
-        for batch_idx, (train_input, train_label) in enumerate(train_dataloader):
+        for train_input, train_label in tqdm(train_dataloader):
             train_label = train_label.to(device)
             # mask = train_input["attention_mask"].to(device)
             if vectorise:
@@ -2236,12 +2233,8 @@ def train_audio(
 
             batch_loss.backward()
 
-            # Weights update
-            if ((batch_idx + 1) % accum_iter == 0) or (
-                batch_idx + 1 == len(train_dataloader)
-            ):
-                optimizer.step()
-                optimizer.zero_grad()
+            optimizer.step()
+            optimizer.zero_grad()
 
         total_acc_val = 0
         total_loss_val = 0
@@ -2266,7 +2259,8 @@ def train_audio(
                 val_output_list, val_label_list = append_to_list(
                     val_output, val_label, val_output_list, val_label_list
                 )
-                val_batch_loss = criterion(val_output.float(), val_input.float())
+
+                val_batch_loss = criterion(val_output.float(), val_label.float())
                 # normalize loss to account for batch accumulation
                 val_batch_loss = val_batch_loss / accum_iter
                 total_loss_val += val_batch_loss.item()
@@ -2562,7 +2556,7 @@ def train_audio_text(
     criterion = nn.MSELoss()
     optimizer = Adam(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
     # initialize the early_stopping object
-    early_stopping = EarlyStopping(tolerance=5, min_delta=1)
+    early_stopping = EarlyStopping(tolerance=5, min_delta=0.1)
 
     if use_cuda:
         print("Using cuda!")
@@ -2637,6 +2631,8 @@ def train_audio_text(
                 val_output_list, val_label_list = append_to_list(
                     val_output.cpu(), val_label.cpu(), val_output_list, val_label_list
                 )
+
+
                 val_batch_loss = criterion(val_output.float(), val_label.float())
                 # normalize loss to account for batch accumulation
                 val_batch_loss = val_batch_loss / accum_iter
@@ -2662,7 +2658,7 @@ def train_audio_text(
         val_acc_list.append(total_acc_val / len(val_data))
 
         # Generate plots
-        plot_name = "multi_upsample_three_augment_audio_unfreeze_slower_"
+        plot_name = "multi_upsample_three_augment_audio_unfreeze_5-7"
         gen_acc_plots(train_acc_list, val_acc_list, plot_name)
         gen_loss_plots(train_loss_list, val_loss_list, plot_name)
         gen_val_scatter_plot(val_output_list, val_label_list, plot_name)
