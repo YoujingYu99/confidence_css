@@ -3,6 +3,8 @@ Extract the raw audio array, transcription and confidence score from the individ
 classes. Then use this data to train the network for regression.
 """
 from transformers import AutoFeatureExtractor, BertTokenizer
+import gc
+from ast import literal_eval
 from model_utils import *
 
 # Decide on whether to tokenize audios before training or use raw audio arrays.
@@ -19,13 +21,22 @@ home_dir = os.path.join("/home", "yyu")
 
 # Path for crowdsourcing results
 crowdsourcing_results_train_df_path = os.path.join(
-    home_dir, "data_sheets", "crowdsourcing_results", "test_crowd.csv",
+    home_dir,
+    "data_sheets",
+    "crowdsourcing_results",
+    "Batch_4799159_batch_results_complete_reject_filtered_numbered_cleaned_train4.csv",
 )
 crowdsourcing_results_val_df_path = os.path.join(
-    home_dir, "data_sheets", "crowdsourcing_results", "test_crowd.csv",
+    home_dir,
+    "data_sheets",
+    "crowdsourcing_results",
+    "Batch_4799159_batch_results_complete_reject_filtered_numbered_cleaned_val4.csv",
 )
 crowdsourcing_results_test_df_path = os.path.join(
-    home_dir, "data_sheets", "crowdsourcing_results", "test_crowd.csv",
+    home_dir,
+    "data_sheets",
+    "crowdsourcing_results",
+    "Batch_4799159_batch_results_complete_reject_filtered_numbered_cleaned_test4.csv",
 )
 
 
@@ -35,7 +46,7 @@ audio_text_train_df = load_audio_text_and_score_from_crowdsourcing_results(
     home_dir,
     crowdsourcing_results_train_df_path,
     save_to_single_csv=False,
-    augment_audio=False,
+    augment_audio=True,
     two_scores=two_scores,
 )
 
@@ -60,13 +71,11 @@ audio_text_test_df = load_audio_text_and_score_from_crowdsourcing_results(
 # Training parameters
 epochs = 1500
 LR = 5e-6
-weight_decay = 1e-7
+weight_decay = 1e-8
 batch_size = 16
 num_workers = 4
 accum_iter = 4
 
-# Initialise audio model
-# audio_model = HubertClassifier()
 multimodel = CustomMultiModelSimplePooled()
 
 print("Start training!")

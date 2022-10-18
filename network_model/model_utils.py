@@ -117,30 +117,86 @@ def split_to_train_val_test(home_dir):
         home_dir,
         "data_sheets",
         "crowdsourcing_results",
-        "Batch_4799159_batch_results_complete_reject_filtered_numbered_cleaned_train.csv",
+        "Batch_4799159_batch_results_complete_reject_filtered_numbered_cleaned_train4.csv",
     )
 
     crowdsourcing_results_val_df_path = os.path.join(
         home_dir,
         "data_sheets",
         "crowdsourcing_results",
-        "Batch_4799159_batch_results_complete_reject_filtered_numbered_cleaned_val.csv",
+        "Batch_4799159_batch_results_complete_reject_filtered_numbered_cleaned_val4.csv",
     )
 
     crowdsourcing_results_test_df_path = os.path.join(
         home_dir,
         "data_sheets",
         "crowdsourcing_results",
-        "Batch_4799159_batch_results_complete_reject_filtered_numbered_cleaned_test.csv",
+        "Batch_4799159_batch_results_complete_reject_filtered_numbered_cleaned_test4.csv",
     )
 
     total_df = pd.read_csv(crowdsourcing_results_df_path)
+    total_df = total_df.sample(frac=1).reset_index(drop=True)
     train_df = total_df[:3600]
     train_df.to_csv(crowdsourcing_results_train_df_path)
     val_df = total_df[3601:4050]
     val_df.to_csv(crowdsourcing_results_val_df_path)
     test_df = total_df[4051:]
     test_df.to_csv(crowdsourcing_results_test_df_path)
+
+
+def split_to_train_val_test_many(home_dir):
+    """
+    Split the total crowdsourcing results to train, val and test
+    :param home_dir:
+    :return:
+    """
+    # Path for crowdsourcing results
+    crowdsourcing_results_df_path = os.path.join(
+        home_dir,
+        "data_sheets",
+        "crowdsourcing_results",
+        "Batch_4799159_batch_results_complete_reject_filtered_numbered_cleaned.csv",
+    )
+
+    for i in range(50):
+        crowdsourcing_results_train_df_path = os.path.join(
+            home_dir,
+            "data_sheets",
+            "crowdsourcing_results",
+            "split_tests",
+            "Batch_4799159_batch_results_complete_reject_filtered_numbered_cleaned_train"
+            + str(i)
+            + ".csv",
+        )
+
+        crowdsourcing_results_val_df_path = os.path.join(
+            home_dir,
+            "data_sheets",
+            "crowdsourcing_results",
+            "split_tests",
+            "Batch_4799159_batch_results_complete_reject_filtered_numbered_cleaned_val"
+            + str(i)
+            + ".csv",
+        )
+
+        crowdsourcing_results_test_df_path = os.path.join(
+            home_dir,
+            "data_sheets",
+            "crowdsourcing_results",
+            "split_tests",
+            "Batch_4799159_batch_results_complete_reject_filtered_numbered_cleaned_test"
+            + str(i)
+            + ".csv",
+        )
+
+        total_df = pd.read_csv(crowdsourcing_results_df_path)
+        total_df = total_df.sample(frac=1).reset_index(drop=True)
+        train_df = total_df[:3600]
+        train_df.to_csv(crowdsourcing_results_train_df_path)
+        val_df = total_df[3601:4050]
+        val_df.to_csv(crowdsourcing_results_val_df_path)
+        test_df = total_df[4051:]
+        test_df.to_csv(crowdsourcing_results_test_df_path)
 
 
 class TextDataset(torch.utils.data.Dataset):
@@ -240,7 +296,7 @@ def get_icc(output, actual, icc_type="ICC(3,1)"):
     :return: A floating number of ICC score.
     """
     Y = np.column_stack((output, actual))
-    print(Y)
+    # print(Y)
     [n, k] = Y.shape
 
     # Degrees of Freedom
@@ -2176,6 +2232,9 @@ def train_audio(
     use_cuda = torch.cuda.is_available()
     device = torch.device("cuda" if use_cuda else "cpu")
 
+    for param in model.hubert.parameters():
+        param.requires_grad = False
+
     criterion = nn.MSELoss()
     optimizer = Adam(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
     # initialize the early_stopping object
@@ -2198,13 +2257,9 @@ def train_audio(
     val_output_list = []
     val_label_list = []
 
-    for param in model.hubert.parameters():
-        param.requires_grad = False
-
     for epoch_num in range(epochs):
         total_acc_train = 0
         total_loss_train = 0
-
 
         model.train()
         for train_input, train_label in tqdm(train_dataloader):
@@ -2576,42 +2631,10 @@ def train_audio_text(
     val_label_list = []
 
     for epoch_num in range(epochs):
-        total_acc_train = 0
-        total_loss_train = 0
-
-        model.train()
-        for train_input, train_label in tqdm(train_dataloader):
-            train_label = train_label.to(device)
-            # Audio
-            input_values = train_input["audio"]["input_values"].squeeze(1).to(device)
-            # Text
-            mask = train_input["text"]["attention_mask"].to(device)
-            input_id = train_input["text"]["input_ids"].squeeze(1).to(device)
-
-            with torch.cuda.amp.autocast():
-                train_output = model(input_values, input_id, mask)
-                train_output = train_output.flatten()
-                train_output_list, train_label_list = append_to_list(
-                    train_output.cpu(),
-                    train_label.cpu(),
-                    train_output_list,
-                    train_label_list,
-                )
-                batch_loss = criterion(train_output.float(), train_label.float())
-                # normalize loss to account for batch accumulation
-                batch_loss = batch_loss / accum_iter
-                total_loss_train += batch_loss.item()
-
-            # acc = (output.argmax(dim=1) == train_label).sum().item()
-            acc = test_accuracy(train_output, train_label, test_absolute)
-            total_acc_train += acc
-            batch_loss.backward()
-
-            optimizer.step()
-            optimizer.zero_grad()
-
         total_acc_val = 0
         total_loss_val = 0
+        total_acc_train = 0
+        total_loss_train = 0
 
         with torch.no_grad():
             model.eval()
@@ -2632,16 +2655,46 @@ def train_audio_text(
                     val_output.cpu(), val_label.cpu(), val_output_list, val_label_list
                 )
 
-
                 val_batch_loss = criterion(val_output.float(), val_label.float())
-                # normalize loss to account for batch accumulation
-                val_batch_loss = val_batch_loss / accum_iter
                 total_loss_val += val_batch_loss.item()
 
                 # acc = (output.argmax(dim=1) == val_label).sum().item()
 
                 val_acc = test_accuracy(val_output, val_label, test_absolute)
                 total_acc_val += val_acc
+
+        model.train()
+        for train_input, train_label in train_dataloader:
+            train_label = train_label.to(device)
+            # Audio
+            train_input_values = (
+                train_input["audio"]["input_values"].squeeze(1).to(device)
+            )
+            # Text
+            train_mask = train_input["text"]["attention_mask"].to(device)
+            train_input_id = train_input["text"]["input_ids"].squeeze(1).to(device)
+
+            train_output = model(train_input_values, train_input_id, train_mask)
+            train_output = train_output.flatten()
+            # Append results to the train lists
+            train_output_list, train_label_list = append_to_list(
+                train_output.cpu(),
+                train_label.cpu(),
+                train_output_list,
+                train_label_list,
+            )
+
+            train_batch_loss = criterion(train_output.float(), train_label.float())
+            total_loss_train += train_batch_loss.item()
+
+            # acc = (output.argmax(dim=1) == train_label).sum().item()
+
+            train_acc = test_accuracy(train_output, train_label, test_absolute)
+            total_acc_train += train_acc
+
+            train_batch_loss.backward()
+            optimizer.step()
+            optimizer.zero_grad()
 
         # early stopping
         early_stopping(
@@ -2658,7 +2711,7 @@ def train_audio_text(
         val_acc_list.append(total_acc_val / len(val_data))
 
         # Generate plots
-        plot_name = "multi_upsample_three_augment_audio_unfreeze_5-7"
+        plot_name = "multi_upsample_three_augment_audio_unfreeze_val3_"
         gen_acc_plots(train_acc_list, val_acc_list, plot_name)
         gen_loss_plots(train_loss_list, val_loss_list, plot_name)
         gen_val_scatter_plot(val_output_list, val_label_list, plot_name)
@@ -2687,6 +2740,365 @@ def train_audio_text(
         gc.collect()
         torch.cuda.empty_cache()
 
+
+def no_train_audio_text(
+    model,
+    audio_feature_extractor,
+    text_tokenizer,
+    train_data,
+    val_data,
+    learning_rate,
+    weight_decay,
+    epochs,
+    batch_size,
+    num_workers,
+    accum_iter,
+    vectorise,
+    test_absolute,
+):
+    """
+    Train the model based on extracted audio vectors.
+    :param model: Deep learning model for the audio training.
+    :param audio_feature_extractor: Pre-trained transformer to extract audio features.
+    :param text_tokenizer: Tokenizer for text.
+    :param train_data: Dataframe to be trained.
+    :param val_data: Dataframe to be evaluated.
+    :param learning_rate: Parameter; rate of learning.
+    :param weight_decay: Rate of decay; l2 regularisation.
+    :param epochs: Number of epochs to be trained.
+    :param batch_size: Number of batches.
+    :param accum_iter: Number of batches to be iterated before optimizer step.
+    :param vectorise: Whether to vectorise audio.
+    :param test_absolute: Whether to use absolute test.
+    :return: Training and evaluation accuracies.
+    """
+    # Prepare data into dataloader
+    train, val = train_data.reset_index(drop=True), val_data.reset_index(drop=True)
+    train, val = (
+        AudioTextDataset(train, audio_feature_extractor, text_tokenizer, vectorise),
+        AudioTextDataset(val, audio_feature_extractor, text_tokenizer, vectorise),
+    )
+
+    train_dataloader = torch.utils.data.DataLoader(
+        train,
+        batch_size=batch_size,
+        shuffle=True,
+        num_workers=num_workers,
+        drop_last=True,
+        pin_memory=True,
+    )
+    val_dataloader = torch.utils.data.DataLoader(
+        val,
+        batch_size=batch_size,
+        num_workers=num_workers,
+        drop_last=True,
+        pin_memory=True,
+    )
+
+    use_cuda = torch.cuda.is_available()
+    device = torch.device("cuda" if use_cuda else "cpu")
+
+    # Freezing selected model parameters
+    for name, param in list(model.bert.named_parameters())[:195]:
+        param.requires_grad = False
+    for name, param in list(model.hubert.named_parameters())[:200]:
+        param.requires_grad = False
+
+    # # Freeze Bert/HuBert
+    # for param in model.bert.parameters():
+    #     param.requires_grad = False
+    #
+    # for param in model.hubert.parameters():
+    #     param.requires_grad = False
+
+    criterion = nn.MSELoss()
+    optimizer = Adam(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
+    # initialize the early_stopping object
+    early_stopping = EarlyStopping(tolerance=5, min_delta=0.1)
+
+    if use_cuda:
+        print("Using cuda!")
+        model = model.to(device)
+        # count_parameters(model)
+        model = nn.DataParallel(model, device_ids=list(range(num_gpus)))
+
+        criterion = criterion.cuda()
+
+    train_loss_list = []
+    train_acc_list = []
+    train_output_list = []
+    train_label_list = []
+    val_loss_list = []
+    val_acc_list = []
+    val_output_list = []
+    val_label_list = []
+
+    for epoch_num in range(epochs):
+        total_acc_val = 0
+        total_loss_val = 0
+        total_acc_train = 0
+        total_loss_train = 0
+
+        model.eval()
+        for val_input, val_label in tqdm(val_dataloader):
+            val_label = val_label.to(device)
+            # Audio
+            input_values = val_input["audio"]["input_values"].squeeze(1).to(device)
+            # Text
+            val_mask = val_input["text"]["attention_mask"].to(device)
+            val_input_id = val_input["text"]["input_ids"].squeeze(1).to(device)
+
+            val_output = model(input_values, val_input_id, val_mask)
+            val_output = val_output.flatten()
+            val_output_list, val_label_list = append_to_list(
+                val_output.cpu(), val_label.cpu(), val_output_list, val_label_list,
+            )
+            val_batch_loss = criterion(val_output.float(), val_label.float())
+            total_loss_val += val_batch_loss.item()
+
+            # acc = (output.argmax(dim=1) == val_label).sum().item()
+            val_acc = test_accuracy(val_output, val_label, test_absolute)
+            total_acc_val += val_acc
+
+        # model.train()
+        for train_input, train_label in tqdm(train_dataloader):
+            train_label = train_label.to(device)
+            # Audio
+            input_values = train_input["audio"]["input_values"].squeeze(1).to(device)
+            # Text
+            train_mask = train_input["text"]["attention_mask"].to(device)
+            train_input_id = train_input["text"]["input_ids"].squeeze(1).to(device)
+
+            train_output = model(input_values, train_input_id, train_mask)
+            train_output = train_output.flatten()
+            train_output_list, train_label_list = append_to_list(
+                train_output.cpu(),
+                train_label.cpu(),
+                train_output_list,
+                train_label_list,
+            )
+            train_batch_loss = criterion(train_output.float(), train_label.float())
+            total_loss_train += train_batch_loss.item()
+
+            # acc = (output.argmax(dim=1) == train_label).sum().item()
+            train_acc = test_accuracy(train_output, train_label, test_absolute)
+            total_acc_train += train_acc
+            # batch_loss.backward()
+            #
+            # optimizer.step()
+            # optimizer.zero_grad()
+
+        # early stopping
+        early_stopping(
+            total_loss_train / len(train_data), total_loss_val / len(val_data)
+        )
+        if early_stopping.early_stop:
+            print("We are at epoch:", epoch_num + 1)
+            break
+
+        # Append to list
+        train_loss_list.append(total_loss_train / len(train_data))
+        train_acc_list.append(total_acc_train / len(train_data))
+        val_loss_list.append(total_loss_val / len(val_data))
+        val_acc_list.append(total_acc_val / len(val_data))
+
+        print("length of val data", len(val_data))
+        print("correct val", total_acc_val)
+
+        # Generate plots
+        plot_name = "multi_upsample_three_augment_audio_unfreeze_5-6_no_train"
+        gen_acc_plots(train_acc_list, val_acc_list, plot_name)
+        gen_loss_plots(train_loss_list, val_loss_list, plot_name)
+        gen_val_scatter_plot(val_output_list, val_label_list, plot_name)
+        save_training_results(
+            train_loss_list,
+            train_acc_list,
+            train_output_list,
+            train_label_list,
+            val_loss_list,
+            val_acc_list,
+            val_output_list,
+            val_label_list,
+            plot_name,
+        )
+        # # Calculate icc values
+        # train_icc = get_icc(train_output_list, train_label_list, icc_type="ICC(3,1)")
+        # val_icc = get_icc(val_output_list, val_label_list, icc_type="ICC(3,1)")
+
+        print(
+            f"Epochs: {epoch_num + 1} | Train Loss: {total_loss_train / len(train_data): .3f} \
+                        | Train Accuracy: {total_acc_train / len(train_data): .3f} \
+                        | Val Loss: {total_loss_val / len(val_data): .3f} \
+                        | Val Accuracy: {total_acc_val / len(val_data): .3f}"
+        )
+
+        # gc.collect()
+        # torch.cuda.empty_cache()
+
+
+def no_train_audio_text_many(
+    model,
+    audio_feature_extractor,
+    text_tokenizer,
+    val_data,
+    learning_rate,
+    weight_decay,
+    epochs,
+    batch_size,
+    num_workers,
+    accum_iter,
+    vectorise,
+    test_absolute,
+):
+    """
+    Train the model based on extracted audio vectors.
+    :param model: Deep learning model for the audio training.
+    :param audio_feature_extractor: Pre-trained transformer to extract audio features.
+    :param text_tokenizer: Tokenizer for text.
+    :param train_data: Dataframe to be trained.
+    :param val_data: Dataframe to be evaluated.
+    :param learning_rate: Parameter; rate of learning.
+    :param weight_decay: Rate of decay; l2 regularisation.
+    :param epochs: Number of epochs to be trained.
+    :param batch_size: Number of batches.
+    :param accum_iter: Number of batches to be iterated before optimizer step.
+    :param vectorise: Whether to vectorise audio.
+    :param test_absolute: Whether to use absolute test.
+    :return: Training and evaluation accuracies.
+    """
+    # Prepare data into dataloader
+    val = val_data.reset_index(drop=True)
+    val = AudioTextDataset(val, audio_feature_extractor, text_tokenizer, vectorise)
+
+    val_dataloader = torch.utils.data.DataLoader(
+        val,
+        batch_size=batch_size,
+        num_workers=num_workers,
+        drop_last=True,
+        pin_memory=True,
+    )
+
+    use_cuda = torch.cuda.is_available()
+    device = torch.device("cuda" if use_cuda else "cpu")
+
+    # Freezing selected model parameters
+    for name, param in list(model.bert.named_parameters())[:195]:
+        param.requires_grad = False
+    for name, param in list(model.hubert.named_parameters())[:200]:
+        param.requires_grad = False
+
+    # # Freeze Bert/HuBert
+    # for param in model.bert.parameters():
+    #     param.requires_grad = False
+    #
+    # for param in model.hubert.parameters():
+    #     param.requires_grad = False
+
+    criterion = nn.MSELoss()
+    optimizer = Adam(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
+    # initialize the early_stopping object
+    early_stopping = EarlyStopping(tolerance=5, min_delta=0.1)
+
+    if use_cuda:
+        print("Using cuda!")
+        model = model.to(device)
+        # count_parameters(model)
+        model = nn.DataParallel(model, device_ids=list(range(num_gpus)))
+
+        criterion = criterion.cuda()
+
+    val_loss_list = []
+    val_acc_list = []
+    val_output_list = []
+    val_label_list = []
+
+    for epoch_num in range(epochs):
+        total_acc_val = 0
+        total_loss_val = 0
+
+        model.eval()
+        for val_input, val_label in tqdm(val_dataloader):
+            val_label = val_label.to(device)
+            # Audio
+            input_values = val_input["audio"]["input_values"].squeeze(1).to(device)
+            # Text
+            val_mask = val_input["text"]["attention_mask"].to(device)
+            val_input_id = val_input["text"]["input_ids"].squeeze(1).to(device)
+
+            val_output = model(input_values, val_input_id, val_mask)
+            val_output = val_output.flatten()
+            val_output_list, val_label_list = append_to_list(
+                val_output.cpu(), val_label.cpu(), val_output_list, val_label_list,
+            )
+            val_batch_loss = criterion(val_output.float(), val_label.float())
+            total_loss_val += val_batch_loss.item()
+
+            # acc = (output.argmax(dim=1) == val_label).sum().item()
+            val_acc = test_accuracy(val_output, val_label, test_absolute)
+            total_acc_val += val_acc
+
+        # # model.train()
+        # for train_input, train_label in tqdm(train_dataloader):
+        #     train_label = train_label.to(device)
+        #     # Audio
+        #     input_values = train_input["audio"]["input_values"].squeeze(1).to(device)
+        #     # Text
+        #     train_mask = train_input["text"]["attention_mask"].to(device)
+        #     train_input_id = train_input["text"]["input_ids"].squeeze(1).to(device)
+        #
+        #     train_output = model(input_values, train_input_id, train_mask)
+        #     train_output = train_output.flatten()
+        #     train_output_list, train_label_list = append_to_list(
+        #         train_output.cpu(),
+        #         train_label.cpu(),
+        #         train_output_list,
+        #         train_label_list,
+        #     )
+        #     train_batch_loss = criterion(train_output.float(), train_label.float())
+        #     total_loss_train += train_batch_loss.item()
+        #
+        #     # acc = (output.argmax(dim=1) == train_label).sum().item()
+        #     train_acc = test_accuracy(train_output, train_label, test_absolute)
+        #     total_acc_train += train_acc
+        # batch_loss.backward()
+        #
+        # optimizer.step()
+        # optimizer.zero_grad()
+
+        # # early stopping
+        # early_stopping(
+        #     total_loss_train / len(train_data), total_loss_val / len(val_data)
+        # )
+        # if early_stopping.early_stop:
+        #     print("We are at epoch:", epoch_num + 1)
+        #     break
+
+        # Append to list
+        # train_loss_list.append(total_loss_train / len(train_data))
+        # train_acc_list.append(total_acc_train / len(train_data))
+        val_loss_list.append(total_loss_val / len(val_data))
+        val_acc_list.append(total_acc_val / len(val_data))
+
+        # # Generate plots
+        plot_name = "multi_upsample_three_augment_audio_unfreeze_5-6_no_train_many"
+        # gen_acc_plots(train_acc_list, val_acc_list, plot_name)
+        # gen_loss_plots(train_loss_list, val_loss_list, plot_name)
+        # gen_val_scatter_plot(val_output_list, val_label_list, plot_name)
+        save_random_acc_test_results_many(
+            val_loss_list, val_acc_list, val_output_list, val_label_list, plot_name,
+        )
+        # # Calculate icc values
+        # train_icc = get_icc(train_output_list, train_label_list, icc_type="ICC(3,1)")
+        # val_icc = get_icc(val_output_list, val_label_list, icc_type="ICC(3,1)")
+
+        print(
+            f"Epochs: {epoch_num + 1} | Val Loss: {total_loss_val / len(val_data): .3f} \
+                        | Val Accuracy: {total_acc_val / len(val_data): .3f}"
+        )
+
+        # gc.collect()
+        # torch.cuda.empty_cache()
+    return total_loss_val / len(val_data), total_acc_val / len(val_data)
 
 
 def append_to_list(output, label, output_list, label_list):
@@ -2761,15 +3173,57 @@ def save_training_results(
         index=False,
     )
 
-    # my_data = {"Train Loss": train_loss_list, "Train Acc": train_acc_list, "Train Output": train_output_list,
-    #            "Train Label": train_label_list, "Val Loss": val_loss_list, "Val Acc": val_acc_list, "Val Output": val_output_list,
-    #            "Val Label": val_label_list}
-    #
-    # my_data_dict = dict([(k, pd.Series(v)) for k, v in my_data.items()])
-    # my_df = pd.DataFrame(my_data_dict)
-    # my_df.to_csv(
-    #     os.path.join("/home", "yyu", "plots", plot_name + "training_results.csv")
-    # )
+
+def save_random_acc_test_results_many(
+    val_loss_list, val_acc_list, val_output_list, val_label_list, plot_name,
+):
+    """
+        Save the results from model training.
+        :param train_loss_list: List of training losses.
+        :param train_acc_list: List of training accuracies.
+        :param train_output_list: List of training output.
+        :param train_label_list: List of tensors of training labels.
+        :param val_loss_list: List of evaluation losses.
+        :param val_acc_list: List of evaluation accuracies.
+        :param val_output_list: List of val output.
+        :param val_label_list: List of tensors of val labels.
+        :param plot_name: Name of the plot depending on model.
+        :return: Save results to a csv.
+        """
+    list_of_tuples_loss_acc = list(zip(val_loss_list, val_acc_list))
+    loss_acc_df = pd.DataFrame(
+        list_of_tuples_loss_acc, columns=["Val Loss", "Val Acc",],
+    )
+
+    loss_acc_df.to_csv(
+        os.path.join(
+            "/home", "yyu", "plots", "random_tests", plot_name + "loss_acc.csv"
+        ),
+        index=False,
+    )
+
+    list_of_tuples_output = list(zip(val_output_list, val_label_list,))
+    output_label_df = pd.DataFrame(
+        list_of_tuples_output, columns=["Val Output", "Val Label",],
+    )
+
+    output_label_df.to_csv(
+        os.path.join(
+            "/home", "yyu", "plots", "random_tests", plot_name + "output_label.csv"
+        ),
+        index=False,
+    )
+
+
+# my_data = {"Train Loss": train_loss_list, "Train Acc": train_acc_list, "Train Output": train_output_list,
+#            "Train Label": train_label_list, "Val Loss": val_loss_list, "Val Acc": val_acc_list, "Val Output": val_output_list,
+#            "Val Label": val_label_list}
+#
+# my_data_dict = dict([(k, pd.Series(v)) for k, v in my_data.items()])
+# my_df = pd.DataFrame(my_data_dict)
+# my_df.to_csv(
+#     os.path.join("/home", "yyu", "plots", plot_name + "training_results.csv")
+# )
 
 
 def gen_acc_plots(train_acc_list, val_acc_list, plot_name):

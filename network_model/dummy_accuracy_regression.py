@@ -20,7 +20,7 @@ crowdsourcing_results_df_path = os.path.join(
     home_dir,
     "data_sheets",
     "crowdsourcing_results",
-    "Batch_4799159_batch_results_complete_reject_filtered_numbered_cleaned_test.csv",
+    "Batch_4799159_batch_results_complete_reject_filtered_numbered_cleaned_val4.csv",
 )
 
 # model_training_results_df_path = os.path.join(
@@ -81,4 +81,3 @@ print(get_icc(random_list, true_scores, icc_type="ICC(3,1)"))
 
 ## Test MSE
 print(calculate_mse(random_list, true_scores))
-

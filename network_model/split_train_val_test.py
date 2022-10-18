@@ -8,4 +8,4 @@ save_to_single_csv = False
 # home_dir is the location of script
 home_dir = os.path.join("/home", "yyu")
 # # Split the original results into three sets.
-# split_to_train_val_test(home_dir)
+split_to_train_val_test(home_dir)

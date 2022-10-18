@@ -374,7 +374,6 @@ class CustomMultiModelSimplePooled(nn.Module):
         sequence_output_bert, pooled_output_bert = self.bert(
             input_ids=input_id, attention_mask=mask, return_dict=False
         )
-        # print("pooled bert", pooled_output_bert.size())
 
         ## Hubert transform
         # print("hubert input size", input_values.size())
