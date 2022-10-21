@@ -19,7 +19,10 @@ home_dir = os.path.join("/home", "yyu")
 
 # Path for crowdsourcing results
 crowdsourcing_results_train_df_path = os.path.join(
-    home_dir, "data_sheets", "crowdsourcing_results", "test_crowd.csv",
+    home_dir,
+    "data_sheets",
+    "crowdsourcing_results",
+    "Batch_4799159_batch_results_complete_reject_filtered_numbered_cleaned_test3.csv",
 )
 crowdsourcing_results_val_df_path = os.path.join(
     home_dir, "data_sheets", "crowdsourcing_results", "test_crowd.csv",
@@ -59,15 +62,15 @@ audio_text_test_df = load_audio_text_and_score_from_crowdsourcing_results(
 
 # Training parameters
 epochs = 1500
-LR = 5e-6
-weight_decay = 1e-7
+LR = 5e-7
+weight_decay = 1e-8
 batch_size = 16
 num_workers = 4
 accum_iter = 4
 
 # Initialise audio model
 # audio_model = HubertClassifier()
-multimodel = CustomMultiModelSimplePooled()
+multimodel = CustomMultiModelSimplePooledOver()
 
 print("Start training!")
 # Train model

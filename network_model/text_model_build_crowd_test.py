@@ -60,9 +60,9 @@ text_test_df = load_text_and_score_from_crowdsourcing_results(
 
 # Decide on Epoch and model
 epochs = 500
-LR = 5e-4
+LR = 1e-6
 weight_decay = 5e-5
-batch_size = 8
+batch_size = 16
 num_workers = 4
 accum_iter = 4
 

@@ -25,19 +25,19 @@ crowdsourcing_results_train_df_path = os.path.join(
     home_dir,
     "data_sheets",
     "crowdsourcing_results",
-    "Batch_4799159_batch_results_complete_reject_filtered_numbered_cleaned_train.csv",
+    "Batch_4799159_batch_results_complete_reject_filtered_numbered_cleaned_train3.csv",
 )
 crowdsourcing_results_val_df_path = os.path.join(
     home_dir,
     "data_sheets",
     "crowdsourcing_results",
-    "Batch_4799159_batch_results_complete_reject_filtered_numbered_cleaned_val.csv",
+    "Batch_4799159_batch_results_complete_reject_filtered_numbered_cleaned_val3.csv",
 )
 crowdsourcing_results_test_df_path = os.path.join(
     home_dir,
     "data_sheets",
     "crowdsourcing_results",
-    "Batch_4799159_batch_results_complete_reject_filtered_numbered_cleaned_test.csv",
+    "Batch_4799159_batch_results_complete_reject_filtered_numbered_cleaned_test3.csv",
 )
 
 print("start of application!")
@@ -69,9 +69,9 @@ text_test_df = load_text_and_score_from_crowdsourcing_results(
 
 # Decide on Epoch and model
 epochs = 500
-LR = 5e-6
+LR = 1e-6
 weight_decay = 1e-7
-batch_size = 8
+batch_size = 16
 num_workers = 4
 accum_iter = 4
 
