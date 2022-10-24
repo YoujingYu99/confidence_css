@@ -22,7 +22,7 @@ crowdsourcing_results_train_df_path = os.path.join(
     home_dir,
     "data_sheets",
     "crowdsourcing_results",
-    "Batch_4799159_batch_results_complete_reject_filtered_numbered_cleaned_test3.csv",
+    "test_crowd.csv",
 )
 crowdsourcing_results_val_df_path = os.path.join(
     home_dir, "data_sheets", "crowdsourcing_results", "test_crowd.csv",
@@ -70,11 +70,11 @@ accum_iter = 4
 
 # Initialise audio model
 # audio_model = HubertClassifier()
-multimodel = CustomMultiModelSimplePooledOver()
+multimodel = CustomMultiModelSimplePooled()
 
 print("Start training!")
 # Train model
-no_train_audio_text(
+train_audio_text(
     multimodel,
     audio_feature_extractor,
     text_tokenizer,
@@ -88,6 +88,7 @@ no_train_audio_text(
     accum_iter,
     vectorise,
     test_absolute,
+    freeze="first_ele"
 )
 
 evaluate_audio_text(

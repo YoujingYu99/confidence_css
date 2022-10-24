@@ -361,10 +361,11 @@ class CustomMultiModelSimplePooled(nn.Module):
         super(CustomMultiModelSimplePooled, self).__init__()
         self.bert = BertModel.from_pretrained("bert-base-cased")
         self.hubert = HubertModel.from_pretrained("facebook/hubert-base-ls960")
-        self.layernorm1 = nn.LayerNorm([8, 768 * 2])
+        self.relu = nn.ReLU()
+        self.layernorm1 = nn.LayerNorm([4, 768 * 2])
         self.dropout = nn.Dropout(dropout)
         self.linear1 = nn.Linear(768 * 2, 32)
-        self.layernorm2 = nn.LayerNorm([8, 32])
+        self.layernorm2 = nn.LayerNorm([4, 32])
         self.linear2 = nn.Linear(32, 1)
         self.tanh = nn.Tanh()
 
@@ -390,7 +391,8 @@ class CustomMultiModelSimplePooled(nn.Module):
         # print("concat size", dropout1.size())
 
         linear1 = self.linear1(dropout1)
-        dropout2 = self.dropout(linear1)
+        relu1 = self.relu(linear1)
+        dropout2 = self.dropout(relu1)
         dropout2_norm = self.layernorm2(dropout2)
         # print("dropout2 norm", dropout2_norm.size())
         linear2 = self.linear2(dropout2_norm)

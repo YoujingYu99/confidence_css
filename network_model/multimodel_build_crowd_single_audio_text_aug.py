@@ -72,7 +72,7 @@ audio_text_test_df = load_audio_text_and_score_from_crowdsourcing_results(
 epochs = 1500
 LR = 1e-6
 weight_decay = 1e-9
-batch_size = 16
+batch_size = 8
 num_workers = 4
 accum_iter = 4
 
@@ -94,6 +94,7 @@ train_audio_text(
     accum_iter,
     vectorise,
     test_absolute,
+    freeze="first_ele",
 )
 
 evaluate_audio_text(

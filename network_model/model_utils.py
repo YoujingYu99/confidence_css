@@ -2342,7 +2342,7 @@ def train_audio(
         val_acc_list.append(total_acc_val / len(val_data))
 
         # Generate plots
-        plot_name = "audio_simple_1e_6_"
+        plot_name = "audio_simple_1e_6_unfreeze_last_"
         gen_acc_plots(train_acc_list, val_acc_list, plot_name)
         gen_loss_plots(train_loss_list, val_loss_list, plot_name)
         save_training_results(
@@ -2544,6 +2544,136 @@ class AudioTextDataset(torch.utils.data.Dataset):
         return batch_audio_text, batch_y
 
 
+# def train_audio_text_handler(
+#     train_phase,
+#     train_dataloader,
+#     val_dataloader,
+#     model,
+#     device,
+#     criterion,
+#     optimizer,
+#     total_acc_train,
+#     total_loss_train,
+#     total_acc_val,
+#     total_loss_val,
+#     train_output_list,
+#     train_label_list,
+#     val_output_list,
+#     val_label_list,
+# ):
+#     """
+#
+#     :param train_phase: True if training and False if evaluation
+#     :param train_dataloader: Training dataloader.
+#     :param val_dataloader: Val dataloader.
+#     :param model: Model to use.
+#     :param device: Cuda or CPU.
+#     :param criterion: Loss criterion.
+#     :param optimizer: Model optimizer
+#     :param total_acc_train: Total training accuracy.
+#     :param total_loss_train: Total training loss.
+#     :param total_acc_val: Total val accuracy.
+#     :param total_loss_val: Total val loss.
+#     :param train_output_list: Training outputs.
+#     :param train_label_list: Training labels.
+#     :param val_output_list: Val outputs.
+#     :param val_label_list: Val labels.
+#     :return: The updates eight lists.
+#     """
+#     if train_phase:
+#         dataloader = train_dataloader
+#         total_acc = total_acc_train
+#         total_loss = total_loss_train
+#         output_list = train_output_list
+#         label_list = train_label_list
+#         model.train()
+#
+#     else:
+#         dataloader = val_dataloader
+#         total_acc = total_acc_val
+#         total_loss = total_loss_val
+#         output_list = val_output_list
+#         label_list = val_label_list
+#         with torch.no_grad():
+#             model.eval()
+#
+#     for input, label in tqdm(dataloader):
+#         label = label.to(device)
+#         # Audio
+#         input_values = input["audio"]["input_values"].squeeze(1).to(device)
+#         # Text
+#         mask = input["text"]["attention_mask"].to(device)
+#         input_id = input["text"]["input_ids"].squeeze(1).to(device)
+#
+#         output = model(input_values, input_id, mask)
+#         output = output.flatten()
+#         # Append results to the train lists
+#         output_list, label_list = append_to_list(
+#             output.cpu(), label.cpu(), output_list, label_list,
+#         )
+#
+#         batch_loss = criterion(output.float(), label.float())
+#         total_loss += batch_loss.item()
+#
+#         # acc = (output.argmax(dim=1) == train_label).sum().item()
+#
+#         acc = test_accuracy(output, label, absolute=True)
+#         total_acc += acc
+#
+#         if train_phase:
+#             batch_loss.backward()
+#             optimizer.step()
+#             optimizer.zero_grad()
+#
+#             total_acc_train = total_acc
+#             total_loss_train = total_loss
+#             train_output_list = output_list
+#             train_label_list = label_list
+#
+#         else:
+#             total_acc_val = total_acc
+#             total_loss_val = total_loss
+#             val_output_list = output_list
+#             val_label_list = label_list
+#
+#     return (total_acc_train,
+#             total_loss_train,
+#             total_acc_val,
+#             total_loss_val,
+#             train_output_list,
+#             train_label_list,
+#             val_output_list,
+#             val_label_list)
+
+
+def train_audio_text_handler_model(label, input, device, model, criterion):
+    """
+    Handler for training and val steps.
+    :param label: Label.
+    :param input: Inputs.
+    :param device: CUDA or CPU.
+    :param model: Model to be trained.
+    :param criterion: Criterion to use.
+    :return: acc, batch_loss, output, label.
+    """
+    label = label.to(device)
+    # Audio
+    input_values = input["audio"]["input_values"].squeeze(1).to(device)
+    # Text
+    mask = input["text"]["attention_mask"].to(device)
+    input_id = input["text"]["input_ids"].squeeze(1).to(device)
+
+    output = model(input_values, input_id, mask)
+    output = output.flatten()
+    batch_loss = criterion(output.float(), label.float())
+
+    # acc = (output.argmax(dim=1) == train_label).sum().item()
+
+    acc = test_accuracy(output, label, absolute=True)
+
+    return acc, batch_loss, output, label
+
+
 def train_audio_text(
     model,
     audio_feature_extractor,
@@ -2558,6 +2688,7 @@ def train_audio_text(
     accum_iter,
     vectorise,
     test_absolute,
+    freeze,
 ):
     """
     Train the model based on extracted audio vectors.
@@ -2601,26 +2732,23 @@ def train_audio_text(
     use_cuda = torch.cuda.is_available()
     device = torch.device("cuda" if use_cuda else "cpu")
 
-    # # Freezing selected model parameters
-    # for name, param in list(model.bert.named_parameters())[:195]:
-    #     param.requires_grad = False
-    # for name, param in list(model.hubert.named_parameters())[:207]:
-    #     param.requires_grad = False
+    if freeze == "first_ele":
+        for layer in model.bert.encoder.layer[:11]:
+            for param in layer.parameters():
+                param.requires_grad = False
 
-    for layer in model.bert.encoder.layer[:11]:
-        for param in layer.parameters():
+        for layer in model.hubert.encoder.layers[:11]:
+            for param in layer.parameters():
+                param.requires_grad = False
+
+    elif freeze == "all":
+        for param in model.bert.parameters():
             param.requires_grad = False
 
-    for layer in model.hubert.encoder.layers[:11]:
-        for param in layer.parameters():
+        for param in model.hubert.parameters():
             param.requires_grad = False
-
-    # # Freeze Bert/HuBert
-    # for param in model.bert.parameters():
-    #     param.requires_grad = False
-    #
-    # for param in model.hubert.parameters():
-    #     param.requires_grad = False
+    else:
+        pass
 
     criterion = nn.MSELoss()
     optimizer = Adam(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
@@ -2650,46 +2778,38 @@ def train_audio_text(
         total_acc_train = 0
         total_loss_train = 0
 
+        # Eval
         with torch.no_grad():
             model.eval()
             for val_input, val_label in val_dataloader:
-                val_label = val_label.to(device)
-                # Audio
-                val_input_values = (
-                    val_input["audio"]["input_values"].squeeze(1).to(device)
+                (
+                    val_acc,
+                    val_batch_loss,
+                    val_output,
+                    val_label,
+                ) = train_audio_text_handler_model(
+                    val_label, val_input, device, model, criterion
                 )
-                # Text
-                val_mask = val_input["text"]["attention_mask"].to(device)
-                val_input_id = val_input["text"]["input_ids"].squeeze(1).to(device)
-
-                val_output = model(val_input_values, val_input_id, val_mask)
-                val_output = val_output.flatten()
                 # Append results to the val lists
                 val_output_list, val_label_list = append_to_list(
                     val_output.cpu(), val_label.cpu(), val_output_list, val_label_list
                 )
 
-                val_batch_loss = criterion(val_output.float(), val_label.float())
                 total_loss_val += val_batch_loss.item()
-
-                # acc = (output.argmax(dim=1) == val_label).sum().item()
-
-                val_acc = test_accuracy(val_output, val_label, test_absolute)
                 total_acc_val += val_acc
 
+        # Training
         model.train()
         for train_input, train_label in tqdm(train_dataloader):
-            train_label = train_label.to(device)
-            # Audio
-            train_input_values = (
-                train_input["audio"]["input_values"].squeeze(1).to(device)
+            (
+                train_acc,
+                train_batch_loss,
+                train_output,
+                train_label,
+            ) = train_audio_text_handler_model(
+                train_label, train_input, device, model, criterion
             )
-            # Text
-            train_mask = train_input["text"]["attention_mask"].to(device)
-            train_input_id = train_input["text"]["input_ids"].squeeze(1).to(device)
-
-            train_output = model(train_input_values, train_input_id, train_mask)
-            train_output = train_output.flatten()
+            train_label = train_label.to(device)
             # Append results to the train lists
             train_output_list, train_label_list = append_to_list(
                 train_output.cpu(),
@@ -2698,44 +2818,12 @@ def train_audio_text(
                 train_label_list,
             )
 
-            train_batch_loss = criterion(train_output.float(), train_label.float())
             total_loss_train += train_batch_loss.item()
-
-            # acc = (output.argmax(dim=1) == train_label).sum().item()
-
-            train_acc = test_accuracy(train_output, train_label, test_absolute)
             total_acc_train += train_acc
 
             train_batch_loss.backward()
             optimizer.step()
             optimizer.zero_grad()
-
-        # with torch.no_grad():
-        #     model.eval()
-        #     for val_input, val_label in val_dataloader:
-        #         val_label = val_label.to(device)
-        #         # Audio
-        #         val_input_values = (
-        #             val_input["audio"]["input_values"].squeeze(1).to(device)
-        #         )
-        #         # Text
-        #         val_mask = val_input["text"]["attention_mask"].to(device)
-        #         val_input_id = val_input["text"]["input_ids"].squeeze(1).to(device)
-        #
-        #         val_output = model(val_input_values, val_input_id, val_mask)
-        #         val_output = val_output.flatten()
-        #         # Append results to the val lists
-        #         val_output_list, val_label_list = append_to_list(
-        #             val_output.cpu(), val_label.cpu(), val_output_list, val_label_list
-        #         )
-        #
-        #         val_batch_loss = criterion(val_output.float(), val_label.float())
-        #         total_loss_val += val_batch_loss.item()
-        #
-        #         # acc = (output.argmax(dim=1) == val_label).sum().item()
-        #
-        #         val_acc = test_accuracy(val_output, val_label, test_absolute)
-        #         total_acc_val += val_acc
 
         # early stopping
         early_stopping(
@@ -2752,7 +2840,10 @@ def train_audio_text(
         val_acc_list.append(total_acc_val / len(val_data))
 
         # Generate plots
-        plot_name = "multi_upsample_augment_three_audio_freeze_all_val3_1-6_eleven_"
+        plot_name = (
+            "upsample_augment_three_" + str(freeze) + "_" + str(learning_rate) + "_"
+        )
+        # plot_name = "multi_upsample_augment_three_audio_freeze_all_val3_1-6_eleven_"
         gen_acc_plots(train_acc_list, val_acc_list, plot_name)
         gen_loss_plots(train_loss_list, val_loss_list, plot_name)
         gen_val_scatter_plot(val_output_list, val_label_list, plot_name)
@@ -2767,9 +2858,6 @@ def train_audio_text(
             val_label_list,
             plot_name,
         )
-        # # Calculate icc values
-        # train_icc = get_icc(train_output_list, train_label_list, icc_type="ICC(3,1)")
-        # val_icc = get_icc(val_output_list, val_label_list, icc_type="ICC(3,1)")
 
         print(
             f"Epochs: {epoch_num + 1} | Train Loss: {total_loss_train / len(train_data): .3f} \
@@ -2959,9 +3047,7 @@ def no_train_audio_text(
         #     val_label_list,
         #     plot_name,
         # )
-        # # Calculate icc values
-        # train_icc = get_icc(train_output_list, train_label_list, icc_type="ICC(3,1)")
-        # val_icc = get_icc(val_output_list, val_label_list, icc_type="ICC(3,1)")
+
 
         print(
             f"Epochs: {epoch_num + 1} | Train Loss: {total_loss_train / len(train_data): .3f} \
@@ -3125,10 +3211,6 @@ def no_train_audio_text_many(
         save_random_acc_test_results_many(
             val_loss_list, val_acc_list, val_output_list, val_label_list, plot_name,
         )
-        # # Calculate icc values
-        # train_icc = get_icc(train_output_list, train_label_list, icc_type="ICC(3,1)")
-        # val_icc = get_icc(val_output_list, val_label_list, icc_type="ICC(3,1)")
-
         print(
             f"Epochs: {epoch_num + 1} | Val Loss: {total_loss_val / len(val_data): .3f} \
                         | Val Accuracy: {total_acc_val / len(val_data): .3f}"
@@ -3191,7 +3273,7 @@ def save_training_results(
 
     loss_acc_df.to_csv(
         os.path.join(
-            "/home", "yyu", "plots", "training_csv", plot_name + "loss_acc.csv"
+            "/home", "yyu", "plots", "para_tuning", "training_csv", plot_name + "loss_acc.csv"
         ),
         index=False,
     )
@@ -3206,7 +3288,12 @@ def save_training_results(
 
     loss_acc_df.to_csv(
         os.path.join(
-            "/home", "yyu", "plots", "training_csv", plot_name + "output_label.csv"
+            "/home",
+            "yyu",
+            "plots",
+            "para_tuning",
+            "training_csv",
+            plot_name + "output_label.csv",
         ),
         index=False,
     )
@@ -3280,7 +3367,9 @@ def gen_acc_plots(train_acc_list, val_acc_list, plot_name):
     plt.ylabel("Accuracies")
     plt.title("Training and Evaluation Accuracies")
     plt.legend()
-    save_path = os.path.join("/home", "yyu", "plots", plot_name + "acc.png")
+    save_path = os.path.join(
+        "/home", "yyu", "plots", "para_tuning", plot_name + "acc.png"
+    )
     plt.savefig(save_path)
     plt.clf()
     # plt.show()
@@ -3302,7 +3391,9 @@ def gen_loss_plots(train_loss_list, val_loss_list, plot_name):
     plt.ylabel("losses")
     plt.title("Training and Evaluation losses")
     plt.legend()
-    save_path = os.path.join("/home", "yyu", "plots", plot_name + "loss.png")
+    save_path = os.path.join(
+        "/home", "yyu", "plots", "para_tuning", plot_name + "loss.png"
+    )
     plt.savefig(save_path)
     plt.clf()
 
@@ -3313,7 +3404,9 @@ def gen_val_scatter_plot(val_output_list, val_label_list, plot_name):
     plt.xlabel("Ground Truth Scores")
     plt.ylabel("Model Output Scores")
     plt.title("Model output and ground truth for validation")
-    save_path = os.path.join("/home", "yyu", "plots", plot_name + "val_scatter.png")
+    save_path = os.path.join(
+        "/home", "yyu", "plots", "para_tuning", plot_name + "val_scatter.png"
+    )
     plt.savefig(save_path)
     plt.clf()
 
