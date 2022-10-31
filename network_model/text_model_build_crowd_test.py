@@ -84,4 +84,6 @@ train_text(
     test_absolute,
     accum_iter,
 )
+
+
 evaluate_text(text_model, text_test_df, text_tokenizer, batch_size, test_absolute)

@@ -134,7 +134,8 @@ audio_text_val_df = load_audio_text_and_score_from_crowdsourcing_results(
 )
 multimodel = CustomMultiModelSimplePooled()
 
-# Train model
+
+# Do not train model
 val_loss, val_acc = no_train_audio_text_many(
     multimodel,
     audio_feature_extractor,

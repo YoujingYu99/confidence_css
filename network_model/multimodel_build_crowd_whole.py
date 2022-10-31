@@ -31,12 +31,14 @@ crowdsourcing_results_train_df_path = os.path.join(
     "crowdsourcing_results",
     "Batch_4799159_batch_results_complete_reject_filtered_numbered_cleaned_train.csv",
 )
+
 crowdsourcing_results_val_df_path = os.path.join(
     home_dir,
     "data_sheets",
     "crowdsourcing_results",
     "Batch_4799159_batch_results_complete_reject_filtered_numbered_cleaned_val.csv",
 )
+
 crowdsourcing_results_test_df_path = os.path.join(
     home_dir,
     "data_sheets",
@@ -46,6 +48,7 @@ crowdsourcing_results_test_df_path = os.path.join(
 
 
 print("start of application!")
+
 
 # # Only uncomment if need to reupsample data / augment again.
 # upsample_audio_text_augment(

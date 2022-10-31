@@ -10,7 +10,6 @@ home_dir = os.path.join("/home", "yyu")
 # Only upload 0 to 6
 folder_numbers = range(7)
 
-
 for folder_number in folder_numbers:
     excerpt_output_path = os.path.join(
         home_dir, "extracted_audios", str(folder_number)

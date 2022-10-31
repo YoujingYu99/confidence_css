@@ -15,6 +15,7 @@ home_dir = os.path.join("/home", "yyu")
 old_path = os.path.join(home_dir, "extracted_audio", "extracted_audio_total")
 new_path = os.path.join(home_dir, "extracted_audio", "extracted_audio_samples")
 
+
 for i in folder_numbers:
     source = os.path.join(old_path, str(i))
     dest = os.path.join(new_path, str(i))

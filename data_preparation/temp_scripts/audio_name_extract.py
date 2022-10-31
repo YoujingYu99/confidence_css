@@ -9,7 +9,6 @@ import pandas as pd
 
 home_dir = os.path.join("/home", "yyu")
 folder_numbers = range(8)
-
 output_path = os.path.join(home_dir, "data_sheets", "audio_names_file.txt")
 
 filename_list = []

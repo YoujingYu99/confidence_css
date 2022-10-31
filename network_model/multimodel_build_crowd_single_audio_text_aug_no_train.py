@@ -79,7 +79,9 @@ accum_iter = 4
 multimodel = CustomMultiModelSimplePooled()
 
 print("Start training!")
-# Train model
+
+
+# Do not train model
 no_train_audio_text(
     multimodel,
     audio_feature_extractor,

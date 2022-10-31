@@ -538,6 +538,7 @@ class BatchResultsDataframe:
                 # Standard deviation of each task
                 std = np.std(scores)
                 worker_std_dict[WorkerId] = std
+
             worker_number_dict[WorkerId] = worker_audio_count
 
         mean_list = list(worker_mean_dict.values())

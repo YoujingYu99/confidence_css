@@ -66,7 +66,6 @@ num_workers = 4
 accum_iter = 4
 
 # Initialise audio model
-# audio_model = HubertClassifier()
 audio_model = CustomHUBERTSimpleModel()
 
 # Train model

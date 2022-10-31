@@ -67,10 +67,9 @@ audio_text_test_df = load_audio_text_and_score_from_crowdsourcing_results(
     two_scores=two_scores,
 )
 
-
 # Training parameters
 epochs = 1500
-LR = 1e-6
+LR = 5e-7
 weight_decay = 1e-9
 batch_size = 8
 num_workers = 4
@@ -79,7 +78,9 @@ accum_iter = 4
 multimodel = CustomMultiModelSimplePooled()
 
 print("Start training!")
-# Train model
+
+
+# Traning model
 train_audio_text(
     multimodel,
     audio_feature_extractor,

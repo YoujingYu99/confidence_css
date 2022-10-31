@@ -356,6 +356,7 @@ class CustomHUBERTSimpleModel(nn.Module):
 #         return prediction
 
 
+# Final version of file used
 class CustomMultiModelSimplePooled(nn.Module):
     def __init__(self, dropout=0.5):
         super(CustomMultiModelSimplePooled, self).__init__()

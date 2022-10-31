@@ -6,13 +6,11 @@ from transformers import BertTokenizer
 from model_utils import *
 from models import *
 
-# # Memory issues
-# torch.cuda.empty_cache()
-# torch.cuda.memory_summary(device=None, abbreviated=False)
 
 # Decide whether to save the concatenated file to a single csv
 save_to_single_csv = True
 test_absolute = True
+
 
 text_tokenizer = BertTokenizer.from_pretrained("bert-base-cased")
 

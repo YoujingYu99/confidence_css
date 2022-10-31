@@ -23,7 +23,6 @@ def count_parameters(model):
     print(f"Total Trainable Params: {total_params}")
     return total_params
 
-
 model = CustomMultiModelSimplePooled()
 
 # # Freeze Bert/HuBert

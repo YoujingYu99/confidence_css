@@ -32,6 +32,7 @@ class Word:
             self.speakerTag = word_dictionary['speakerTag']
 
 
+
 class Sentence:
     """
     Level 2 container of a sentence.

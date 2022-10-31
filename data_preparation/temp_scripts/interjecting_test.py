@@ -10,6 +10,7 @@ import numpy as np
 import pandas as pd
 
 
+
 def article_sentence(article_object):
     """
     :param article_object: The article object to be read.

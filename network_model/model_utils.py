@@ -8,6 +8,7 @@ Class AudioTextDataset: Class that handles the preparation of both text and
                 audio for training.
 """
 import warnings
+from pytorchtools import EarlyStopping
 
 # import pingouin as pg
 import nlpaug.augmenter.word as naw
@@ -397,20 +398,20 @@ def calculate_mse(output_list, actual_list):
 #     return icc_value
 
 
-class EarlyStopping:
-    def __init__(self, tolerance=5, min_delta=0):
-        # tolerance is the number of epochs to continue after deemed saturated
-        self.tolerance = tolerance
-        self.min_delta = min_delta
-        self.counter = 0
-        self.early_stop = False
-
-    def __call__(self, train_loss, validation_loss):
-        print("val loss - train loss", validation_loss - train_loss)
-        if (validation_loss - train_loss) > self.min_delta:
-            self.counter += 1
-            if self.counter >= self.tolerance:
-                self.early_stop = True
+# class EarlyStopping:
+#     def __init__(self, tolerance=5, min_delta=0):
+#         # tolerance is the number of epochs to continue after deemed saturated
+#         self.tolerance = tolerance
+#         self.min_delta = min_delta
+#         self.counter = 0
+#         self.early_stop = False
+#
+#     def __call__(self, train_loss, validation_loss):
+#         print("val loss - train loss", validation_loss - train_loss)
+#         if (validation_loss - train_loss) > self.min_delta:
+#             self.counter += 1
+#             if self.counter >= self.tolerance:
+#                 self.early_stop = True
 
 
 def train_text(
@@ -466,7 +467,7 @@ def train_text(
     criterion = nn.MSELoss()
     optimizer = Adam(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
     # initialize the early_stopping object
-    early_stopping = EarlyStopping(tolerance=5, min_delta=0.1)
+    early_stopping = EarlyStopping(patience=20, verbose=True)
 
     for layer in model.bert.encoder.layer[:11]:
         for param in layer.parameters():
@@ -540,10 +541,16 @@ def train_text(
             optimizer.step()
             optimizer.zero_grad()
 
-        # early stopping
-        early_stopping(
-            total_loss_train / len(train_data), total_loss_val / len(val_data)
-        )
+        # # early stopping
+        # early_stopping(
+        #     total_loss_train / len(train_data), total_loss_val / len(val_data)
+        # )
+
+        # early_stopping needs the validation loss to check if it has decresed,
+        # and if it has, it will make a checkpoint of the current model
+        early_stopping(total_loss_val / len(val_data), model)
+        # load the last checkpoint with the best model
+        model.load_state_dict(torch.load("checkpoint.pt"))
 
         # Append to list
         train_loss_list.append(total_loss_train / len(train_data))
@@ -2244,8 +2251,9 @@ def train_audio(
 
     criterion = nn.MSELoss()
     optimizer = Adam(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
+
     # initialize the early_stopping object
-    early_stopping = EarlyStopping(tolerance=5, min_delta=0.1)
+    early_stopping = EarlyStopping(patience=20, verbose=True)
 
     if use_cuda:
         print("Using cuda!")
@@ -2330,10 +2338,17 @@ def train_audio(
             optimizer.step()
             optimizer.zero_grad()
 
-        # early stopping
-        early_stopping(
-            total_loss_train / len(train_data), total_loss_val / len(val_data)
-        )
+        # # early stopping
+        # early_stopping(
+        #     total_loss_train / len(train_data), total_loss_val / len(val_data)
+        # )
+
+        # early_stopping needs the validation loss to check if it has decresed,
+        # and if it has, it will make a checkpoint of the current model
+        early_stopping(total_loss_val / len(val_data), model)
+
+        # load the last checkpoint with the best model
+        model.load_state_dict(torch.load("checkpoint.pt"))
 
         # Append to list
         train_loss_list.append(total_loss_train / len(train_data))
@@ -2732,6 +2747,7 @@ def train_audio_text(
     use_cuda = torch.cuda.is_available()
     device = torch.device("cuda" if use_cuda else "cpu")
 
+    # Rules for freezing
     if freeze == "first_ele":
         for layer in model.bert.encoder.layer[:11]:
             for param in layer.parameters():
@@ -2752,8 +2768,15 @@ def train_audio_text(
 
     criterion = nn.MSELoss()
     optimizer = Adam(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
+
+    plot_name = (
+        "upsample_augment_three_run_one_" + str(freeze) + "_" + str(learning_rate) + "_"
+    )
+    checkpoint_path = os.path.join(
+        "/home", "yyu", "model_checkpoints", plot_name + "_checkpoint.pt"
+    )
     # initialize the early_stopping object
-    early_stopping = EarlyStopping(tolerance=5, min_delta=0.1)
+    early_stopping = EarlyStopping(patience=20, verbose=True, path=checkpoint_path)
 
     if use_cuda:
         print("Using cuda!")
@@ -2825,13 +2848,20 @@ def train_audio_text(
             optimizer.step()
             optimizer.zero_grad()
 
-        # early stopping
-        early_stopping(
-            total_loss_train / len(train_data), total_loss_val / len(val_data)
-        )
+        # # early stopping
+        # early_stopping(
+        #     total_loss_train / len(train_data), total_loss_val / len(val_data)
+        # )
+
+        # early_stopping needs the validation loss to check if it has decresed,
+        # and if it has, it will make a checkpoint of the current model
+        early_stopping(total_loss_val / len(val_data), model)
         if early_stopping.early_stop:
             print("We are at epoch:", epoch_num + 1)
             break
+
+        # load the last checkpoint with the best model
+        model.load_state_dict(torch.load(checkpoint_path))
 
         # Append to list
         train_loss_list.append(total_loss_train / len(train_data))
@@ -2840,9 +2870,6 @@ def train_audio_text(
         val_acc_list.append(total_acc_val / len(val_data))
 
         # Generate plots
-        plot_name = (
-            "upsample_augment_three_" + str(freeze) + "_" + str(learning_rate) + "_"
-        )
         # plot_name = "multi_upsample_augment_three_audio_freeze_all_val3_1-6_eleven_"
         gen_acc_plots(train_acc_list, val_acc_list, plot_name)
         gen_loss_plots(train_loss_list, val_loss_list, plot_name)
@@ -3047,7 +3074,6 @@ def no_train_audio_text(
         #     val_label_list,
         #     plot_name,
         # )
-
 
         print(
             f"Epochs: {epoch_num + 1} | Train Loss: {total_loss_train / len(train_data): .3f} \
@@ -3273,7 +3299,12 @@ def save_training_results(
 
     loss_acc_df.to_csv(
         os.path.join(
-            "/home", "yyu", "plots", "para_tuning", "training_csv", plot_name + "loss_acc.csv"
+            "/home",
+            "yyu",
+            "plots",
+            "para_tuning",
+            "training_csv",
+            plot_name + "loss_acc.csv",
         ),
         index=False,
     )

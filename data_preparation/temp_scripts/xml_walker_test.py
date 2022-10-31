@@ -8,7 +8,6 @@ from ..data_preparation_utils import *
 
 folder_number = 3
 
-
 home_dir = os.path.join("/home", "yyu")
 rss_folder_dir = os.path.join(
     home_dir, "data", "Spotify-Podcasts", "podcasts-no-audio-13GB", "show-rss",

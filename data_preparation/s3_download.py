@@ -31,7 +31,6 @@ def download_s3_folder(bucket_name, s3_folder, local_dir=None):
             continue
         bucket.download_file(obj.key, target)
 
-
 home_dir = os.path.join("/home", "yyu")
 local_dir = os.path.join(home_dir, "extracted_audios", "Benchmark_Samples")
 download_s3_folder(

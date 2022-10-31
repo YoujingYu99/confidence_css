@@ -37,8 +37,8 @@ crowdsourcing_results_test_df_path = os.path.join(
     "Batch_4799159_batch_results_complete_reject_filtered_numbered_cleaned_test3.csv",
 )
 
-
 print("start of application!")
+
 
 audio_train_df = load_audio_and_score_from_crowdsourcing_results(
     home_dir,

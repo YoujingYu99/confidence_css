@@ -7,6 +7,7 @@ import shutil
 import boto3
 import pandas as pd
 
+
 folder_numbers = [7]
 # folder_numbers = range(8)
 no_of_files = 200

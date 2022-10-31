@@ -7,7 +7,6 @@ from data_preparation_utils import *
 
 folder_number = 0
 
-
 home_dir = os.path.join("/home", "yyu")
 file_dir = os.path.join(
     home_dir,

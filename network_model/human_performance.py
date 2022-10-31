@@ -41,7 +41,6 @@ human_df = pd.read_csv(
 # )
 
 
-
 # def test_accuracy_score(output, actual, absolute, margin):
 #     """
 #     Testify whether the output is accurate.

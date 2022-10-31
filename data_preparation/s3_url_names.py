@@ -59,6 +59,7 @@ for folder_number in folder_numbers:
     datasheet_name = "input_" + str(folder_number) + ".csv"
     csv_output_path = os.path.join(home_dir, "data_sheets", "sw3_urls", datasheet_name)
     array_of_list = np.array_split(res, number_HIT)
+
     # A list of 100 lists, each has 10 values
     print(len(array_of_list[0]))
     df = pd.DataFrame(array_of_list, columns=audio_column_name_list)
