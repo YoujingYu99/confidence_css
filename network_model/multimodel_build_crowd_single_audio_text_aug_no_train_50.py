@@ -118,7 +118,7 @@ crowdsourcing_results_val_df_path = os.path.join(
     "data_sheets",
     "crowdsourcing_results",
     "split_tests",
-    "Batch_4799159_batch_results_complete_reject_filtered_numbered_cleaned_val42.csv",
+    "Batch_4799159_batch_results_complete_reject_filtered_numbered_cleaned_val.csv",
 )
 
 # crowdsourcing_results_val_df_path = os.path.join(
