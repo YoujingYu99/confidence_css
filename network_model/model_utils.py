@@ -2748,6 +2748,16 @@ def train_audio_text(
     device = torch.device("cuda" if use_cuda else "cpu")
 
     # Rules for freezing
+    if freeze == "first_ten":
+        for layer in model.bert.encoder.layer[:11]:
+            for param in layer.parameters():
+                param.requires_grad = False
+
+        for layer in model.hubert.encoder.layers[:11]:
+            for param in layer.parameters():
+                param.requires_grad = False
+
+    # Rules for freezing
     if freeze == "first_ele":
         for layer in model.bert.encoder.layer[:11]:
             for param in layer.parameters():
@@ -2770,7 +2780,11 @@ def train_audio_text(
     optimizer = Adam(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
 
     plot_name = (
-        "upsample_augment_three_run_one_" + str(freeze) + "_" + str(learning_rate) + "_"
+        "upsample_augment_three_run_one_validate_three_layers"
+        + str(freeze)
+        + "_"
+        + str(learning_rate)
+        + "_"
     )
     checkpoint_path = os.path.join(
         "/home", "yyu", "model_checkpoints", plot_name + "_checkpoint.pt"
@@ -3450,6 +3464,7 @@ def evaluate_audio_text(
     batch_size,
     vectorise,
     test_absolute,
+    model_name,
 ):
     """
     Evaluate accuracy for the model on vectorised audio data.
@@ -3459,6 +3474,7 @@ def evaluate_audio_text(
     :param test_data: Dataframe to be tested.
     :param batch_size: Number of batches.
     :param test_absolute: Whether to use absolute test.
+    :param model_name: Name of the model evaluated.
     :return: Test Accuracies.
     """
     test = test_data.reset_index(drop=True)
@@ -3475,6 +3491,8 @@ def evaluate_audio_text(
         model = nn.DataParallel(model, device_ids=list(range(num_gpus)))
 
     total_acc_test = 0
+    output_list = []
+    label_list = []
     with torch.no_grad():
         model.eval()
         for test_input, test_label in test_dataloader:
@@ -3488,9 +3506,122 @@ def evaluate_audio_text(
             output = model(input_values, input_id, mask)
             output = output.flatten()
 
+            # Append results to the train lists
+            output_list, label_list = append_to_list(
+                output.cpu(), test_label.cpu(), output_list, label_list,
+            )
+
             # acc = (output.argmax(dim=1) == test_label).sum().item()
 
             acc = test_accuracy(output, test_label, test_absolute)
             total_acc_test += acc
 
+    plot_name = str(model_name) + "_" + str("total") + "_"
+    save_eval_results(
+        output_list, label_list, plot_name,
+    )
     print(f"Test Accuracy: {total_acc_test / len(test_data): .3f}")
+
+
+def evaluate_audio_text_ablation(
+    model,
+    audio_feature_extractor,
+    text_tokenizer,
+    test_data,
+    batch_size,
+    vectorise,
+    test_absolute,
+    type,
+    model_name,
+):
+    """
+    Evaluate accuracy for the model on vectorised audio data.
+    :param model: Model to be used for deep learning.
+    :param audio_feature_extractor: Pre-trained transformer to extract audio features.
+    :param text_tokenizer: Tokenizer for text.
+    :param test_data: Dataframe to be tested.
+    :param batch_size: Number of batches.
+    :param test_absolute: Whether to use absolute test.
+    :param type: Audio or text only.
+    :param model_name: Name of the model evaluated
+    :return: Test Accuracies.
+    """
+    test = test_data.reset_index(drop=True)
+    test = AudioTextDataset(test, audio_feature_extractor, text_tokenizer, vectorise)
+    test_dataloader = torch.utils.data.DataLoader(
+        test, batch_size=batch_size, drop_last=True, pin_memory=True
+    )
+
+    use_cuda = torch.cuda.is_available()
+    device = torch.device("cuda" if use_cuda else "cpu")
+
+    if use_cuda:
+        model = model.to(device)
+        model = nn.DataParallel(model, device_ids=list(range(num_gpus)))
+
+    total_acc_test = 0
+    output_list = []
+    label_list = []
+    with torch.no_grad():
+        model.eval()
+        for test_input, test_label in test_dataloader:
+            test_label = test_label.to(device)
+            if type == "audio":
+                # Audio
+                input_values_tensor = test_input["audio"]["input_values"].squeeze(1)
+                # Set audios to be zero
+                input_values = torch.zeros(input_values_tensor.size()).to(device)
+                # Text
+                mask = test_input["text"]["attention_mask"].to(device)
+                input_id = test_input["text"]["input_ids"].squeeze(1).to(device)
+            elif type == "text":
+                # Audio
+                input_values = test_input["audio"]["input_values"].squeeze(1).to(device)
+                # Text
+                mask_tensor = test_input["text"]["attention_mask"].to(device)
+                # Set mask and input id to be zero
+                mask = torch.zeros(mask_tensor.size()).to(device)
+                input_id_tensor = test_input["text"]["input_ids"].squeeze(1)
+                input_id = torch.zeros(input_id_tensor.size(), dtype=torch.int).to(
+                    device
+                )
+
+            output = model(input_values, input_id, mask)
+            output = output.flatten()
+
+            # Append results to the train lists
+            output_list, label_list = append_to_list(
+                output.cpu(), test_label.cpu(), output_list, label_list,
+            )
+
+            # acc = (output.argmax(dim=1) == test_label).sum().item()
+
+            acc = test_accuracy(output, test_label, test_absolute)
+            total_acc_test += acc
+
+    plot_name = str(model_name) + "_" + str(type) + "_"
+    save_eval_results(
+        output_list, label_list, plot_name,
+    )
+    print(f"Test Accuracy: {total_acc_test / len(test_data): .3f}")
+
+
+def save_eval_results(
+    output_list, label_list, plot_name,
+):
+    """
+    Save the results from model training.
+    :param output_list: List of val output.
+    :param label_list: List of tensors of val labels.
+    :param plot_name: Name of the plot depending on model.
+    :return: Save results to a csv.
+    """
+    list_of_tuples_output = list(zip(output_list, label_list))
+    loss_acc_df = pd.DataFrame(
+        list_of_tuples_output, columns=["Val Output", "Val Label"],
+    )
+
+    loss_acc_df.to_csv(
+        os.path.join("/home", "yyu", "plots", "ablation", plot_name + "output.csv",),
+        index=False,
+    )
