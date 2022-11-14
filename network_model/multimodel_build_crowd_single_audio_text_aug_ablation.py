@@ -77,18 +77,27 @@ accum_iter = 4
 
 # multimodel = CustomMultiModelSimplePooled()
 # models = [CustomMultiModelSimplePooled(), CustomMultiModelSimplePooledThreeLayers()]
-model = CustomMultiModelSimplePooled()
+
 
 
 print("Start training!")
 
 validation_pairs = [[5e-8, "first_ele"], [5e-8, "all"]]
+ablation_type = "audio"
+
+
+
 
 for validation_pair in validation_pairs:
     LR = validation_pair[0]
     freezing_mode = validation_pair[1]
 
-    train_audio_text(
+    if ablation_type == "audio":
+        model = CustomMultiModelSimplePooledAudio()
+    else:
+        model = CustomMultiModelSimplePooledText()
+
+    train_audio_text_ablation(
         model,
         audio_feature_extractor,
         text_tokenizer,
@@ -103,56 +112,7 @@ for validation_pair in validation_pairs:
         vectorise,
         test_absolute,
         freeze=freezing_mode,
+        ablation_type=ablation_type
     )
-
-
-#
-# model_names = ["upsample_augment_three_run_one_first_ele_1e-07_", "upsample_augment_three_run_one_first_ele_5e-06_","upsample_augment_three_run_one_all_1e-07_"]
-#
-#
-#
-# for model_name in model_names:
-#     checkpoint_path = os.path.join(
-#         "/home", "yyu", "model_checkpoints", model_name + "_checkpoint.pt"
-#     )
-#     # load the last checkpoint with the best model
-#     model.load_state_dict(torch.load(checkpoint_path), strict=False)
-#
-#     evaluate_audio_text(
-#         model,
-#         audio_feature_extractor,
-#         text_tokenizer,
-#         audio_text_test_df,
-#         batch_size,
-#         vectorise,
-#         test_absolute,
-#         model_name
-#     )
-#
-#     type = "text"
-#     evaluate_audio_text_ablation(
-#         model,
-#         audio_feature_extractor,
-#         text_tokenizer,
-#         audio_text_test_df,
-#         batch_size,
-#         vectorise,
-#         test_absolute,
-#         type,
-#         model_name
-#     )
-#
-#     type = "audio"
-#     evaluate_audio_text_ablation(
-#         model,
-#         audio_feature_extractor,
-#         text_tokenizer,
-#         audio_text_test_df,
-#         batch_size,
-#         vectorise,
-#         test_absolute,
-#         type,
-#         model_name
-#     )
 
 

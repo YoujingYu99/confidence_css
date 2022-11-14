@@ -2910,6 +2910,228 @@ def train_audio_text(
         gc.collect()
         torch.cuda.empty_cache()
 
+def train_audio_text_ablation(
+    model,
+    audio_feature_extractor,
+    text_tokenizer,
+    train_data,
+    val_data,
+    learning_rate,
+    weight_decay,
+    epochs,
+    batch_size,
+    num_workers,
+    accum_iter,
+    vectorise,
+    test_absolute,
+    freeze,
+    ablation_type
+):
+    """
+    Train the model based on extracted audio vectors.
+    :param model: Deep learning model for the audio training.
+    :param audio_feature_extractor: Pre-trained transformer to extract audio features.
+    :param text_tokenizer: Tokenizer for text.
+    :param train_data: Dataframe to be trained.
+    :param val_data: Dataframe to be evaluated.
+    :param learning_rate: Parameter; rate of learning.
+    :param weight_decay: Rate of decay; l2 regularisation.
+    :param epochs: Number of epochs to be trained.
+    :param batch_size: Number of batches.
+    :param accum_iter: Number of batches to be iterated before optimizer step.
+    :param vectorise: Whether to vectorise audio.
+    :param test_absolute: Whether to use absolute test.
+    :param ablation_type: Type of ablation test.
+    :return: Training and evaluation accuracies.
+    """
+    # Prepare data into dataloader
+    train, val = train_data.reset_index(drop=True), val_data.reset_index(drop=True)
+    train, val = (
+        AudioTextDataset(train, audio_feature_extractor, text_tokenizer, vectorise),
+        AudioTextDataset(val, audio_feature_extractor, text_tokenizer, vectorise),
+    )
+
+    train_dataloader = torch.utils.data.DataLoader(
+        train,
+        batch_size=batch_size,
+        shuffle=True,
+        num_workers=num_workers,
+        drop_last=True,
+        pin_memory=True,
+    )
+    val_dataloader = torch.utils.data.DataLoader(
+        val,
+        batch_size=batch_size,
+        num_workers=num_workers,
+        drop_last=True,
+        pin_memory=True,
+    )
+
+    use_cuda = torch.cuda.is_available()
+    device = torch.device("cuda" if use_cuda else "cpu")
+
+    # Rules for freezing
+    if freeze == "first_ten":
+        for layer in model.bert.encoder.layer[:11]:
+            for param in layer.parameters():
+                param.requires_grad = False
+
+        for layer in model.hubert.encoder.layers[:11]:
+            for param in layer.parameters():
+                param.requires_grad = False
+
+    # Rules for freezing
+    if freeze == "first_ele":
+        for layer in model.bert.encoder.layer[:11]:
+            for param in layer.parameters():
+                param.requires_grad = False
+
+        for layer in model.hubert.encoder.layers[:11]:
+            for param in layer.parameters():
+                param.requires_grad = False
+
+    elif freeze == "all":
+        for param in model.bert.parameters():
+            param.requires_grad = False
+
+        for param in model.hubert.parameters():
+            param.requires_grad = False
+    else:
+        pass
+
+    criterion = nn.MSELoss()
+    optimizer = Adam(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
+
+    plot_name = (
+        "upsample_augment_three_run_one_validate_three_layers"
+        + str(freeze)
+        + "_"
+        + str(learning_rate)
+        + "_" + ablation_type + "_"
+    )
+    checkpoint_path = os.path.join(
+        "/home", "yyu", "model_checkpoints", plot_name + "_checkpoint.pt"
+    )
+    # initialize the early_stopping object
+    early_stopping = EarlyStopping(patience=20, verbose=True, path=checkpoint_path)
+
+    if use_cuda:
+        print("Using cuda!")
+        model = model.to(device)
+        # count_parameters(model)
+        model = nn.DataParallel(model, device_ids=list(range(num_gpus)))
+
+        criterion = criterion.cuda()
+
+    train_loss_list = []
+    train_acc_list = []
+    train_output_list = []
+    train_label_list = []
+    val_loss_list = []
+    val_acc_list = []
+    val_output_list = []
+    val_label_list = []
+
+    for epoch_num in range(epochs):
+        total_acc_val = 0
+        total_loss_val = 0
+        total_acc_train = 0
+        total_loss_train = 0
+
+        # Eval
+        with torch.no_grad():
+            model.eval()
+            for val_input, val_label in val_dataloader:
+                (
+                    val_acc,
+                    val_batch_loss,
+                    val_output,
+                    val_label,
+                ) = train_audio_text_handler_model(
+                    val_label, val_input, device, model, criterion
+                )
+                # Append results to the val lists
+                val_output_list, val_label_list = append_to_list(
+                    val_output.cpu(), val_label.cpu(), val_output_list, val_label_list
+                )
+
+                total_loss_val += val_batch_loss.item()
+                total_acc_val += val_acc
+
+        # Training
+        model.train()
+        for train_input, train_label in tqdm(train_dataloader):
+            (
+                train_acc,
+                train_batch_loss,
+                train_output,
+                train_label,
+            ) = train_audio_text_handler_model(
+                train_label, train_input, device, model, criterion
+            )
+            train_label = train_label.to(device)
+            # Append results to the train lists
+            train_output_list, train_label_list = append_to_list(
+                train_output.cpu(),
+                train_label.cpu(),
+                train_output_list,
+                train_label_list,
+            )
+
+            total_loss_train += train_batch_loss.item()
+            total_acc_train += train_acc
+
+            train_batch_loss.backward()
+            optimizer.step()
+            optimizer.zero_grad()
+
+        # # early stopping
+        # early_stopping(
+        #     total_loss_train / len(train_data), total_loss_val / len(val_data)
+        # )
+
+        # early_stopping needs the validation loss to check if it has decresed,
+        # and if it has, it will make a checkpoint of the current model
+        early_stopping(total_loss_val / len(val_data), model)
+        if early_stopping.early_stop:
+            print("We are at epoch:", epoch_num + 1)
+            break
+
+        # load the last checkpoint with the best model
+        model.load_state_dict(torch.load(checkpoint_path))
+
+        # Append to list
+        train_loss_list.append(total_loss_train / len(train_data))
+        train_acc_list.append(total_acc_train / len(train_data))
+        val_loss_list.append(total_loss_val / len(val_data))
+        val_acc_list.append(total_acc_val / len(val_data))
+
+        # Generate plots
+        # plot_name = "multi_upsample_augment_three_audio_freeze_all_val3_1-6_eleven_"
+        gen_acc_plots(train_acc_list, val_acc_list, plot_name)
+        gen_loss_plots(train_loss_list, val_loss_list, plot_name)
+        gen_val_scatter_plot(val_output_list, val_label_list, plot_name)
+        save_training_results(
+            train_loss_list,
+            train_acc_list,
+            train_output_list,
+            train_label_list,
+            val_loss_list,
+            val_acc_list,
+            val_output_list,
+            val_label_list,
+            plot_name,
+        )
+
+        print(
+            f"Epochs: {epoch_num + 1} | Train Loss: {total_loss_train / len(train_data): .3f} \
+                        | Train Accuracy: {total_acc_train / len(train_data): .3f} \
+                        | Val Loss: {total_loss_val / len(val_data): .3f} \
+                        | Val Accuracy: {total_acc_val / len(val_data): .3f}"
+        )
+
+        gc.collect()
+        torch.cuda.empty_cache()
 
 def no_train_audio_text(
     model,
