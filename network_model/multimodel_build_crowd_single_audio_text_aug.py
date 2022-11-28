@@ -42,22 +42,22 @@ crowdsourcing_results_test_df_path = os.path.join(
 
 print("start of application!")
 
-audio_text_train_df = load_audio_text_and_score_from_crowdsourcing_results(
-    home_dir,
-    crowdsourcing_results_train_df_path,
-    save_to_single_csv=False,
-    augment_audio=True,
-    two_scores=two_scores,
-)
-
-
-audio_text_val_df = load_audio_text_and_score_from_crowdsourcing_results(
-    home_dir,
-    crowdsourcing_results_val_df_path,
-    save_to_single_csv=False,
-    augment_audio=False,
-    two_scores=two_scores,
-)
+# audio_text_train_df = load_audio_text_and_score_from_crowdsourcing_results(
+#     home_dir,
+#     crowdsourcing_results_train_df_path,
+#     save_to_single_csv=False,
+#     augment_audio=True,
+#     two_scores=two_scores,
+# )
+#
+#
+# audio_text_val_df = load_audio_text_and_score_from_crowdsourcing_results(
+#     home_dir,
+#     crowdsourcing_results_val_df_path,
+#     save_to_single_csv=False,
+#     augment_audio=False,
+#     two_scores=two_scores,
+# )
 
 audio_text_test_df = load_audio_text_and_score_from_crowdsourcing_results(
     home_dir,
@@ -75,84 +75,55 @@ batch_size = 8
 num_workers = 4
 accum_iter = 4
 
-# multimodel = CustomMultiModelSimplePooled()
-# models = [CustomMultiModelSimplePooled(), CustomMultiModelSimplePooledThreeLayers()]
 model = CustomMultiModelSimplePooled()
 
+#
+# print("Start training!")
+#
+# validation_pairs = [[5e-8, "all"]]
+#
+# for validation_pair in validation_pairs:
+#     LR = validation_pair[0]
+#     freezing_mode = validation_pair[1]
+#
+#     train_audio_text(
+#         model,
+#         audio_feature_extractor,
+#         text_tokenizer,
+#         audio_text_train_df,
+#         audio_text_val_df,
+#         LR,
+#         weight_decay,
+#         epochs,
+#         batch_size,
+#         num_workers,
+#         accum_iter,
+#         vectorise,
+#         test_absolute,
+#         freeze=freezing_mode,
+#     )
 
-print("Start training!")
 
-validation_pairs = [[5e-8, "first_ele"], [5e-8, "all"]]
+model_names = [
+    "upsample_augment_three_run_one_first_ele_1e-07_",
+    "upsample_augment_three_run_one_all_1e-07_",
+]
 
-for validation_pair in validation_pairs:
-    LR = validation_pair[0]
-    freezing_mode = validation_pair[1]
 
-    train_audio_text(
+for model_name in model_names:
+    checkpoint_path = os.path.join(
+        "/home", "yyu", "model_checkpoints", model_name + "_checkpoint.pt"
+    )
+    # load the last checkpoint with the best model
+    model.load_state_dict(torch.load(checkpoint_path), strict=False)
+
+    evaluate_audio_text(
         model,
         audio_feature_extractor,
         text_tokenizer,
-        audio_text_train_df,
-        audio_text_val_df,
-        LR,
-        weight_decay,
-        epochs,
+        audio_text_test_df,
         batch_size,
-        num_workers,
-        accum_iter,
         vectorise,
         test_absolute,
-        freeze=freezing_mode,
+        model_name,
     )
-
-
-#
-# model_names = ["upsample_augment_three_run_one_first_ele_1e-07_", "upsample_augment_three_run_one_first_ele_5e-06_","upsample_augment_three_run_one_all_1e-07_"]
-#
-#
-#
-# for model_name in model_names:
-#     checkpoint_path = os.path.join(
-#         "/home", "yyu", "model_checkpoints", model_name + "_checkpoint.pt"
-#     )
-#     # load the last checkpoint with the best model
-#     model.load_state_dict(torch.load(checkpoint_path), strict=False)
-#
-#     evaluate_audio_text(
-#         model,
-#         audio_feature_extractor,
-#         text_tokenizer,
-#         audio_text_test_df,
-#         batch_size,
-#         vectorise,
-#         test_absolute,
-#         model_name
-#     )
-#
-#     type = "text"
-#     evaluate_audio_text_ablation(
-#         model,
-#         audio_feature_extractor,
-#         text_tokenizer,
-#         audio_text_test_df,
-#         batch_size,
-#         vectorise,
-#         test_absolute,
-#         type,
-#         model_name
-#     )
-#
-#     type = "audio"
-#     evaluate_audio_text_ablation(
-#         model,
-#         audio_feature_extractor,
-#         text_tokenizer,
-#         audio_text_test_df,
-#         batch_size,
-#         vectorise,
-#         test_absolute,
-#         type,
-#         model_name
-#     )
-
-

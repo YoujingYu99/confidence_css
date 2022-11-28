@@ -118,21 +118,21 @@ def split_to_train_val_test(home_dir):
         home_dir,
         "data_sheets",
         "crowdsourcing_results",
-        "Batch_4799159_batch_results_complete_reject_filtered_numbered_cleaned_train4.csv",
+        "Batch_4799159_batch_results_complete_reject_filtered_numbered_cleaned_train5.csv",
     )
 
     crowdsourcing_results_val_df_path = os.path.join(
         home_dir,
         "data_sheets",
         "crowdsourcing_results",
-        "Batch_4799159_batch_results_complete_reject_filtered_numbered_cleaned_val4.csv",
+        "Batch_4799159_batch_results_complete_reject_filtered_numbered_cleaned_val5.csv",
     )
 
     crowdsourcing_results_test_df_path = os.path.join(
         home_dir,
         "data_sheets",
         "crowdsourcing_results",
-        "Batch_4799159_batch_results_complete_reject_filtered_numbered_cleaned_test4.csv",
+        "Batch_4799159_batch_results_complete_reject_filtered_numbered_cleaned_test5.csv",
     )
 
     total_df = pd.read_csv(crowdsourcing_results_df_path)
@@ -2910,6 +2910,7 @@ def train_audio_text(
         gc.collect()
         torch.cuda.empty_cache()
 
+
 def train_audio_text_ablation(
     model,
     audio_feature_extractor,
@@ -2925,7 +2926,7 @@ def train_audio_text_ablation(
     vectorise,
     test_absolute,
     freeze,
-    ablation_type
+    ablation_type,
 ):
     """
     Train the model based on extracted audio vectors.
@@ -3003,14 +3004,16 @@ def train_audio_text_ablation(
     optimizer = Adam(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
 
     plot_name = (
-        "upsample_augment_three_run_one_validate_three_layers"
+        "upsample_augment_three_layers"
         + str(freeze)
         + "_"
         + str(learning_rate)
-        + "_" + ablation_type + "_"
+        + "_"
+        + ablation_type
+        + "_"
     )
     checkpoint_path = os.path.join(
-        "/home", "yyu", "model_checkpoints", plot_name + "_checkpoint.pt"
+        "/home", "yyu", "model_checkpoints_ablation", plot_name + "_checkpoint.pt"
     )
     # initialize the early_stopping object
     early_stopping = EarlyStopping(patience=20, verbose=True, path=checkpoint_path)
@@ -3111,7 +3114,7 @@ def train_audio_text_ablation(
         gen_acc_plots(train_acc_list, val_acc_list, plot_name)
         gen_loss_plots(train_loss_list, val_loss_list, plot_name)
         gen_val_scatter_plot(val_output_list, val_label_list, plot_name)
-        save_training_results(
+        save_ablation_training_results(
             train_loss_list,
             train_acc_list,
             train_output_list,
@@ -3132,6 +3135,7 @@ def train_audio_text_ablation(
 
         gc.collect()
         torch.cuda.empty_cache()
+
 
 def no_train_audio_text(
     model,
@@ -3566,6 +3570,72 @@ def save_training_results(
     )
 
 
+# Save data to csv
+def save_ablation_training_results(
+    train_loss_list,
+    train_acc_list,
+    train_output_list,
+    train_label_list,
+    val_loss_list,
+    val_acc_list,
+    val_output_list,
+    val_label_list,
+    plot_name,
+):
+    """
+    Save the results from model training.
+    :param train_loss_list: List of training losses.
+    :param train_acc_list: List of training accuracies.
+    :param train_output_list: List of training output.
+    :param train_label_list: List of tensors of training labels.
+    :param val_loss_list: List of evaluation losses.
+    :param val_acc_list: List of evaluation accuracies.
+    :param val_output_list: List of val output.
+    :param val_label_list: List of tensors of val labels.
+    :param plot_name: Name of the plot depending on model.
+    :return: Save results to a csv.
+    """
+    list_of_tuples_loss_acc = list(
+        zip(train_loss_list, train_acc_list, val_loss_list, val_acc_list,)
+    )
+    loss_acc_df = pd.DataFrame(
+        list_of_tuples_loss_acc,
+        columns=["Train Loss", "Train Acc", "Val Loss", "Val Acc",],
+    )
+
+    loss_acc_df.to_csv(
+        os.path.join(
+            "/home",
+            "yyu",
+            "plots",
+            "ablation_correct",
+            "training_csv",
+            plot_name + "loss_acc.csv",
+        ),
+        index=False,
+    )
+
+    list_of_tuples_output = list(
+        zip(train_output_list, train_label_list, val_output_list, val_label_list,)
+    )
+    loss_acc_df = pd.DataFrame(
+        list_of_tuples_output,
+        columns=["Train Output", "Train Label", "Val Output", "Val Label",],
+    )
+
+    loss_acc_df.to_csv(
+        os.path.join(
+            "/home",
+            "yyu",
+            "plots",
+            "ablation_correct",
+            "training_csv",
+            plot_name + "output_label.csv",
+        ),
+        index=False,
+    )
+
+
 def save_random_acc_test_results_many(
     val_loss_list, val_acc_list, val_output_list, val_label_list, plot_name,
 ):
@@ -3689,7 +3759,7 @@ def evaluate_audio_text(
     model_name,
 ):
     """
-    Evaluate accuracy for the model on vectorised audio data.
+    Evaluate accuracy for the model on vectorised audio/text data.
     :param model: Model to be used for deep learning.
     :param audio_feature_extractor: Pre-trained transformer to extract audio features.
     :param text_tokenizer: Tokenizer for text.

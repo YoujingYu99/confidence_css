@@ -405,6 +405,7 @@ class CustomMultiModelSimplePooled(nn.Module):
 
         return prediction
 
+
 # Final version of file used
 class CustomMultiModelSimplePooledAudio(nn.Module):
     def __init__(self, dropout=0.5):
@@ -433,7 +434,7 @@ class CustomMultiModelSimplePooledAudio(nn.Module):
         # print("pooled hubert", pooled_output_hubert.size())
         pooled_hubert = torch.mean(pooled_output_hubert, dim=1)
         # Set audio representation to zero
-        pooled_hubert_zeroed = torch.zeros(pooled_hubert.size())
+        pooled_hubert_zeroed = torch.zeros(pooled_hubert.size()).cuda()
         # print("pooled hubert", pooled_hubert.size())
 
         # Concat the two models
@@ -456,6 +457,7 @@ class CustomMultiModelSimplePooledAudio(nn.Module):
 
         return prediction
 
+
 # Final version of file used
 class CustomMultiModelSimplePooledText(nn.Module):
     def __init__(self, dropout=0.5):
@@ -477,7 +479,7 @@ class CustomMultiModelSimplePooledText(nn.Module):
             input_ids=input_id, attention_mask=mask, return_dict=False
         )
         # Set text representation to zero
-        pooled_bert_zeroed = torch.zeros(pooled_output_bert.size())
+        pooled_bert_zeroed = torch.zeros(pooled_output_bert.size()).cuda()
 
         ## Hubert transform
         # print("hubert input size", input_values.size())
@@ -506,6 +508,7 @@ class CustomMultiModelSimplePooledText(nn.Module):
         # print("prediction size", prediction.size())
 
         return prediction
+
 
 class CustomMultiModelSimplePooledThreeLayers(nn.Module):
     def __init__(self, dropout=0.5):

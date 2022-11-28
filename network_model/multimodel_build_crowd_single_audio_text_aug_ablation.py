@@ -79,40 +79,36 @@ accum_iter = 4
 # models = [CustomMultiModelSimplePooled(), CustomMultiModelSimplePooledThreeLayers()]
 
 
-
 print("Start training!")
 
-validation_pairs = [[5e-8, "first_ele"], [5e-8, "all"]]
-ablation_type = "audio"
-
-
+validation_pairs = [[1e-7, "first_ele"], [1e-7, "all"]]
+ablation_types = ["audio", "text"]
 
 
 for validation_pair in validation_pairs:
-    LR = validation_pair[0]
-    freezing_mode = validation_pair[1]
+    for ablation_type in ablation_types:
+        LR = validation_pair[0]
+        freezing_mode = validation_pair[1]
 
-    if ablation_type == "audio":
-        model = CustomMultiModelSimplePooledAudio()
-    else:
-        model = CustomMultiModelSimplePooledText()
+        if ablation_type == "audio":
+            model = CustomMultiModelSimplePooledAudio()
+        else:
+            model = CustomMultiModelSimplePooledText()
 
-    train_audio_text_ablation(
-        model,
-        audio_feature_extractor,
-        text_tokenizer,
-        audio_text_train_df,
-        audio_text_val_df,
-        LR,
-        weight_decay,
-        epochs,
-        batch_size,
-        num_workers,
-        accum_iter,
-        vectorise,
-        test_absolute,
-        freeze=freezing_mode,
-        ablation_type=ablation_type
-    )
-
-
+        train_audio_text_ablation(
+            model,
+            audio_feature_extractor,
+            text_tokenizer,
+            audio_text_train_df,
+            audio_text_val_df,
+            LR,
+            weight_decay,
+            epochs,
+            batch_size,
+            num_workers,
+            accum_iter,
+            vectorise,
+            test_absolute,
+            freeze=freezing_mode,
+            ablation_type=ablation_type,
+        )
