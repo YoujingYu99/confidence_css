@@ -42,23 +42,6 @@ crowdsourcing_results_test_df_path = os.path.join(
 
 print("start of application!")
 
-audio_text_train_df = load_audio_text_and_score_from_crowdsourcing_results(
-    home_dir,
-    crowdsourcing_results_train_df_path,
-    save_to_single_csv=False,
-    augment_audio=True,
-    two_scores=two_scores,
-)
-
-
-audio_text_val_df = load_audio_text_and_score_from_crowdsourcing_results(
-    home_dir,
-    crowdsourcing_results_val_df_path,
-    save_to_single_csv=False,
-    augment_audio=False,
-    two_scores=two_scores,
-)
-
 audio_text_test_df = load_audio_text_and_score_from_crowdsourcing_results(
     home_dir,
     crowdsourcing_results_test_df_path,
@@ -75,40 +58,51 @@ batch_size = 8
 num_workers = 4
 accum_iter = 4
 
-# multimodel = CustomMultiModelSimplePooled()
-# models = [CustomMultiModelSimplePooled(), CustomMultiModelSimplePooledThreeLayers()]
 
 
-print("Start training!")
+model = CustomMultiModelSimplePooledText()
+checkpoint_path = os.path.join(
+    "/home",
+    "yyu",
+    "model_checkpoints_ablation",
+    "upsample_augment_three_layersfirst_ele_1e-07_text_" + "_checkpoint.pt",
+)
+# load the last checkpoint with the best model
+model.load_state_dict(torch.load(checkpoint_path), strict=False)
 
-validation_pairs = [[1e-7, "first_ele"], [1e-7, "all"]]
-ablation_types = ["audio", "text"]
+evaluate_audio_text_ablation(
+    model,
+    audio_feature_extractor,
+    text_tokenizer,
+    audio_text_test_df,
+    batch_size,
+    vectorise,
+    test_absolute,
+    type="text",
+    model_name="upsample_augment_three_layersfirst_ele_1e-07_text_",
+)
 
 
-for validation_pair in validation_pairs:
-    for ablation_type in ablation_types:
-        LR = validation_pair[0]
-        freezing_mode = validation_pair[1]
+model = CustomMultiModelSimplePooledAudio()
+checkpoint_path = os.path.join(
+    "/home",
+    "yyu",
+    "model_checkpoints_ablation",
+    "upsample_augment_three_layersfirst_ele_1e-07_audio_" + "_checkpoint.pt",
+)
+# load the last checkpoint with the best model
+model.load_state_dict(torch.load(checkpoint_path), strict=False)
 
-        if ablation_type == "audio":
-            model = CustomMultiModelSimplePooledAudio()
-        else:
-            model = CustomMultiModelSimplePooledText()
+evaluate_audio_text_ablation(
+    model,
+    audio_feature_extractor,
+    text_tokenizer,
+    audio_text_test_df,
+    batch_size,
+    vectorise,
+    test_absolute,
+    type="audio",
+    model_name="upsample_augment_three_layersfirst_ele_1e-07_audio_",
+)
 
-        train_audio_text_ablation(
-            model,
-            audio_feature_extractor,
-            text_tokenizer,
-            audio_text_train_df,
-            audio_text_val_df,
-            LR,
-            weight_decay,
-            epochs,
-            batch_size,
-            num_workers,
-            accum_iter,
-            vectorise,
-            test_absolute,
-            freeze=freezing_mode,
-            ablation_type=ablation_type,
-        )
+
