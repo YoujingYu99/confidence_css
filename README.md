@@ -2,6 +2,9 @@
 
 The confidence level in users’ speech has long been recognised as an important signal in traditional dialogue systems. In this work, we highlight the importance of user confidence detection in queries in conversational search systems (CSSs). Accurately estimating a user’s confidence level in CSSs is important because it enables the CSSs to inferthe degree of competency of a user on the queried topic and subsequently tailor its responses appropriately. This is especially important in CSSs since their responses need to be concise and precise. However, few prior works have evaluated user confidence in CSSs due to a lack of available datasets. We present a novel speech-based dataset named UNderstanding Spoken qUeRiEs (UNSURE), which contains confidence grading annotations of user queries in natural language conversations. Based on this dataset, we propose a multimodal approach to infer users’ confidence in spoken queries as a baseline model. Preliminary experimental results demonstrate that our proposed fusion model is capable of achieving near human-level performance.
 
+![model_new](https://github.com/YoujingYu99/confidence_css/assets/67215422/62e16890-6a01-452f-9383-be339a221e5c)
+
+
 ## Dataset: UNSURE
 UNSURE is a dataset prepared from the [Spotify Podcast Dataset](https://podcastsdataset.byspotify.com/). Each data point in UNSURE is an audio excerpt and three confidence scores, annotated by Amazon MTurk workers. Here we will briefly describe how to re-produce the dataset. 
 
