@@ -4,27 +4,17 @@ import os
 from batch_dataframe_container import *
 
 home_dir = os.path.join("/home", "yyu")
-# csv_path = os.path.join(
-#     home_dir,
-#     "data_sheets",
-#     "crowdsourcing_results",
-#     "Batch_4799159_batch_results_complete.csv",
-# )
-# samples_benchmark_csv_path = os.path.join(
-#     home_dir,
-#     "data_sheets",
-#     "crowdsourcing_results",
-#     "Samples_Benchmark_200_Marked.csv",
-#     "Benchmark_Samples.csv",
-# )
 csv_path = os.path.join(
     home_dir,
-    "Label_Results",
-    "Complete_Results.csv",
+    "data_sheets",
+    "crowdsourcing_results",
+    "Batch_4799159_batch_results_complete.csv",
 )
 samples_benchmark_csv_path = os.path.join(
     home_dir,
-    "Label_Results",
+    "data_sheets",
+    "crowdsourcing_results",
+    "Samples_Benchmark_200_Marked.csv",
     "Benchmark_Samples.csv",
 )
 

@@ -7,14 +7,20 @@ import pandas as pd
 from model_utils import *
 
 
-# home_dir is the location of script
 home_dir = os.path.join("/home", "yyu")
+# test dataset is the same as the human df.
 crowdsourcing_results_test_df_path = os.path.join(
     home_dir,
     "data_sheets",
     "crowdsourcing_results",
     "Batch_4799159_batch_results_complete_reject_filtered_numbered_cleaned_test.csv",
 )
+
+# crowdsourcing_results_test_df_path = os.path.join(
+#     home_dir,
+#     "label_results",
+#     "Cleaned_Results_Eval.csv",
+# )
 
 
 human_df = pd.read_csv(
@@ -25,6 +31,14 @@ human_df = pd.read_csv(
         "Batch_4799159_batch_results_complete_reject_filtered_numbered_cleaned_test_yyu.csv",
     )
 )
+
+# human_df = pd.read_csv(
+#     os.path.join(
+#         home_dir,
+#         "label_results",
+#         "Human_Labels.csv",
+#     )
+# )
 
 model_output_df = pd.read_csv(
     os.path.join(

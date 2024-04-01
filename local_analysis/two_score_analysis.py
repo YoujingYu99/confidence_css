@@ -1,4 +1,5 @@
 """Inter-rater reliability analysis on using two or three scores from workers."""
+
 import pandas as pd
 import numpy as np
 import os
@@ -20,7 +21,8 @@ class TwoScoreResultsDataframe:
     """
 
     def __init__(
-        self, csv_path,
+        self,
+        csv_path,
     ):
         three_workers_df = pd.read_csv(csv_path)
         self.three_workers_df = three_workers_df
@@ -100,7 +102,8 @@ class TwoScoreResultsDataframe:
                 score2_list.append(row["average"])
 
         three_average_df = pd.DataFrame(
-            np.column_stack([score1_list, score2_list]), columns=["score1", "score2"],
+            np.column_stack([score1_list, score2_list]),
+            columns=["score1", "score2"],
         )
 
         return three_average_df
@@ -118,7 +121,8 @@ class TwoScoreResultsDataframe:
             score2_list.append((row["score1"] + row["score2"] + row["score3"]) / 3)
 
         three_average_human_df = pd.DataFrame(
-            np.column_stack([score1_list, score2_list]), columns=["score1", "score2"],
+            np.column_stack([score1_list, score2_list]),
+            columns=["score1", "score2"],
         )
 
         return three_average_human_df
@@ -140,7 +144,8 @@ class TwoScoreResultsDataframe:
                 score2_list.append((close1 + close2) / 2)
 
         three_two_df = pd.DataFrame(
-            np.column_stack([score1_list, score2_list]), columns=["score1", "score2"],
+            np.column_stack([score1_list, score2_list]),
+            columns=["score1", "score2"],
         )
 
         return three_two_df
@@ -159,7 +164,8 @@ class TwoScoreResultsDataframe:
             score2_list.append((close1 + close2) / 2)
 
         three_two_human_df = pd.DataFrame(
-            np.column_stack([score1_list, score2_list]), columns=["score1", "score2"],
+            np.column_stack([score1_list, score2_list]),
+            columns=["score1", "score2"],
         )
 
         return three_two_human_df
@@ -293,7 +299,6 @@ class TwoScoreResultsDataframe:
         plt.savefig(save_path)
 
 
-
 home_dir = os.path.join("/home", "yyu")
 csv_path = os.path.join(
     home_dir,
@@ -304,7 +309,9 @@ csv_path = os.path.join(
 
 original_df = TwoScoreResultsDataframe(csv_path)
 
-# icc_value, fleiss_kappa, kendall_tau, spearman_rho, pearson_r = original_df.get_irr_scores(original_df.three_two_human_compare_df)
-# print(icc_value, fleiss_kappa, kendall_tau, spearman_rho, pearson_r)
+icc_value, fleiss_kappa, kendall_tau, spearman_rho, pearson_r = (
+    original_df.get_irr_scores(original_df.three_two_human_compare_df)
+)
+print(icc_value, fleiss_kappa, kendall_tau, spearman_rho, pearson_r)
 
 print(original_df.get_distribution(original_df.three_workers_df))

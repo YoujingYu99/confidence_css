@@ -1,18 +1,15 @@
-"""Set a number of samples to be extracted from each folder and move them to
-the chosen folder.
+"""Set a number of samples to be extracted (200) from folder 7 and move them to
+the chosen folder. These are used for benchmarked samples
 """
 
 import os
 import random
 import shutil
-import boto3
-import pandas as pd
 
 
 folder_numbers = [7]
-# folder_numbers = range(8)
 no_of_files = 200
-#
+
 home_dir = os.path.join("/home", "yyu")
 
 # Get datasheet path

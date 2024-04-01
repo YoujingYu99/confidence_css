@@ -21,7 +21,7 @@ text_tokenizer = BertTokenizer.from_pretrained("bert-base-cased")
 home_dir = os.path.join("/home", "yyu")
 
 
-# Path for crowdsourcing results
+# Path for train, val and test sets
 crowdsourcing_results_train_df_path = os.path.join(
     home_dir,
     "data_sheets",
