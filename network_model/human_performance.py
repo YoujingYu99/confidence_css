@@ -14,7 +14,7 @@ folder_path = os.path.join(home_dir, "data", "label_results")
 # test dataset is the same as the human df.
 crowdsourcing_results_test_df_path = os.path.join(
     folder_path,
-    "Cleaned_Results_Eval.csv",
+    "Cleaned_Results_Test.csv",
 )
 
 human_df = pd.read_csv(

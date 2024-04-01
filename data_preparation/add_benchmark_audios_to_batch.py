@@ -9,10 +9,10 @@ import os
 import random
 import math
 
-home_dir = ""
-benchmark_url_df = pd.read_csv(
-    os.path.join(home_dir, "data_sheets", "sw3_urls", "Benchmark_Samples.csv")
-)
+
+home_dir = os.path.join("/home", "youjing", "PersonalProjects", "confidence_css")
+folder_path = os.path.join(home_dir, "data", "label_results")
+benchmark_url_df = pd.read_csv(os.path.join(folder_path, "Benchmark_Samples.csv"))
 
 
 ## Concatenate all input dataframes; input + num is the dataframe uploaded to Amazon MTurk
