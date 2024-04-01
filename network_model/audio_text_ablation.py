@@ -1,6 +1,6 @@
 """Use pre-trained Bert and HuBERT models on the audio and text for regression.
 Extract the raw audio array, transcription and confidence score from the individual audio
-classes. Then use this data to train the network for regression.
+classes. Then use this data to train the network for regression. Specify home_dir before running the script.
 """
 
 from transformers import AutoFeatureExtractor, BertTokenizer
@@ -12,13 +12,14 @@ from model_utils import *
 vectorise = True
 two_scores = False
 test_absolute = True
+ablate_text = True
 
 # Load feature extractor
 audio_feature_extractor = AutoFeatureExtractor.from_pretrained("facebook/wav2vec2-base")
 text_tokenizer = BertTokenizer.from_pretrained("bert-base-cased")
 
 # home_dir is the location of folder
-home_dir = os.path.join("/home", "youjing", "PersonalProjects", "confidence_css")
+home_dir = ""
 folder_path = os.path.join(home_dir, "data", "label_results")
 
 # Path for crowdsourcing results
@@ -72,84 +73,85 @@ batch_size = 8
 num_workers = 4
 accum_iter = 4
 
-## Text ablation: zero text tokens and use audio only
-model = CustomMultiModelSimplePooledText()
-train_audio_text_ablation(
-    model,
-    audio_feature_extractor,
-    text_tokenizer,
-    audio_text_train_df,
-    audio_text_val_df,
-    LR,
-    weight_decay,
-    epochs,
-    batch_size,
-    num_workers,
-    accum_iter,
-    vectorise,
-    test_absolute,
-    freeze="first_ele",
-    ablation_type="text",
-)
+if ablate_text:
+    ## Text ablation: zero text tokens and use audio only
+    model = CustomMultiModelSimplePooledText()
+    train_audio_text_ablation(
+        model,
+        audio_feature_extractor,
+        text_tokenizer,
+        audio_text_train_df,
+        audio_text_val_df,
+        LR,
+        weight_decay,
+        epochs,
+        batch_size,
+        num_workers,
+        accum_iter,
+        vectorise,
+        test_absolute,
+        freeze="first_ele",
+        ablation_type="text",
+    )
 
-# # Reload from checkpoint for evaluation
-# checkpoint_path = os.path.join(
-#     home_dir,
-#     "model_checkpoints_ablation",
-#     "" + "_checkpoint.pt",
-# )
-# # load the last checkpoint with the best model
-# model.load_state_dict(torch.load(checkpoint_path), strict=False)
+    # # Reload from checkpoint for evaluation
+    # checkpoint_path = os.path.join(
+    #     home_dir,
+    #     "model_checkpoints_ablation",
+    #     "" + "_checkpoint.pt",
+    # )
+    # # load the last checkpoint with the best model
+    # model.load_state_dict(torch.load(checkpoint_path), strict=False)
 
-# evaluate_audio_text_ablation(
-#     model,
-#     audio_feature_extractor,
-#     text_tokenizer,
-#     audio_text_test_df,
-#     batch_size,
-#     vectorise,
-#     test_absolute,
-#     type="text",
-#     model_name="",
-# )
+    # evaluate_audio_text_ablation(
+    #     model,
+    #     audio_feature_extractor,
+    #     text_tokenizer,
+    #     audio_text_test_df,
+    #     batch_size,
+    #     vectorise,
+    #     test_absolute,
+    #     type="text",
+    #     model_name="",
+    # )
+else:
+    ## Audio ablation: zero audio tokens and use text only
+    model = CustomMultiModelSimplePooledAudio()
+    train_audio_text_ablation(
+        model,
+        audio_feature_extractor,
+        text_tokenizer,
+        audio_text_train_df,
+        audio_text_val_df,
+        LR,
+        weight_decay,
+        epochs,
+        batch_size,
+        num_workers,
+        accum_iter,
+        vectorise,
+        test_absolute,
+        freeze="first_ele",
+        ablation_type="text",
+    )
 
-## Audio ablation: zero audio tokens and use text only
-model = CustomMultiModelSimplePooledAudio()
-train_audio_text_ablation(
-    model,
-    audio_feature_extractor,
-    text_tokenizer,
-    audio_text_train_df,
-    audio_text_val_df,
-    LR,
-    weight_decay,
-    epochs,
-    batch_size,
-    num_workers,
-    accum_iter,
-    vectorise,
-    test_absolute,
-    freeze="first_ele",
-    ablation_type="text",
-)
+    # # Reload from checkpoint for evaluation
+    # checkpoint_path = os.path.join(
+    #     home_dir,
+    #     "model_checkpoints_ablation",
+    #     "" + "_checkpoint.pt",
+    # )
 
-# # Reload from checkpoint for evaluation
-# checkpoint_path = os.path.join(
-#     home_dir,
-#     "model_checkpoints_ablation",
-#     "" + "_checkpoint.pt",
-# )
+    # model.load_state_dict(torch.load(checkpoint_path), strict=False)
 
-# model.load_state_dict(torch.load(checkpoint_path), strict=False)
-
-# evaluate_audio_text_ablation(
-#     model,
-#     audio_feature_extractor,
-#     text_tokenizer,
-#     audio_text_test_df,
-#     batch_size,
-#     vectorise,
-#     test_absolute,
-#     type="audio",
-#     model_name="",
-# )
+    # evaluate_audio_text_ablation(
+    #     model,
+    #     audio_feature_extractor,
+    #     text_tokenizer,
+    #     audio_text_test_df,
+    #     batch_size,
+    #     vectorise,
+    #     test_absolute,
+    #     type="audio",
+    #     model_name="",
+    # )

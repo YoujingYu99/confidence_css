@@ -1,6 +1,7 @@
 """Use pre-trained Bert and HuBERT models on the audio and text for regression.
 Extract the raw audio array, transcription and confidence score from the individual audio
-classes. Then use this data to train the network for regression.
+classes. Then use this data to train the network for regression. Specify home_dir before running the script.
+
 """
 
 from transformers import AutoFeatureExtractor, BertTokenizer
@@ -18,7 +19,7 @@ audio_feature_extractor = AutoFeatureExtractor.from_pretrained("facebook/wav2vec
 text_tokenizer = BertTokenizer.from_pretrained("bert-base-cased")
 
 # home_dir is the location of folder
-home_dir = os.path.join("/home", "youjing", "PersonalProjects", "confidence_css")
+home_dir = ""
 folder_path = os.path.join(home_dir, "data", "label_results")
 # Path for crowdsourcing results
 crowdsourcing_results_train_df_path = os.path.join(

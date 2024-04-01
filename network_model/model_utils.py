@@ -79,14 +79,14 @@ def split_to_train_val(home_dir):
     crowdsourcing_results_train_df_path = os.path.join(
         home_dir,
         "label_results",
-        "Cleaned_Results_Train.csv",
+        "Cleaned_Results_Removed_Train.csv",
     )
 
     crowdsourcing_results_val_df_path = os.path.join(
         home_dir,
         "data_sheets",
         "label_results",
-        "Cleaned_Results_Val.csv",
+        "Cleaned_Results_Removed_Val.csv",
     )
 
     # Test df is fixed to match the human labels; test df corresponds to the total_df[4051:]. Hence we only extract the first 4050 from total df to form train and val datasets.
