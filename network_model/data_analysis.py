@@ -1,13 +1,16 @@
 """Analysis of the score distribution, the text token length and the audio token length
-on the original dataset.
+on the original dataset. Analysis of model parameters.
 """
+
 import os
 import pandas as pd
 from transformers import AutoFeatureExtractor, BertTokenizer
+from models import *
 from model_utils import (
     load_text_and_score_from_crowdsourcing_results,
     load_audio_and_score_from_crowdsourcing_results,
     plot_histogram_of_scores,
+    count_parameters,
 )
 
 # Decide whether to save the concatenated file to a single csv
@@ -27,28 +30,12 @@ crowdsourcing_results_df_path = os.path.join(
     home_dir,
     "data_sheets",
     "crowdsourcing_results",
-"Batch_4799159_batch_results_complete_reject_filtered_numbered_cleaned_train.csv",
-)
-
-crowdsourcing_results_val_df_path = os.path.join(
-    home_dir,
-    "data_sheets",
-    "crowdsourcing_results",
-"Batch_4799159_batch_results_complete_reject_filtered_numbered_cleaned_val.csv",
+    "Batch_4799159_batch_results_complete_reject_filtered_numbered_cleaned_train.csv",
 )
 
 
 print("start of application!")
 
-# Read in individual csvs and load into a final dataframe
-# audio_text_df_train = load_audio_text_and_score_from_crowdsourcing_results(
-#     home_dir,
-#     crowdsourcing_results_df_path,
-#     save_to_single_csv,
-#     augment_audio=False,
-#     two_scores=False,
-# )
-#
 audio_df_train = load_audio_and_score_from_crowdsourcing_results(
     home_dir,
     crowdsourcing_results_df_path,
@@ -57,13 +44,6 @@ audio_df_train = load_audio_and_score_from_crowdsourcing_results(
     two_scores=False,
 )
 
-# text_df_train = load_text_and_score_from_crowdsourcing_results(
-#     home_dir,
-#     crowdsourcing_results_df_path,
-#     save_to_single_csv,
-#     augment_text=False,
-#     two_scores=False,
-# )
 
 ## Analysis of score distribution
 train_scores_list = audio_df_train["score"].tolist()
@@ -77,60 +57,83 @@ plot_histogram_of_scores(
 )
 
 
-# # # Analysis of audio token length
-# audio_df_train = load_audio_and_score_from_crowdsourcing_results(
-#     home_dir, crowdsourcing_results_df_path, save_to_single_csv,augment_audio=False,
-#     two_scores=False,
-# )
-# #
-# audio_series = audio_df_train["audio_array"]
-# audio_tensor_length_list = []
-# print("Start tokenisation")
-# for audio in audio_series:
-#     extracted_tensor = audio_feature_extractor(
-#         audio, sampling_rate=16000, return_tensors="pt",
-#     )
-#     print(extracted_tensor.input_values.size())
-#     audio_tensor_length_list.append(list(extracted_tensor.input_values.size())[1])
-#
-# print(
-#     "number of audios with more than 500000 tensors",
-#     sum(1 for i in audio_tensor_length_list if i > 500000),
-# )
+## Analysis of audio token length
+audio_df_train = load_audio_and_score_from_crowdsourcing_results(
+    home_dir,
+    crowdsourcing_results_df_path,
+    save_to_single_csv,
+    augment_audio=False,
+    two_scores=False,
+)
 
 
-# df = pd.DataFrame(audio_tensor_length_list, columns=["Audio Token Length"])
-# df.to_csv(os.path.join(home_dir, "plots", "audio_token_length.csv"))
-# plot_histogram_of_scores(home_dir, audio_tensor_length_list, num_bins=30, plot_name="Audio Token Length", x_label="Token Length")
+audio_series = audio_df_train["audio_array"]
+audio_tensor_length_list = []
+print("Start tokenisation")
+for audio in audio_series:
+    extracted_tensor = audio_feature_extractor(
+        audio,
+        sampling_rate=16000,
+        return_tensors="pt",
+    )
+    print(extracted_tensor.input_values.size())
+    audio_tensor_length_list.append(list(extracted_tensor.input_values.size())[1])
+
+print(
+    "number of audios with more than 500000 tensors",
+    sum(1 for i in audio_tensor_length_list if i > 500000),
+)
 
 
+df = pd.DataFrame(audio_tensor_length_list, columns=["Audio Token Length"])
+df.to_csv(os.path.join(home_dir, "plots", "audio_token_length.csv"))
+plot_histogram_of_scores(
+    home_dir,
+    audio_tensor_length_list,
+    num_bins=30,
+    plot_name="Audio Token Length",
+    x_label="Token Length",
+)
 
-# # Analysis of text token length
-# text_df_train = load_text_and_score_from_crowdsourcing_results(
-#     home_dir,
-#     crowdsourcing_results_df_path,
-#     save_to_single_csv,
-#     augment_text=False,
-#     two_scores=False,
-# )
-# texts = text_df_train["sentence"]
-# text_tensor_length_list = []
-# for text in texts:
-#     extracted_tensor = text_tokenizer(text, return_tensors="pt")
-#     text_tensor_length_list.append(len(extracted_tensor.input_ids[0]))
-#
-# print("Start plotting!")
-# df = pd.DataFrame(text_tensor_length_list, columns=["Text Token Length"])
-# df.to_csv(os.path.join(home_dir, "plots", "text_token_length.csv"))
-# plot_histogram_of_scores(
-#     home_dir,
-#     text_tensor_length_list,
-#     num_bins=10,
-#     plot_name="Text Token Length",
-#     x_label="Token Length",
-# )
 
-# print(
-#     "number of audios with more than 120 tensors",
-#     sum(1 for i in text_tensor_length_list if i > 120),
-# )
+## Analysis of text token length
+text_df_train = load_text_and_score_from_crowdsourcing_results(
+    home_dir,
+    crowdsourcing_results_df_path,
+    save_to_single_csv,
+    augment_text=False,
+    two_scores=False,
+)
+texts = text_df_train["sentence"]
+text_tensor_length_list = []
+for text in texts:
+    extracted_tensor = text_tokenizer(text, return_tensors="pt")
+    text_tensor_length_list.append(len(extracted_tensor.input_ids[0]))
+
+print("Start plotting!")
+df = pd.DataFrame(text_tensor_length_list, columns=["Text Token Length"])
+df.to_csv(os.path.join(home_dir, "plots", "text_token_length.csv"))
+plot_histogram_of_scores(
+    home_dir,
+    text_tensor_length_list,
+    num_bins=10,
+    plot_name="Text Token Length",
+    x_label="Token Length",
+)
+
+print(
+    "number of texts with more than 120 tensors",
+    sum(1 for i in text_tensor_length_list if i > 120),
+)
+
+## Count number of parameters in model
+model = CustomMultiModelSimplePooled()
+# Freezing first 11 layers
+for layer in model.bert.encoder.layer[:11]:
+    for param in layer.parameters():
+        param.requires_grad = False
+
+for layer in model.hubert.encoder.layers[:11]:
+    for param in layer.parameters():
+        param.requires_grad = False
+print(count_parameters(model))

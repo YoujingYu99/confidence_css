@@ -7,8 +7,8 @@ Class AudioDataset: Class that handles the preparation of audio for training.
 Class AudioTextDataset: Class that handles the preparation of both text and
                 audio for training.
 """
+
 import warnings
-from pytorchtools import EarlyStopping
 
 # import pingouin as pg
 import nlpaug.augmenter.word as naw
@@ -28,6 +28,7 @@ import gc
 from torch.optim import Adam
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
+from prettytable import PrettyTable
 import matplotlib.pyplot as plt
 
 from models import *
@@ -118,21 +119,21 @@ def split_to_train_val_test(home_dir):
         home_dir,
         "data_sheets",
         "crowdsourcing_results",
-        "Batch_4799159_batch_results_complete_reject_filtered_numbered_cleaned_train5.csv",
+        "Batch_4799159_batch_results_complete_reject_filtered_numbered_cleaned_train.csv",
     )
 
     crowdsourcing_results_val_df_path = os.path.join(
         home_dir,
         "data_sheets",
         "crowdsourcing_results",
-        "Batch_4799159_batch_results_complete_reject_filtered_numbered_cleaned_val5.csv",
+        "Batch_4799159_batch_results_complete_reject_filtered_numbered_cleaned_val.csv",
     )
 
     crowdsourcing_results_test_df_path = os.path.join(
         home_dir,
         "data_sheets",
         "crowdsourcing_results",
-        "Batch_4799159_batch_results_complete_reject_filtered_numbered_cleaned_test5.csv",
+        "Batch_4799159_batch_results_complete_reject_filtered_numbered_cleaned_test.csv",
     )
 
     total_df = pd.read_csv(crowdsourcing_results_df_path)
@@ -143,61 +144,6 @@ def split_to_train_val_test(home_dir):
     val_df.to_csv(crowdsourcing_results_val_df_path)
     test_df = total_df[4051:]
     test_df.to_csv(crowdsourcing_results_test_df_path)
-
-
-def split_to_train_val_test_many(home_dir):
-    """
-    Split the total crowdsourcing results to train, val and test
-    :param home_dir:
-    :return:
-    """
-    # Path for crowdsourcing results
-    crowdsourcing_results_df_path = os.path.join(
-        home_dir,
-        "data_sheets",
-        "crowdsourcing_results",
-        "Batch_4799159_batch_results_complete_reject_filtered_numbered_cleaned.csv",
-    )
-
-    for i in range(50):
-        crowdsourcing_results_train_df_path = os.path.join(
-            home_dir,
-            "data_sheets",
-            "crowdsourcing_results",
-            "split_tests",
-            "Batch_4799159_batch_results_complete_reject_filtered_numbered_cleaned_train"
-            + str(i)
-            + ".csv",
-        )
-
-        crowdsourcing_results_val_df_path = os.path.join(
-            home_dir,
-            "data_sheets",
-            "crowdsourcing_results",
-            "split_tests",
-            "Batch_4799159_batch_results_complete_reject_filtered_numbered_cleaned_val"
-            + str(i)
-            + ".csv",
-        )
-
-        crowdsourcing_results_test_df_path = os.path.join(
-            home_dir,
-            "data_sheets",
-            "crowdsourcing_results",
-            "split_tests",
-            "Batch_4799159_batch_results_complete_reject_filtered_numbered_cleaned_test"
-            + str(i)
-            + ".csv",
-        )
-
-        total_df = pd.read_csv(crowdsourcing_results_df_path)
-        total_df = total_df.sample(frac=1).reset_index(drop=True)
-        train_df = total_df[:3600]
-        train_df.to_csv(crowdsourcing_results_train_df_path)
-        val_df = total_df[3601:4050]
-        val_df.to_csv(crowdsourcing_results_val_df_path)
-        test_df = total_df[4051:]
-        test_df.to_csv(crowdsourcing_results_test_df_path)
 
 
 class TextDataset(torch.utils.data.Dataset):
@@ -255,7 +201,7 @@ def categorise_score(score):
     return score_cat
 
 
-def test_accuracy(output, actual, absolute):
+def get_accuracy(output, actual, absolute):
     """
     Testify whether the output is accurate.
     :param output: Score tensor output by model.
@@ -319,7 +265,7 @@ def get_icc(output, actual, icc_type="ICC(3,1)"):
         np.dot(np.dot(X, np.linalg.pinv(np.dot(X.T, X))), X.T), Y.flatten("F")
     )
     residuals = Y.flatten("F") - predicted_Y
-    SSE = (residuals ** 2).sum()
+    SSE = (residuals**2).sum()
     MSE = SSE / dfe
 
     # Sum square column effect - between colums
@@ -355,7 +301,7 @@ def get_icc(output, actual, icc_type="ICC(3,1)"):
     return ICC
 
 
-def calculate_mse(output_list, actual_list):
+def get_mse(output_list, actual_list):
     """
     Calculate MSE between two lists.
     :param output_list: Score list output by model.
@@ -366,52 +312,93 @@ def calculate_mse(output_list, actual_list):
     return mse
 
 
-# def get_icc(output, actual):
-#     """
-#     Get intraclass correlation score.
-#     :param output: Score tensor output by model.
-#     :param actual: Actual score tensor.
-#     :return: A floating number of ICC score.
-#     """
-#     output_list = output.tolist()
-#     actual_list = actual.tolist()
-#
-#     # create DataFrame
-#     index_list = list(range(len(output_list)))
-#     index_list_2 = index_list.copy()
-#     index_list_2.extend(index_list)
-#
-#
-#     icc_df = pd.DataFrame(
-#         {
-#             "index": index_list_2,
-#             "rater": ["1"] * len(output_list) + ["2"] * len(actual_list),
-#             "rating": [*output_list, *actual_list],
-#         }
-#     )
-#     # icc_results_df = pg.intraclass_corr(
-#     #     data=icc_df, targets="index", raters="rater", ratings="rating"
-#     # )
-#     # icc_value_df = icc_results_df.loc[icc_results_df.Type == "ICC3k", "ICC"]
-#     # icc_value = icc_value_df.to_numpy()[0]
-#     icc_value = 0
-#     return icc_value
+def get_icc(output, actual):
+    """
+    Get intraclass correlation score.
+    :param output: Score tensor output by model.
+    :param actual: Actual score tensor.
+    :return: A floating number of ICC score.
+    """
+    output_list = output.tolist()
+    actual_list = actual.tolist()
+
+    # create DataFrame
+    index_list = list(range(len(output_list)))
+    index_list_2 = index_list.copy()
+    index_list_2.extend(index_list)
+
+    icc_df = pd.DataFrame(
+        {
+            "index": index_list_2,
+            "rater": ["1"] * len(output_list) + ["2"] * len(actual_list),
+            "rating": [*output_list, *actual_list],
+        }
+    )
+    # icc_results_df = pg.intraclass_corr(
+    #     data=icc_df, targets="index", raters="rater", ratings="rating"
+    # )
+    # icc_value_df = icc_results_df.loc[icc_results_df.Type == "ICC3k", "ICC"]
+    # icc_value = icc_value_df.to_numpy()[0]
+    icc_value = 0
+    return icc_value
 
 
-# class EarlyStopping:
-#     def __init__(self, tolerance=5, min_delta=0):
-#         # tolerance is the number of epochs to continue after deemed saturated
-#         self.tolerance = tolerance
-#         self.min_delta = min_delta
-#         self.counter = 0
-#         self.early_stop = False
-#
-#     def __call__(self, train_loss, validation_loss):
-#         print("val loss - train loss", validation_loss - train_loss)
-#         if (validation_loss - train_loss) > self.min_delta:
-#             self.counter += 1
-#             if self.counter >= self.tolerance:
-#                 self.early_stop = True
+class EarlyStopping:
+    """Early stops the training if validation loss doesn't improve after a given patience. https://github.com/Bjarten/early-stopping-pytorch/blob/master/pytorchtools.py"""
+
+    def __init__(
+        self, patience=7, verbose=False, delta=0, path="checkpoint.pt", trace_func=print
+    ):
+        """
+        Args:
+            patience (int): How long to wait after last time validation loss improved.
+                            Default: 7
+            verbose (bool): If True, prints a message for each validation loss improvement.
+                            Default: False
+            delta (float): Minimum change in the monitored quantity to qualify as an improvement.
+                            Default: 0
+            path (str): Path for the checkpoint to be saved to.
+                            Default: 'checkpoint.pt'
+            trace_func (function): trace print function.
+                            Default: print
+        """
+        self.patience = patience
+        self.verbose = verbose
+        self.counter = 0
+        self.best_score = None
+        self.early_stop = False
+        self.val_loss_min = np.Inf
+        self.delta = delta
+        self.path = path
+        self.trace_func = trace_func
+
+    def __call__(self, val_loss, model):
+
+        score = -val_loss
+
+        if self.best_score is None:
+            self.best_score = score
+            self.save_checkpoint(val_loss, model)
+        elif score < self.best_score + self.delta:
+            self.counter += 1
+            self.trace_func(
+                f"EarlyStopping counter: {self.counter} out of {self.patience}"
+            )
+            if self.counter >= self.patience:
+                self.early_stop = True
+        else:
+            self.best_score = score
+            self.save_checkpoint(val_loss, model)
+            self.counter = 0
+
+    def save_checkpoint(self, val_loss, model):
+        """Saves model when validation loss decrease."""
+        if self.verbose:
+            self.trace_func(
+                f"Validation loss decreased ({self.val_loss_min:.6f} --> {val_loss:.6f}).  Saving model ..."
+            )
+        torch.save(model.state_dict(), self.path)
+        self.val_loss_min = val_loss
 
 
 def train_text(
@@ -513,7 +500,7 @@ def train_text(
                 total_loss_val += val_batch_loss.item()
 
                 # acc = (output.argmax(dim=1) == val_label).sum().item()
-                acc = test_accuracy(val_output, val_label, test_absolute)
+                acc = get_accuracy(val_output, val_label, test_absolute)
                 total_acc_val += acc
 
         model.train()
@@ -533,7 +520,7 @@ def train_text(
 
             # acc = (output.argmax(dim=1) == train_label).sum().item()
 
-            acc = test_accuracy(train_output, train_label, test_absolute)
+            acc = get_accuracy(train_output, train_label, test_absolute)
             total_acc_train += acc
 
             batch_loss.backward()
@@ -628,7 +615,7 @@ def evaluate_text(model, test_data, tokenizer, batch_size, test_absolute):
 
             # acc = (output.argmax(dim=1) == test_label).sum().item()
 
-            acc = test_accuracy(output, test_label, test_absolute)
+            acc = get_accuracy(output, test_label, test_absolute)
             total_acc_test += acc
 
     print(f"Test Accuracy: {total_acc_test / len(test_data): .3f}")
@@ -1184,21 +1171,30 @@ def upsample_training_data(result_df, times):
     unaug_df1 = result_df[:chunk_size]
     unaug_df1.to_csv(
         os.path.join(
-            "/home", "yyu", "data_sheets", "audio_text_upsampled_unaugmented1.csv",
+            "/home",
+            "yyu",
+            "data_sheets",
+            "audio_text_upsampled_unaugmented1.csv",
         )
     )
 
     unaug_df2 = result_df[chunk_size + 1 : chunk_size * 2]
     unaug_df2.to_csv(
         os.path.join(
-            "/home", "yyu", "data_sheets", "audio_text_upsampled_unaugmented2.csv",
+            "/home",
+            "yyu",
+            "data_sheets",
+            "audio_text_upsampled_unaugmented2.csv",
         )
     )
 
     unaug_df3 = result_df[chunk_size * 2 :]
     unaug_df3.to_csv(
         os.path.join(
-            "/home", "yyu", "data_sheets", "audio_text_upsampled_unaugmented3.csv",
+            "/home",
+            "yyu",
+            "data_sheets",
+            "audio_text_upsampled_unaugmented3.csv",
         )
     )
 
@@ -1576,7 +1572,10 @@ def load_audio_text_and_score_from_crowdsourcing_results(
             segment_name + ".csv",
         )
         audio_path = os.path.join(
-            home_dir, "extracted_audios", str(folder_number), segment_name + ".mp3",
+            home_dir,
+            "extracted_audios",
+            str(folder_number),
+            segment_name + ".mp3",
         )
         # Only proceed if file exists
         if os.path.isfile(total_df_path):
@@ -1631,7 +1630,10 @@ def load_audio_text_and_score_from_crowdsourcing_results(
 
 
 def generate_train_data_from_crowdsourcing_results(
-    home_dir, crowdsourcing_results_df_path, augment_audio, two_scores,
+    home_dir,
+    crowdsourcing_results_df_path,
+    augment_audio,
+    two_scores,
 ):
     """
     Load the audio arrays, text and user scores from the csv files.
@@ -1662,7 +1664,10 @@ def generate_train_data_from_crowdsourcing_results(
             segment_name + ".csv",
         )
         audio_path = os.path.join(
-            home_dir, "extracted_audios", str(folder_number), segment_name + ".mp3",
+            home_dir,
+            "extracted_audios",
+            str(folder_number),
+            segment_name + ".mp3",
         )
         # Only proceed if file exists
         if os.path.isfile(total_df_path):
@@ -1990,7 +1995,7 @@ def train_select_features(
 
             # acc = (output.argmax(dim=1) == train_label).sum().item()
 
-            acc = test_accuracy(output, train_label, test_absolute)
+            acc = get_accuracy(output, train_label, test_absolute)
             total_acc_train += acc
 
             batch_loss.backward()
@@ -2011,7 +2016,7 @@ def train_select_features(
 
                 # acc = (output.argmax(dim=1) == val_label).sum().item()
 
-                acc = test_accuracy(output, val_label, test_absolute)
+                acc = get_accuracy(output, val_label, test_absolute)
                 total_acc_val += acc
 
             # early stopping
@@ -2070,7 +2075,7 @@ def evaluate_select_features(
 
             # acc = (output.argmax(dim=1) == test_label).sum().item()
 
-            acc = test_accuracy(output, test_label, test_absolute)
+            acc = get_accuracy(output, test_label, test_absolute)
             total_acc_test += acc
 
     print(f"Test Accuracy: {total_acc_test / len(test_data): .3f}")
@@ -2305,7 +2310,7 @@ def train_audio(
                 total_loss_val += val_batch_loss.item()
 
                 # acc = (output.argmax(dim=1) == val_label).sum().item()
-                acc = test_accuracy(val_output, val_label, test_absolute)
+                acc = get_accuracy(val_output, val_label, test_absolute)
                 total_acc_val += acc
 
         model.train()
@@ -2330,7 +2335,7 @@ def train_audio(
 
             # acc = (output.argmax(dim=1) == train_label).sum().item()
 
-            acc = test_accuracy(train_output, train_label, test_absolute)
+            acc = get_accuracy(train_output, train_label, test_absolute)
             total_acc_train += acc
 
             batch_loss.backward()
@@ -2430,7 +2435,7 @@ def evaluate_audio(
 
             # acc = (output.argmax(dim=1) == test_label).sum().item()
 
-            acc = test_accuracy(output, test_label, test_absolute)
+            acc = get_accuracy(output, test_label, test_absolute)
             total_acc_test += acc
 
     print(f"Test Accuracy: {total_acc_test / len(test_data): .3f}")
@@ -2632,7 +2637,7 @@ class AudioTextDataset(torch.utils.data.Dataset):
 #
 #         # acc = (output.argmax(dim=1) == train_label).sum().item()
 #
-#         acc = test_accuracy(output, label, absolute=True)
+#         acc = get_accuracy(output, label, absolute=True)
 #         total_acc += acc
 #
 #         if train_phase:
@@ -2684,7 +2689,7 @@ def train_audio_text_handler_model(label, input, device, model, criterion):
 
     # acc = (output.argmax(dim=1) == train_label).sum().item()
 
-    acc = test_accuracy(output, label, absolute=True)
+    acc = get_accuracy(output, label, absolute=True)
 
     return acc, batch_loss, output, label
 
@@ -3137,7 +3142,6 @@ def train_audio_text_ablation(
         torch.cuda.empty_cache()
 
 
-
 def append_to_list(output, label, output_list, label_list):
     """
     Append output score and label scores into the lists.
@@ -3181,11 +3185,21 @@ def save_training_results(
     :return: Save results to a csv.
     """
     list_of_tuples_loss_acc = list(
-        zip(train_loss_list, train_acc_list, val_loss_list, val_acc_list,)
+        zip(
+            train_loss_list,
+            train_acc_list,
+            val_loss_list,
+            val_acc_list,
+        )
     )
     loss_acc_df = pd.DataFrame(
         list_of_tuples_loss_acc,
-        columns=["Train Loss", "Train Acc", "Val Loss", "Val Acc",],
+        columns=[
+            "Train Loss",
+            "Train Acc",
+            "Val Loss",
+            "Val Acc",
+        ],
     )
 
     loss_acc_df.to_csv(
@@ -3201,11 +3215,21 @@ def save_training_results(
     )
 
     list_of_tuples_output = list(
-        zip(train_output_list, train_label_list, val_output_list, val_label_list,)
+        zip(
+            train_output_list,
+            train_label_list,
+            val_output_list,
+            val_label_list,
+        )
     )
     loss_acc_df = pd.DataFrame(
         list_of_tuples_output,
-        columns=["Train Output", "Train Label", "Val Output", "Val Label",],
+        columns=[
+            "Train Output",
+            "Train Label",
+            "Val Output",
+            "Val Label",
+        ],
     )
 
     loss_acc_df.to_csv(
@@ -3247,11 +3271,21 @@ def save_ablation_training_results(
     :return: Save results to a csv.
     """
     list_of_tuples_loss_acc = list(
-        zip(train_loss_list, train_acc_list, val_loss_list, val_acc_list,)
+        zip(
+            train_loss_list,
+            train_acc_list,
+            val_loss_list,
+            val_acc_list,
+        )
     )
     loss_acc_df = pd.DataFrame(
         list_of_tuples_loss_acc,
-        columns=["Train Loss", "Train Acc", "Val Loss", "Val Acc",],
+        columns=[
+            "Train Loss",
+            "Train Acc",
+            "Val Loss",
+            "Val Acc",
+        ],
     )
 
     loss_acc_df.to_csv(
@@ -3267,11 +3301,21 @@ def save_ablation_training_results(
     )
 
     list_of_tuples_output = list(
-        zip(train_output_list, train_label_list, val_output_list, val_label_list,)
+        zip(
+            train_output_list,
+            train_label_list,
+            val_output_list,
+            val_label_list,
+        )
     )
     loss_acc_df = pd.DataFrame(
         list_of_tuples_output,
-        columns=["Train Output", "Train Label", "Val Output", "Val Label",],
+        columns=[
+            "Train Output",
+            "Train Label",
+            "Val Output",
+            "Val Label",
+        ],
     )
 
     loss_acc_df.to_csv(
@@ -3399,17 +3443,22 @@ def evaluate_audio_text(
 
             # Append results to the train lists
             output_list, label_list = append_to_list(
-                output.cpu(), test_label.cpu(), output_list, label_list,
+                output.cpu(),
+                test_label.cpu(),
+                output_list,
+                label_list,
             )
 
             # acc = (output.argmax(dim=1) == test_label).sum().item()
 
-            acc = test_accuracy(output, test_label, test_absolute)
+            acc = get_accuracy(output, test_label, test_absolute)
             total_acc_test += acc
 
     plot_name = str(model_name) + "_" + str("total") + "_"
     save_eval_results(
-        output_list, label_list, plot_name,
+        output_list,
+        label_list,
+        plot_name,
     )
     print(f"Test Accuracy: {total_acc_test / len(test_data): .3f}")
 
@@ -3482,23 +3531,30 @@ def evaluate_audio_text_ablation(
 
             # Append results to the train lists
             output_list, label_list = append_to_list(
-                output.cpu(), test_label.cpu(), output_list, label_list,
+                output.cpu(),
+                test_label.cpu(),
+                output_list,
+                label_list,
             )
 
             # acc = (output.argmax(dim=1) == test_label).sum().item()
 
-            acc = test_accuracy(output, test_label, test_absolute)
+            acc = get_accuracy(output, test_label, test_absolute)
             total_acc_test += acc
 
     plot_name = str(model_name) + "_" + str(type) + "_"
     save_eval_results(
-        output_list, label_list, plot_name,
+        output_list,
+        label_list,
+        plot_name,
     )
     print(f"Test Accuracy: {total_acc_test / len(test_data): .5f}")
 
 
 def save_eval_results(
-    output_list, label_list, plot_name,
+    output_list,
+    label_list,
+    plot_name,
 ):
     """
     Save the results from model training.
@@ -3509,10 +3565,39 @@ def save_eval_results(
     """
     list_of_tuples_output = list(zip(output_list, label_list))
     loss_acc_df = pd.DataFrame(
-        list_of_tuples_output, columns=["Val Output", "Val Label"],
+        list_of_tuples_output,
+        columns=["Val Output", "Val Label"],
     )
 
     loss_acc_df.to_csv(
-        os.path.join("/home", "yyu", "plots", "ablation", plot_name + "output.csv",),
+        os.path.join(
+            "/home",
+            "yyu",
+            "plots",
+            "ablation",
+            plot_name + "output.csv",
+        ),
         index=False,
     )
+
+
+def count_parameters(model):
+    """
+    Print parameter names and layers and count the total number of
+    parameters.
+    :param model: The name of the deep learning model.
+    :return: The total number of parameters as integer.
+    """
+    table = PrettyTable(["Modules", "Parameters"])
+    total_params = 0
+
+    for name, parameter in model.named_parameters():
+        if not parameter.requires_grad:
+            continue
+        param = parameter.numel()
+        table.add_row([name, param])
+        total_params += param
+
+    print(table)
+    print(f"Total Trainable Params: {total_params}")
+    return total_params

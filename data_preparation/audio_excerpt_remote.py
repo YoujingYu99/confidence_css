@@ -1,7 +1,7 @@
 """Extract audio segments from their parent audio files.
 
 This script uses information on the questions from the csv file to extract
-short audio segments from the parent audio files.
+short audio segments from the parent audio files. 
 """
 
 from data_preparation_utils import *
@@ -24,8 +24,6 @@ audio_path = os.path.join(
     "podcasts-audio",
     str(folder_number),
 )
-
-
 
 
 # Output path

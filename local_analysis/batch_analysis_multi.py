@@ -1,19 +1,31 @@
 """Analyse the batch results."""
+
 import os
 from batch_dataframe_container import *
 
 home_dir = os.path.join("/home", "yyu")
+# csv_path = os.path.join(
+#     home_dir,
+#     "data_sheets",
+#     "crowdsourcing_results",
+#     "Batch_4799159_batch_results_complete.csv",
+# )
+# samples_benchmark_csv_path = os.path.join(
+#     home_dir,
+#     "data_sheets",
+#     "crowdsourcing_results",
+#     "Samples_Benchmark_200_Marked.csv",
+#     "Benchmark_Samples.csv",
+# )
 csv_path = os.path.join(
     home_dir,
-    "data_sheets",
-    "crowdsourcing_results",
-    "Batch_4799159_batch_results_complete.csv",
+    "Label_Results",
+    "Complete_Results.csv",
 )
 samples_benchmark_csv_path = os.path.join(
     home_dir,
-    "data_sheets",
-    "crowdsourcing_results",
-    "Samples_Benchmark_200_Marked.csv",
+    "Label_Results",
+    "Benchmark_Samples.csv",
 )
 
 
@@ -59,8 +71,6 @@ print("batch std", batch_std)
 print("batch max", batch_max)
 print("batch min", batch_min)
 
-
-# not cat: icc, fleiss, kendall
 
 original_results.get_stats_per_worker(dataframe=original_results.dataframe_numbered)
 original_results.get_stats_per_audio(dataframe=original_results.dataframe_numbered)

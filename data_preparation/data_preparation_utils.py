@@ -2,11 +2,9 @@
 extract audio segments from their parent audio files.
 """
 
-import json
 import os
 import pandas as pd
 import numpy as np
-from containers import *
 from pydub import AudioSegment
 from pydub.utils import which
 import xml.etree.ElementTree as ET
@@ -90,6 +88,7 @@ def extract_segments(df, ogg_files, audio_path, excerpt_output_path):
                 str(ogg_file_up_list[ogg_index]),
                 audio_name,
             )
+            # Add start time at the end of the name
             audio_excerpt_name = (
                 str(ogg_file_sub_list[ogg_index])
                 + "_"
@@ -123,8 +122,6 @@ def extract_all_audios(csv_path, audio_path, excerpt_output_path):
     :param excerpt_output_path: Output path for audio segments extracted.
     """
     df = read_data(csv_path)
-    # ogg_files = [f for f in os.listdir(audio_path) if
-    #              os.path.isfile(os.path.join(audio_path, f)) and f.endswith('.ogg')]
     ogg_files = extract_all_audio_path(audio_path)
     extract_segments(df, ogg_files, audio_path[0], excerpt_output_path)
     print("Extraction finished!")
@@ -474,7 +471,11 @@ def extract_complete_dataframe(home_dir, folder_number, folder_path_list):
     :return: Complete pandas dataframe containing the start times, end times and sentences.
     """
     rss_folder_dir = os.path.join(
-        home_dir, "data", "Spotify-Podcasts", "podcasts-no-audio-13GB", "show-rss",
+        home_dir,
+        "data",
+        "Spotify-Podcasts",
+        "podcasts-no-audio-13GB",
+        "show-rss",
     )
     file_path_list = json_path_in_dir(folder_path_list)
     small_dfs = []
