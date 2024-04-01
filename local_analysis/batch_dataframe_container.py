@@ -1,4 +1,5 @@
 """Container for the analysis on results in batches."""
+
 import numpy as np
 import pandas as pd
 import seaborn as sns
@@ -44,6 +45,7 @@ class BatchResultsDataframe:
         # self.batch_dataframe = pd.read_csv(csv_path)
         # If second / third time
         self.original_batch_dataframe = pd.read_csv(csv_path)
+        # if still in the process of filtering and rejecting work
         if in_progress:
             self.batch_dataframe = self.original_batch_dataframe[
                 self.original_batch_dataframe["AssignmentStatus"] == "Submitted"
@@ -67,12 +69,8 @@ class BatchResultsDataframe:
         self.hard_rule = hard_rule
 
         # Get dataframes after rejection and filtering
-        # self.dataframe_reject = self.reject_wrong_answers()
         self.dataframe_reject = self.reject_wrong_workers()
         self.dataframe_filter = self.filter_invalid_audios()
-        # self.dataframe_norm = self.normalise_scores_same_mean_std(
-        #     with_std=normalise_with_std
-        # )
         self.dataframe_numbered = self.keep_number_const()
         self.dataframe_clean = self.clean_up_results()
 
@@ -137,19 +135,18 @@ class BatchResultsDataframe:
                     answer_question_verify = WorkerId_df.loc[
                         WorkerId_df[audio_url_tag] == audio_url, question_verify_tag
                     ].values[0]
-                    true_speaker_number_verify = self.samples_benchmark_marked_dataframe.loc[
-                        self.samples_benchmark_marked_dataframe.audio_url == audio_url,
-                        "Answer.speakerNumberVerify",
-                    ].values[
-                        0
-                    ]
+                    true_speaker_number_verify = (
+                        self.samples_benchmark_marked_dataframe.loc[
+                            self.samples_benchmark_marked_dataframe.audio_url
+                            == audio_url,
+                            "Answer.speakerNumberVerify",
+                        ].values[0]
+                    )
                     answer_speaker_number_verify = WorkerId_df.loc[
                         WorkerId_df[audio_url_tag] == audio_url,
                         speaker_number_verify_tag,
                     ].values[0]
                     # If the answer is wrong
-                    # print(answer_question_verify, true_question_verify)
-                    # print(answer_speaker_number_verify, true_speaker_number_verify)
                     if answer_question_verify != true_question_verify:
                         wrong_answer_count += 1
                     if answer_speaker_number_verify != true_speaker_number_verify:
@@ -161,9 +158,9 @@ class BatchResultsDataframe:
                 rate_wrong_answers = 1
             # Reject if more than threshold of answers are wrong for the first few rounds
             if rate_wrong_answers > self.wrong_answer_threshold:
-                batch_dataframe.loc[
-                    batch_dataframe.WorkerId == WorkerId, "Reject"
-                ] = self.rejection_message
+                batch_dataframe.loc[batch_dataframe.WorkerId == WorkerId, "Reject"] = (
+                    self.rejection_message
+                )
         # Approve the rest of the workers
         batch_dataframe.loc[batch_dataframe.Reject.isnull(), "Approve"] = "x"
 
@@ -242,16 +239,6 @@ class BatchResultsDataframe:
                     ):
                         wrong_question_type_count += 1
                         not_question_audio_url_list.append(audio_url)
-                        # # If more than 2 answers present:
-                        # if len(question_identity_list) > 2:
-                        #     # If the majority do not think this is a question
-                        #     if question_identity_list.count(False) > self.answer_majority_rule_threshold:
-                        #         wrong_question_type_count += 1
-                        #         not_question_audio_url_list.append(audio_url)
-                        # # If 1 or 2 answers present, discard the sample
-                        # else:
-                        #     wrong_question_type_count += 1
-                        #     not_question_audio_url_list.append(audio_url)
 
                 # Disagreement of whether multiple speakers
                 speaker_number_verify_tag = (
@@ -274,16 +261,6 @@ class BatchResultsDataframe:
                     ):
                         wrong_speaker_number_count += 1
                         multiple_speaker_audio_url_list.append(audio_url)
-                    # # If more than 2 answers present:
-                    # if len(multiple_speakers_list) > 2:
-                    #     # If the majority think there are more than 1 speakers
-                    #     if multiple_speakers_list.count(True) > self.answer_majority_rule_threshold:
-                    #         wrong_speaker_number_count += 1
-                    #         multiple_speaker_audio_url_list.append(audio_url)
-                    # # If 1 or 2 answers present, discard the sample
-                    # else:
-                    #     wrong_question_type_count += 1
-                    #     multiple_speaker_audio_url_list.append(audio_url)
 
         final_df = batch_dataframe_after_rejection.copy()
         # Print urls of rejected audios
@@ -314,13 +291,6 @@ class BatchResultsDataframe:
                 final_df[score_tag][mask] = np.nan
                 final_df[question_verify_tag][mask] = np.nan
                 final_df[speaker_number_verify_tag][mask] = np.nan
-                # final_df.loc[final_df[audio_url_tag] == np.nan, score_tag] = "Rejected"
-                # final_df.loc[
-                #     final_df[audio_url_tag] == np.nan, question_verify_tag
-                # ] = np.nan
-                # final_df.loc[
-                #     final_df[audio_url_tag] == np.nan, speaker_number_verify_tag
-                # ] = np.nan
 
         saved_csv_name = self.csv_name + "_reject" + "_filtered" + ".csv"
         final_df.to_csv(saved_csv_name, index=False)
@@ -344,7 +314,8 @@ class BatchResultsDataframe:
             str(1 - count / num_assignments),
         )
         print(
-            "Percentage of final data retained:", str(count / num_assignments),
+            "Percentage of final data retained:",
+            str(count / num_assignments),
         )
         print(
             "Percentage of final data retained compared to initially:",
@@ -673,13 +644,22 @@ class BatchResultsDataframe:
         :return: A list of kendall coefficients.
         """
         kendall_coefficient_list = []
-        kendall_tau_1, _ = kendalltau(first_worker, second_worker,)
+        kendall_tau_1, _ = kendalltau(
+            first_worker,
+            second_worker,
+        )
         kendall_coefficient_list.append(kendall_tau_1)
 
-        kendall_tau_2, _ = kendalltau(first_worker, third_worker,)
+        kendall_tau_2, _ = kendalltau(
+            first_worker,
+            third_worker,
+        )
         kendall_coefficient_list.append(kendall_tau_2)
 
-        kendall_tau_3, _ = kendalltau(second_worker, third_worker,)
+        kendall_tau_3, _ = kendalltau(
+            second_worker,
+            third_worker,
+        )
         kendall_coefficient_list.append(kendall_tau_3)
         return kendall_coefficient_list
 
@@ -692,13 +672,22 @@ class BatchResultsDataframe:
         :return: A list of spearman coefficients.
         """
         spearman_coefficient_list = []
-        spearman_rho_1, _ = spearmanr(first_worker, second_worker,)
+        spearman_rho_1, _ = spearmanr(
+            first_worker,
+            second_worker,
+        )
         spearman_coefficient_list.append(spearman_rho_1)
 
-        spearman_rho_2, _ = spearmanr(first_worker, third_worker,)
+        spearman_rho_2, _ = spearmanr(
+            first_worker,
+            third_worker,
+        )
         spearman_coefficient_list.append(spearman_rho_2)
 
-        spearman_rho_3, _ = spearmanr(second_worker, third_worker,)
+        spearman_rho_3, _ = spearmanr(
+            second_worker,
+            third_worker,
+        )
         return spearman_coefficient_list
 
     def get_pearson_coefficient(self, first_worker, second_worker, third_worker):
@@ -711,13 +700,22 @@ class BatchResultsDataframe:
         """
         pearson_coefficient_list = []
         # Calculate Pearson's coefficient
-        pearson_r_1, _ = pearsonr(first_worker, second_worker,)
+        pearson_r_1, _ = pearsonr(
+            first_worker,
+            second_worker,
+        )
         pearson_coefficient_list.append(pearson_r_1)
 
-        pearson_r_2, _ = pearsonr(first_worker, third_worker,)
+        pearson_r_2, _ = pearsonr(
+            first_worker,
+            third_worker,
+        )
         pearson_coefficient_list.append(pearson_r_2)
 
-        pearson_r_3, _ = pearsonr(second_worker, third_worker,)
+        pearson_r_3, _ = pearsonr(
+            second_worker,
+            third_worker,
+        )
         pearson_coefficient_list.append(pearson_r_3)
         return pearson_coefficient_list
 

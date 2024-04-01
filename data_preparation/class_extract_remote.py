@@ -3,11 +3,12 @@
 This script finds the questions from json transcripts and gather all
 information in a csv file.
 """
+
 from data_preparation_utils import *
 
 folder_number = 0
 
-home_dir = os.path.join("/home", "yyu")
+home_dir = ""
 file_dir = os.path.join(
     home_dir,
     "data",

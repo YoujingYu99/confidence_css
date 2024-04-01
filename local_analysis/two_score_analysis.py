@@ -299,13 +299,13 @@ class TwoScoreResultsDataframe:
         plt.savefig(save_path)
 
 
-home_dir = os.path.join("/home", "yyu")
+home_dir = os.path.join("/home", "youjing", "PersonalProjects", "confidence_css")
 csv_path = os.path.join(
     home_dir,
-    "data_sheets",
-    "crowdsourcing_results",
-    "Batch_4799159_batch_results_complete_reject_filtered_numbered_cleaned.csv",
+    "data",
+    "Cleaned_Results_Removed.csv",
 )
+
 
 original_df = TwoScoreResultsDataframe(csv_path)
 

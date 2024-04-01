@@ -7,45 +7,29 @@ import pandas as pd
 from model_utils import *
 
 
-home_dir = os.path.join("/home", "yyu")
+# home_dir is the location of folder
+home_dir = os.path.join("/home", "youjing", "PersonalProjects", "confidence_css")
+folder_path = os.path.join(home_dir, "data", "label_results")
+
 # test dataset is the same as the human df.
 crowdsourcing_results_test_df_path = os.path.join(
-    home_dir,
-    "data_sheets",
-    "crowdsourcing_results",
-    "Batch_4799159_batch_results_complete_reject_filtered_numbered_cleaned_test.csv",
+    folder_path,
+    "Cleaned_Results_Eval.csv",
 )
-
-# crowdsourcing_results_test_df_path = os.path.join(
-#     home_dir,
-#     "label_results",
-#     "Cleaned_Results_Eval.csv",
-# )
-
 
 human_df = pd.read_csv(
     os.path.join(
-        home_dir,
-        "data_sheets",
-        "crowdsourcing_results",
-        "Batch_4799159_batch_results_complete_reject_filtered_numbered_cleaned_test_yyu.csv",
+        folder_path,
+        "Human_Labels.csv",
     )
 )
-
-# human_df = pd.read_csv(
-#     os.path.join(
-#         home_dir,
-#         "label_results",
-#         "Human_Labels.csv",
-#     )
-# )
-
+# Specify path to outputs by the model
 model_output_df = pd.read_csv(
     os.path.join(
         home_dir,
         "plots",
         "training_csv",
-        "multi_upsample_three_augment_audio_output_label.csv",
+        ".csv",
     )
 )
 

@@ -9,7 +9,7 @@ import os
 import random
 import math
 
-home_dir = os.path.join("/home", "yyu")
+home_dir = ""
 benchmark_url_df = pd.read_csv(
     os.path.join(home_dir, "data_sheets", "sw3_urls", "Benchmark_Samples.csv")
 )

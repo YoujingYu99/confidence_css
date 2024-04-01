@@ -17,27 +17,23 @@ test_absolute = True
 audio_feature_extractor = AutoFeatureExtractor.from_pretrained("facebook/wav2vec2-base")
 text_tokenizer = BertTokenizer.from_pretrained("bert-base-cased")
 
-# home_dir is the location of script
-home_dir = os.path.join("/home", "yyu")
+# home_dir is the location of folder
+home_dir = os.path.join("/home", "youjing", "PersonalProjects", "confidence_css")
+folder_path = os.path.join(home_dir, "data", "label_results")
 
 # Path for crowdsourcing results
 crowdsourcing_results_train_df_path = os.path.join(
-    home_dir,
-    "data_sheets",
-    "crowdsourcing_results",
-    "Batch_4799159_batch_results_complete_reject_filtered_numbered_cleaned_train.csv",
+    folder_path,
+    "Cleaned_Results_Train.csv",
 )
 crowdsourcing_results_val_df_path = os.path.join(
     home_dir,
-    "data_sheets",
-    "crowdsourcing_results",
-    "Batch_4799159_batch_results_complete_reject_filtered_numbered_cleaned_val.csv",
+    "Cleaned_Results_eval.csv",
 )
+# This must be the same as the human label dataset!
 crowdsourcing_results_test_df_path = os.path.join(
     home_dir,
-    "data_sheets",
-    "crowdsourcing_results",
-    "Batch_4799159_batch_results_complete_reject_filtered_numbered_cleaned_test.csv",
+    "Cleaned_Results_Test.csv",
 )
 
 
@@ -98,10 +94,9 @@ train_audio_text_ablation(
 
 # # Reload from checkpoint for evaluation
 # checkpoint_path = os.path.join(
-#     "/home",
-#     "yyu",
+#     home_dir,
 #     "model_checkpoints_ablation",
-#     "upsample_augment_three_layersfirst_ele_1e-07_text_" + "_checkpoint.pt",
+#     "" + "_checkpoint.pt",
 # )
 # # load the last checkpoint with the best model
 # model.load_state_dict(torch.load(checkpoint_path), strict=False)
@@ -115,7 +110,7 @@ train_audio_text_ablation(
 #     vectorise,
 #     test_absolute,
 #     type="text",
-#     model_name="upsample_augment_three_layersfirst_ele_1e-07_text_",
+#     model_name="",
 # )
 
 ## Audio ablation: zero audio tokens and use text only
@@ -140,10 +135,9 @@ train_audio_text_ablation(
 
 # # Reload from checkpoint for evaluation
 # checkpoint_path = os.path.join(
-#     "/home",
-#     "yyu",
+#     home_dir,
 #     "model_checkpoints_ablation",
-#     "upsample_augment_three_layersfirst_ele_1e-07_audio_" + "_checkpoint.pt",
+#     "" + "_checkpoint.pt",
 # )
 
 # model.load_state_dict(torch.load(checkpoint_path), strict=False)
@@ -157,5 +151,5 @@ train_audio_text_ablation(
 #     vectorise,
 #     test_absolute,
 #     type="audio",
-#     model_name="upsample_augment_three_layersfirst_ele_1e-07_audio_",
+#     model_name="",
 # )

@@ -10,7 +10,7 @@ from data_preparation_utils import *
 folder_number = 7
 dataframe_name = "confidence_dataframe_" + str(folder_number) + ".csv"
 
-home_dir = os.path.join("/home", "yyu")
+home_dir = ""
 # Get datasheet path
 csv_path = os.path.join(
     home_dir, "data_sheets", "confidence_dataframes", dataframe_name

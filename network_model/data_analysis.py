@@ -21,16 +21,13 @@ vectorise = True
 audio_feature_extractor = AutoFeatureExtractor.from_pretrained("facebook/wav2vec2-base")
 text_tokenizer = BertTokenizer.from_pretrained("bert-base-cased")
 
-# home_dir is the location of script
-home_dir = os.path.join("/home", "yyu")
-featuers_folder_path_dir = os.path.join(home_dir, "data_sheets", "features")
-
-# Path for crowdsourcing results;
-crowdsourcing_results_df_path = os.path.join(
-    home_dir,
-    "data_sheets",
-    "crowdsourcing_results",
-    "Batch_4799159_batch_results_complete_reject_filtered_numbered_cleaned_train.csv",
+# home_dir is the location of folder
+home_dir = os.path.join("/home", "youjing", "PersonalProjects", "confidence_css")
+folder_path = os.path.join(home_dir, "data", "label_results")
+# Path for crowdsourcing results
+crowdsourcing_results_train_df_path = os.path.join(
+    folder_path,
+    "Cleaned_Results_Train.csv",
 )
 
 
@@ -38,7 +35,7 @@ print("start of application!")
 
 audio_df_train = load_audio_and_score_from_crowdsourcing_results(
     home_dir,
-    crowdsourcing_results_df_path,
+    crowdsourcing_results_train_df_path,
     save_to_single_csv,
     augment_audio=False,
     two_scores=False,
@@ -60,7 +57,7 @@ plot_histogram_of_scores(
 ## Analysis of audio token length
 audio_df_train = load_audio_and_score_from_crowdsourcing_results(
     home_dir,
-    crowdsourcing_results_df_path,
+    crowdsourcing_results_train_df_path,
     save_to_single_csv,
     augment_audio=False,
     two_scores=False,
@@ -99,7 +96,7 @@ plot_histogram_of_scores(
 ## Analysis of text token length
 text_df_train = load_text_and_score_from_crowdsourcing_results(
     home_dir,
-    crowdsourcing_results_df_path,
+    crowdsourcing_results_train_df_path,
     save_to_single_csv,
     augment_text=False,
     two_scores=False,
